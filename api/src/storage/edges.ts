@@ -98,7 +98,7 @@ async function validateEdge(
 
     // C-10: cross-type edge id uniqueness — result already in rec.
     if (rec?.get("idCollision") === true) {
-      throw new ValidationError("id_conflict", { id: input.id });
+      throw new ValidationError("id_conflict", { id: input.id }, 409);
     }
 
     return { fromLabel, toLabel };
@@ -145,7 +145,7 @@ export async function createEdge(
     return deserializeEdge(input.type, result.records[0]!);
   } catch (e) {
     if (isConstraintViolation(e)) {
-      throw new ValidationError("id_conflict", { id, type: input.type });
+      throw new ValidationError("id_conflict", { id, type: input.type }, 409);
     }
     throw e;
   } finally {

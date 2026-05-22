@@ -19,9 +19,18 @@ import {
   readJson,
 } from "./_helpers";
 
+// graph-core's contract (per its FR-06 / AC-05) is `400 unknown_label`
+// when the URL `:label` segment doesn't resolve to a registered node
+// label — NOT `404 not_found`. The distinction matters because /nodes/:label
+// is a class endpoint (the label is a request validation concern), not
+// a resource endpoint (where 404 would be right). The ontology-manager
+// routes use 404 for their `:name` segments because there the segment
+// IS the resource identifier. Two valid REST conventions; we keep the
+// historical graph-core contract here.
+
 export async function handleNodePost(req: Request, labelParam: string): Promise<Response> {
   const label = await parseRegistryLabel(labelParam);
-  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
+  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
   const body = await readJson(req);
   const input = parseOrThrow(nodeCreateSchema, body);
   const node = await createNode(getDriver(), label, input);
@@ -30,7 +39,7 @@ export async function handleNodePost(req: Request, labelParam: string): Promise<
 
 export async function handleNodeGet(_req: Request, labelParam: string, idParam: string): Promise<Response> {
   const label = await parseRegistryLabel(labelParam);
-  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
+  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const node = await getNode(getDriver(), label, id);
@@ -39,7 +48,7 @@ export async function handleNodeGet(_req: Request, labelParam: string, idParam: 
 
 export async function handleNodePatch(req: Request, labelParam: string, idParam: string): Promise<Response> {
   const label = await parseRegistryLabel(labelParam);
-  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
+  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const body = await readJson(req);
@@ -50,7 +59,7 @@ export async function handleNodePatch(req: Request, labelParam: string, idParam:
 
 export async function handleNodeDelete(req: Request, labelParam: string, idParam: string): Promise<Response> {
   const label = await parseRegistryLabel(labelParam);
-  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
+  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const cascade = new URL(req.url).searchParams.get("cascade") === "true";

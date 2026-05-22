@@ -207,6 +207,13 @@ export function getOpenApiDoc(): object {
       400: { description: "invalid_payload | unknown_label | query_timeout", content: { "application/json": { schema: errorEnvelopeSchema } } },
     },
   });
+  registry.registerPath({
+    method: "get", path: "/api/v1/openapi.json",
+    description: "FR-16 — the v1 contract as a self-describing OpenAPI 3.1 document. Generated at server boot from the same zod definitions used at runtime; no hand-maintained copy.",
+    responses: {
+      200: { description: "OpenAPI 3.1 document for /api/v1" },
+    },
+  });
 
   const generator = new OpenApiGeneratorV31(registry.definitions);
   return generator.generateDocument({

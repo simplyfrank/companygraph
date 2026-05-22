@@ -116,7 +116,7 @@ export async function createNode(
     return deserializeNode(label, result.records[0]!.get("n") as Parameters<typeof deserializeNode>[1]);
   } catch (e) {
     if (isConstraintViolation(e)) {
-      throw new ValidationError("id_conflict", { id, label });
+      throw new ValidationError("id_conflict", { id, label }, 409);
     }
     throw e;
   } finally {
@@ -263,8 +263,14 @@ export async function deleteNode(
        RETURN n IS NOT NULL AS exists, count(r) AS edgeCount`,
       { id },
     );
-    const row = check.records[0]!;
-    if (!row.get("exists")) throw new ValidationError("not_found", { label, id }, 404);
+    // Cypher with no matching node returns zero records — handle that as
+    // not_found rather than crashing on `row.get` (the previous shape
+    // assumed `MATCH` always produced a row, which is only true when the
+    // node exists).
+    const row = check.records[0];
+    if (!row || !row.get("exists")) {
+      throw new ValidationError("not_found", { label, id }, 404);
+    }
     const edgeCount = row.get("edgeCount") as number;
     if (edgeCount > 0) {
       throw new ValidationError(
