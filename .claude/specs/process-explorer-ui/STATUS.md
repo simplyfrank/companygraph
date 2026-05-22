@@ -144,3 +144,14 @@
 1. Requirements gate (this spec) — user approval, then large-spec review pass via the spec-review sub-agent.
 2. Coordinate the `graph-core` amendment for the new `/api/v1/query/search` helper BEFORE this spec's design phase opens (or block design with a placeholder).
 3. After approval → design phase, which must resolve the 10 open questions above + pick the canvas library.
+
+## Incoming contract evolutions
+
+**From `ontology-manager` (landing-task: `T-09b`, shipped 2026-05-23)** — `graph-core/FR-11`'s `/api/v1/stats` shape evolves from "six fixed keys for the six base node labels + six fixed keys for the six base edge types" to a **registry-driven keyset**:
+
+- **Before**: `{ nodes: { Domain, UserJourney, Activity, Role, System, Location }, edges: { PART_OF, EXECUTES, USES_SYSTEM, AT_LOCATION, PRECEDES, INTEGRATES_WITH } }` — every key always present, value ≥ 0.
+- **After** (current): same six base labels + types are still always present (seeded by `seedRegistryFromConstTuples`), **PLUS any labels/types registered at runtime via `POST /api/v1/ontology/{node-labels,edge-types}`**. The "all keys present even when zero" guarantee still holds, but the keyset is now variable.
+
+**Impact on `process-explorer-ui`**: the XC-1.2 stats panel (and any consumer iterating `Object.keys(stats.nodes)`) needs to expect a growing keyset rather than the fixed six-key shape. Recommended approach: render the six seed labels in their canonical order first, then any additional registry-added labels in alphabetical order below a divider.
+
+**Source**: `ontology-manager/design.md` §3.5; landing-task `T-09b` refactored `api/src/routes/stats.ts` to iterate `getSchema()` from the §6.1 cache instead of the compile-time `NODE_LABELS` / `EDGE_TYPES` const tuples.
