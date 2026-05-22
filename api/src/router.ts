@@ -37,6 +37,10 @@ import {
 import { handleGetSchema } from "./routes/ontology-schema";
 import { handleListAudit, handleListVersions } from "./routes/ontology-audit";
 import { handleOntologyImport } from "./routes/ontology-import";
+import { handleOntologyEvents } from "./routes/ontology-events";
+import { handlePostMigration } from "./routes/ontology-migrations";
+import { handleRollback } from "./routes/ontology-versions";
+import { handleOntologyExport } from "./routes/ontology-export";
 import { error, fromValidationError } from "./routes/_helpers";
 import { ValidationError } from "./errors";
 import { logRequest } from "./logging";
@@ -124,6 +128,14 @@ async function dispatch(method: string, path: string, req: Request): Promise<Res
   if (sub === "ontology/audit" && method === "GET") return handleListAudit(req);
   if (sub === "ontology/versions" && method === "GET") return handleListVersions(req);
   if (sub === "ontology/import" && method === "POST") return handleOntologyImport(req);
+  if (sub === "ontology/events" && method === "GET") return handleOntologyEvents(req);
+  if (sub === "ontology/migrations" && method === "POST") return handlePostMigration(req);
+  if (sub === "ontology/export" && method === "GET") return handleOntologyExport(req);
+
+  const rollback = sub.match(/^ontology\/rollback\/([^/]+)$/);
+  if (rollback && method === "POST") {
+    return handleRollback(req, decodeURIComponent(rollback[1]!));
+  }
 
   const nodeLabel = sub.match(/^ontology\/node-labels\/([^/]+)$/);
   if (nodeLabel) {

@@ -151,22 +151,17 @@ async function assertEndpointLabelsExist(
   tx: ManagedTransaction,
   endpoints: ReadonlyArray<EdgeEndpointPair>,
 ): Promise<void> {
-  // Collect distinct label names to minimise round-trips.
-  const distinct = new Set<string>();
-  for (const pair of endpoints) {
-    distinct.add(pair.fromLabel);
-    distinct.add(pair.toLabel);
-  }
-  const present = new Set<string>();
-  for (const name of distinct) {
-    const r = await tx.run(
-      `MATCH (l:_OntologyNodeLabel) WHERE l.name = $name RETURN count(l) AS c`,
-      { name },
-    );
-    if (toN(r.records[0]?.get("c")) > 0) {
-      present.add(name);
-    }
-  }
+  // Collect distinct label names, then resolve the full set in one query
+  // (single IN $names lookup against the _onto_node_label_name_unique index).
+  const distinct = Array.from(new Set(
+    endpoints.flatMap((p) => [p.fromLabel, p.toLabel]),
+  ));
+  if (distinct.length === 0) return;
+  const r = await tx.run(
+    `MATCH (l:_OntologyNodeLabel) WHERE l.name IN $names RETURN l.name AS name`,
+    { names: distinct },
+  );
+  const present = new Set(r.records.map((rec) => rec.get("name") as string));
   for (const pair of endpoints) {
     if (!present.has(pair.fromLabel)) {
       ERROR_CODE_THROWERS.type_pair_violation({

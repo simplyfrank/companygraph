@@ -41,6 +41,10 @@ export async function handleListAudit(req: Request): Promise<Response> {
   const driver: Driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });
   try {
+    // LIMIT must be a literal integer in Cypher (Neo4j 5 rejects float
+     // parameters there — `disableLosslessIntegers` on the driver coerces
+     // JS numbers to floats). `limit` is clamped 1..MAX_LIMIT above, safe
+     // to inline (mirrors the pattern in `routes/query.ts`).
     const cypher = target
       ? `MATCH (a:_OntologyAudit {target: $target})
          WHERE ($before IS NULL OR a.ts < $before)
@@ -48,18 +52,17 @@ export async function handleListAudit(req: Request): Promise<Response> {
                 a.target AS target, a.before_json AS before_json,
                 a.after_json AS after_json, a.diff_jsonpatch AS diff_jsonpatch,
                 a.version_id AS version_id
-         ORDER BY a.ts DESC LIMIT $limit`
+         ORDER BY a.ts DESC LIMIT ${limit}`
       : `MATCH (a:_OntologyAudit)
          WHERE ($before IS NULL OR a.ts < $before)
          RETURN a.ts AS ts, a.actor AS actor, a.action AS action,
                 a.target AS target, a.before_json AS before_json,
                 a.after_json AS after_json, a.diff_jsonpatch AS diff_jsonpatch,
                 a.version_id AS version_id
-         ORDER BY a.ts DESC LIMIT $limit`;
+         ORDER BY a.ts DESC LIMIT ${limit}`;
     const result = await session.run(cypher, {
       target,
       before,
-      limit,
     });
     const rows = result.records.map(deserializeAudit);
     const nextCursor = rows.length === limit ? (rows[rows.length - 1]?.ts ?? null) : null;
@@ -77,14 +80,15 @@ export async function handleListVersions(req: Request): Promise<Response> {
   const driver: Driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });
   try {
+    // LIMIT must be a literal integer in Cypher (see note in handleListAudit).
     const result = await session.run(
       `MATCH (v:_OntologyVersion)
        WHERE ($before IS NULL OR v.ts < $before)
        RETURN v.version_id AS version_id, v.parent_version_id AS parent_version_id,
               v.actor AS actor, v.summary AS summary, v.ts AS ts,
               v.diff_jsonpatch AS diff_jsonpatch
-       ORDER BY v.ts DESC LIMIT $limit`,
-      { before, limit },
+       ORDER BY v.ts DESC LIMIT ${limit}`,
+      { before },
     );
     const rows = result.records.map((rec) => ({
       version_id: rec.get("version_id") as string,

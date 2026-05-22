@@ -30,8 +30,36 @@ export const SUPPORTED_JSON_SCHEMA_TYPES = [
 export type SupportedJsonSchemaType =
   (typeof SUPPORTED_JSON_SCHEMA_TYPES)[number];
 
+// Max nesting depth + serialised size for the JSON Schema document.
+// Enforced at register time to cap the `json-schema-to-zod` codegen surface
+// (the `new Function` eval in attribute-zod.ts) against DoS via deep nesting.
+export const MAX_JSON_SCHEMA_DEPTH = 8;
+export const MAX_JSON_SCHEMA_BYTES = 32_768;
+
+function jsonSchemaDepth(doc: unknown, depth = 0): number {
+  if (depth > MAX_JSON_SCHEMA_DEPTH) return depth;
+  if (typeof doc !== "object" || doc === null || Array.isArray(doc)) return depth;
+  const obj = doc as Record<string, unknown>;
+  let max = depth;
+  for (const key of ["properties", "additionalProperties", "items"] as const) {
+    const v = obj[key];
+    if (v == null) continue;
+    if (Array.isArray(v)) {
+      for (const item of v) max = Math.max(max, jsonSchemaDepth(item, depth + 1));
+    } else {
+      max = Math.max(max, jsonSchemaDepth(v, depth + 1));
+    }
+    if (typeof v === "object" && !Array.isArray(v)) {
+      for (const child of Object.values(v as Record<string, unknown>)) {
+        max = Math.max(max, jsonSchemaDepth(child, depth + 1));
+      }
+    }
+  }
+  return max;
+}
+
 // Recursive shape — `z.lazy` is required for self-reference.
-export const jsonSchemaDocSchema: z.ZodType<unknown> = z.lazy(() =>
+const _jsonSchemaDocInner: z.ZodType<unknown> = z.lazy(() =>
   z
     .object({
       type: z
@@ -41,12 +69,12 @@ export const jsonSchemaDocSchema: z.ZodType<unknown> = z.lazy(() =>
         ])
         .optional(),
       required: z.array(z.string()).optional(),
-      properties: z.record(jsonSchemaDocSchema).optional(),
+      properties: z.record(_jsonSchemaDocInner).optional(),
       additionalProperties: z
-        .union([z.boolean(), jsonSchemaDocSchema])
+        .union([z.boolean(), _jsonSchemaDocInner])
         .optional(),
       items: z
-        .union([jsonSchemaDocSchema, z.array(jsonSchemaDocSchema)])
+        .union([_jsonSchemaDocInner, z.array(_jsonSchemaDocInner)])
         .optional(),
       format: z.string().optional(),
       pattern: z.string().optional(),
@@ -61,6 +89,29 @@ export const jsonSchemaDocSchema: z.ZodType<unknown> = z.lazy(() =>
       default: z.unknown().optional(),
     })
     .strict(),
+);
+
+// Public export wraps the inner schema with depth + size guards so
+// register-time validation rejects documents that would produce
+// unbounded codegen strings in attribute-zod.ts's `new Function` path.
+export const jsonSchemaDocSchema: z.ZodType<unknown> = _jsonSchemaDocInner.superRefine(
+  (doc, ctx) => {
+    const bytes = JSON.stringify(doc).length;
+    if (bytes > MAX_JSON_SCHEMA_BYTES) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `json_schema_doc exceeds ${MAX_JSON_SCHEMA_BYTES} bytes (got ${bytes})`,
+      });
+      return;
+    }
+    const depth = jsonSchemaDepth(doc);
+    if (depth > MAX_JSON_SCHEMA_DEPTH) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `json_schema_doc exceeds maximum nesting depth of ${MAX_JSON_SCHEMA_DEPTH} (got ${depth})`,
+      });
+    }
+  },
 );
 
 // =============================================================================
