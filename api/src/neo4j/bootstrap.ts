@@ -29,14 +29,22 @@ import {
   isRegistryEmpty,
   seedRegistryFromConstTuples,
 } from "../ontology/seed";
+import { ontologyEvents } from "../ontology/events";
 
 export async function applySchema(driver: Driver): Promise<void> {
   // Step 1: meta-schema for the registry itself.
   await applyMetaSchema(driver);
 
   // Step 2: seed the registry from the compile-time const tuples IF EMPTY.
+  // Post-seed emit fires after the tx commits so caches warm from real data.
   if (await isRegistryEmpty(driver)) {
-    await seedRegistryFromConstTuples(driver);
+    const result = await seedRegistryFromConstTuples(driver);
+    ontologyEvents.emit("ontology.changed", {
+      event_id: result.event_id,
+      version_id: result.version_id,
+      ts: new Date().toISOString(),
+      diff: [],
+    });
   }
 
   // Step 3: iterate the registry and ensure per-label / per-type data
