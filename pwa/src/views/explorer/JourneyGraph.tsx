@@ -14,35 +14,40 @@ import {
   type SystemNode,
   type LocationNode,
   type PrecedesEdge,
+  type SelectedRef,
+  type VisibleLayers,
+  type LayoutMode,
 } from "../../components/JourneyCanvas";
-import { ViewHeader, Loading, ErrorState, SecLabel } from "../_shared";
+import { Loading, ErrorState, SecLabel } from "../_shared";
 import styles from "./JourneyGraph.module.css";
 
 const TEAM_TONE: Record<string, "accent" | "good" | "warn" | "danger"> = {
   customer_service: "danger",
-  warehouse: "accent",
-  dc_operations: "good",
-  last_mile: "warn",
+  warehouse:        "accent",
+  dc_operations:    "good",
+  last_mile:        "warn",
 };
 
-
-interface RawRow {
-  aId: string; aName: string; aPos: number;
-  toCol?: string; toMs?: number; targetMs?: number;
-}
-
-// Architecture: params come from route.params (parsed centrally in parseHash)
-// instead of a local useQuery() hook. No per-view hashchange listeners needed.
+// =====================================================================
+//   Top-level view
+// =====================================================================
 export function ExplorerJourneyGraph({ route }: { route: Route }) {
+  // URL-driven state
   const explicitJourney = route.params["journey"] ?? null;
-  const domainFilter = route.params["domain"] ?? null;
+  const domainFilter    = route.params["domain"] ?? null;
   const subdomainFilter = route.params["subdomain"] ?? null;
-  const layoutMode: "chain" | "radial" = route.params["layout"] === "radial" ? "radial" : "chain";
-  const domains = useFetch(() => api.listDomains(), []);
+  const layoutMode: LayoutMode = route.params["layout"] === "radial" ? "radial" : "chain";
+  const visibleLayers: VisibleLayers = {
+    roles:     route.params["roles"]     !== "0",
+    systems:   route.params["systems"]   !== "0",
+    locations: route.params["locations"] !== "0",
+  };
 
-  // Read subdomain attributes off the selected domain.
+  const domains = useFetch(() => api.listDomains(), []);
   const domainDetail = useFetch(
-    async () => domainFilter ? await fetch(`/api/v1/nodes/Domain/${encodeURIComponent(domainFilter)}`).then((r) => r.ok ? r.json() : null) : null,
+    async () => domainFilter
+      ? await fetch(`/api/v1/nodes/Domain/${encodeURIComponent(domainFilter)}`).then((r) => r.ok ? r.json() : null)
+      : null,
     [domainFilter],
   );
   const subdomains: string[] = domainDetail.status === "ok" && domainDetail.data?.attributes?.subdomains
@@ -69,19 +74,46 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
     ? journeyList.find((j) => j.id === explicitJourney)
     : orderFulfillment ?? journeyList[0];
 
-  const [selected, setSelected] = useState<{ kind: "role" | "activity" | "system" | "location"; id: string } | null>(null);
-
-  // Reset selection when journey changes.
+  // Selection (lifted from the canvas to share with the right rail)
+  const [selected, setSelected] = useState<SelectedRef>(null);
   useEffect(() => { setSelected(null); }, [activeJourney?.id]);
+
+  // Manual reorder (transient)
+  const [manualOrder, setManualOrder] = useState<string[] | null>(null);
+  useEffect(() => { setManualOrder(null); }, [activeJourney?.id]);
+
+  // Zoom command bus (toolbar → canvas)
+  const [zoomCmd, setZoomCmd] = useState<{ action: "in" | "out" | "reset" | "fit"; nonce: number } | null>(null);
+  const [zoomPct, setZoomPct] = useState(100);
 
   const journeyData = useFetch(
     async () => activeJourney ? loadJourneyData(activeJourney.id) : null,
     [activeJourney?.id],
   );
 
+  // Apply manual order on top of the loaded data
+  const renderedData = useMemo(() => {
+    if (journeyData.status !== "ok" || !journeyData.data) return null;
+    if (!manualOrder || manualOrder.length === 0) return journeyData.data;
+    return applyManualOrder(journeyData.data, manualOrder);
+  }, [journeyData, manualOrder]);
+
+  // Initiative — simple heuristic: when a system has any breach, surface an in-flight initiative banner.
+  const initiative = useMemo(() => {
+    if (!renderedData) return null;
+    const breach = renderedData.systems.find((s) => s.usages.some((u) => u.target_ms != null && u.actual_ms != null && u.actual_ms > (u.target_ms ?? 0) * 1.5));
+    if (!breach) return null;
+    const affected = breach.usages.length;
+    return {
+      name: `${breach.name} latency remediation`,
+      affectedActivities: affected,
+      status: "in_progress" as const,
+    };
+  }, [renderedData]);
+
   return (
     <div className={styles.shell}>
-      <Filters
+      <Toolbar
         domains={domains.status === "ok" ? domains.data.rows : []}
         domainFilter={domainFilter}
         subdomains={subdomains}
@@ -89,108 +121,68 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
         journeys={journeyList}
         activeJourneyId={activeJourney?.id ?? null}
         layoutMode={layoutMode}
+        visibleLayers={visibleLayers}
+        zoomPct={zoomPct}
+        onZoom={(action) => setZoomCmd({ action, nonce: Math.random() })}
+        hasManualOrder={manualOrder !== null}
+        onResetOrder={() => setManualOrder(null)}
       />
 
       <div className={styles.layout}>
         <div className={styles.canvasWrap}>
           {journeyData.status === "loading" && <Loading what="journey graph" />}
           {journeyData.status === "error" && <ErrorState message={journeyData.error} />}
-          {journeyData.status === "ok" && journeyData.data && (
+          {journeyData.status === "ok" && renderedData && (
             <>
-              {layoutMode === "chain" ? (
-                <JourneyCanvas
-                  data={journeyData.data}
-                  selected={selected}
-                  onSelect={setSelected}
-                />
-              ) : (
-                <RadialStub activityCount={journeyData.data.activities.length} />
-              )}
-              <Legend />
+              <JourneyCanvas
+                data={renderedData}
+                layoutMode={layoutMode}
+                visibleLayers={visibleLayers}
+                selected={selected}
+                onSelect={setSelected}
+                onReorder={setManualOrder}
+                zoomCommand={zoomCmd}
+                onZoomChange={setZoomPct}
+              />
+              {initiative && <InitiativeBanner i={initiative} />}
+              <Legend visibleLayers={visibleLayers} />
               <HintCard />
               <CrossLink journeyId={activeJourney?.id ?? ""} />
             </>
           )}
-          {journeyData.status === "ok" && !journeyData.data && (
+          {journeyData.status === "ok" && !renderedData && (
             <p style={{ color: "var(--muted)", padding: 24 }}>Pick a journey above.</p>
           )}
         </div>
 
         <aside className={styles.rail}>
-          {activeJourney && journeyData.status === "ok" && journeyData.data && (
-            <CompositionPanel
+          {activeJourney && renderedData && (
+            <RailContent
               journey={activeJourney}
-              data={journeyData.data}
+              data={renderedData}
+              selected={selected}
+              onClearSelected={() => setSelected(null)}
             />
           )}
         </aside>
       </div>
 
-      {journeyData.status === "ok" && journeyData.data && activeJourney && (
-        <StatusBar journey={activeJourney} data={journeyData.data} />
+      {renderedData && activeJourney && (
+        <StatusBar journey={activeJourney} data={renderedData} selected={selected} zoomPct={zoomPct} />
       )}
     </div>
   );
 }
 
-function HintCard() {
-  return (
-    <div className={styles.hint}>
-      <span>scroll · zoom</span>
-      <span className={styles.hintSep}>·</span>
-      <span>drag · pan</span>
-      <span className={styles.hintSep}>·</span>
-      <span>click · select</span>
-    </div>
-  );
-}
-
-function CrossLink({ journeyId }: { journeyId: string }) {
-  if (!journeyId) return null;
-  return (
-    <a
-      className={styles.crossLink}
-      href={`#/explorer/journey-detail?id=${encodeURIComponent(journeyId)}`}
-      title="Open this journey in the list-based detail view"
-    >
-      Open in list view →
-    </a>
-  );
-}
-
-function RadialStub({ activityCount }: { activityCount: number }) {
-  // Lightweight radial fallback — activities arranged on a circle. Not
-  // wired to roles/systems yet (Chain remains the canonical layout).
-  const R = 200;
-  return (
-    <svg viewBox="0 0 600 540" className={styles.radial} preserveAspectRatio="xMidYMid meet">
-      <circle cx={300} cy={270} r={R} fill="none" stroke="var(--border)" />
-      {Array.from({ length: activityCount }).map((_, i) => {
-        const a = (i / activityCount) * Math.PI * 2 - Math.PI / 2;
-        const x = 300 + R * Math.cos(a);
-        const y = 270 + R * Math.sin(a);
-        return (
-          <g key={i} transform={`translate(${x} ${y})`}>
-            <circle r={20} fill="var(--surface)" stroke="var(--fg)" strokeWidth={1.2} />
-            <text textAnchor="middle" y={4} fontFamily="var(--font-mono)" fontSize={11} fontWeight={600}>{i + 1}</text>
-          </g>
-        );
-      })}
-      <text x={300} y={500} textAnchor="middle" fontFamily="var(--font-mono)" fontSize={11} fill="var(--muted)">
-        radial layout — preview only · roles + systems land later
-      </text>
-    </svg>
-  );
-}
-
-function Filters({
-  domains,
-  domainFilter,
-  subdomains,
-  subdomainFilter,
-  journeys,
-  activeJourneyId,
-  layoutMode,
+// =====================================================================
+//   Toolbar (filter cascade + layout + bind toggles + zoom)
+// =====================================================================
+function Toolbar({
+  domains, domainFilter, subdomains, subdomainFilter,
+  journeys, activeJourneyId,
+  layoutMode, visibleLayers,
+  zoomPct, onZoom,
+  hasManualOrder, onResetOrder,
 }: {
   domains: DomainRow[];
   domainFilter: string | null;
@@ -198,29 +190,44 @@ function Filters({
   subdomainFilter: string | null;
   journeys: Array<{ id: string; name: string; domainId: string; domainName: string }>;
   activeJourneyId: string | null;
-  layoutMode: "chain" | "radial";
+  layoutMode: LayoutMode;
+  visibleLayers: VisibleLayers;
+  zoomPct: number;
+  onZoom: (action: "in" | "out" | "reset" | "fit") => void;
+  hasManualOrder: boolean;
+  onResetOrder: () => void;
 }) {
+  const hasAnyFilter = Boolean(domainFilter || subdomainFilter || activeJourneyId);
+
   const updateHash = (mut: (p: URLSearchParams) => void): void => {
     const params = new URLSearchParams();
-    if (domainFilter) params.set("domain", domainFilter);
-    if (subdomainFilter) params.set("subdomain", subdomainFilter);
-    if (activeJourneyId) params.set("journey", activeJourneyId);
+    if (domainFilter)            params.set("domain", domainFilter);
+    if (subdomainFilter)         params.set("subdomain", subdomainFilter);
+    if (activeJourneyId)         params.set("journey", activeJourneyId);
     if (layoutMode === "radial") params.set("layout", "radial");
+    if (!visibleLayers.roles)     params.set("roles", "0");
+    if (!visibleLayers.systems)   params.set("systems", "0");
+    if (!visibleLayers.locations) params.set("locations", "0");
     mut(params);
     window.location.hash = `#/explorer/journey-graph${params.toString() ? `?${params.toString()}` : ""}`;
   };
 
   return (
-    <div className={styles.filters}>
-      <span className={styles.surfaceLabel}>Surface · Process Explorer</span>
-      <span className={styles.crumbSep}>·</span>
-      <a href="#/explorer/journey-graph" className={styles.crumbLink}>journeys</a>
-      <span className={styles.crumbSep}>·</span>
-      <span className={styles.crumbActive}>
-        {activeJourneyId ? journeys.find((j) => j.id === activeJourneyId)?.name : "—"}
-      </span>
+    <div className={styles.toolbar}>
+      <div className={styles.crumb}>
+        <span className={styles.crumbSurface}>Process Explorer</span>
+        <span className={styles.crumbSep}>·</span>
+        <a href="#/explorer/journey-graph" className={styles.crumbLink}>journeys</a>
+        <span className={styles.crumbSep}>·</span>
+        <strong className={styles.crumbActive}>
+          {activeJourneyId ? journeys.find((j) => j.id === activeJourneyId)?.name : "—"}
+        </strong>
+      </div>
 
-      <div className={styles.filtersRight}>
+      <div className={styles.toolbarSep} />
+
+      {/* Filter cascade */}
+      <div className={styles.filterGroup}>
         <label className={styles.filter}>
           <span className={styles.filterLabel}>DOMAIN</span>
           <select
@@ -267,69 +274,116 @@ function Filters({
             {journeys.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}
           </select>
         </label>
-        <div className={styles.layoutToggle} role="tablist" aria-label="Layout">
+        {hasAnyFilter && (
           <button
             type="button"
-            role="tab"
-            aria-selected={layoutMode === "chain"}
-            className={`${styles.toggleBtn} ${layoutMode === "chain" ? styles.toggleActive : ""}`}
-            onClick={() => updateHash((p) => p.delete("layout"))}
-          >
-            Chain
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={layoutMode === "radial"}
-            className={`${styles.toggleBtn} ${layoutMode === "radial" ? styles.toggleActive : ""}`}
-            onClick={() => updateHash((p) => p.set("layout", "radial"))}
-          >
-            Radial
-          </button>
-        </div>
+            className={styles.filterReset}
+            title="Clear all filters"
+            aria-label="Clear all filters"
+            onClick={() => { window.location.hash = "#/explorer/journey-graph"; }}
+          >×</button>
+        )}
+      </div>
+
+      <div className={styles.toolbarSep} />
+
+      {/* Layout toggle */}
+      <div className={styles.segGroup} role="tablist" aria-label="Layout">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={layoutMode === "chain"}
+          className={`${styles.segBtn} ${layoutMode === "chain" ? styles.segActive : ""}`}
+          onClick={() => updateHash((p) => p.delete("layout"))}
+          title="Linear chain — activities backbone, binds above/below"
+        >Chain</button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={layoutMode === "radial"}
+          className={`${styles.segBtn} ${layoutMode === "radial" ? styles.segActive : ""}`}
+          onClick={() => updateHash((p) => p.set("layout", "radial"))}
+          title="Radial — activities on a ring, bindings on outer arcs"
+        >Radial</button>
+      </div>
+
+      <div className={styles.toolbarSep} />
+
+      {/* Bind-type toggles */}
+      <div className={styles.segGroup} role="group" aria-label="Show bind types">
+        {(["roles", "systems", "locations"] as const).map((layer) => {
+          const on = visibleLayers[layer];
+          return (
+            <button
+              key={layer}
+              type="button"
+              aria-pressed={on}
+              className={`${styles.segBtn} ${on ? styles.segActive : ""}`}
+              onClick={() => updateHash((p) => {
+                if (on) p.set(layer, "0");
+                else    p.delete(layer);
+              })}
+              title={`Show ${layer}`}
+            >{layer === "roles" ? "Roles" : layer === "systems" ? "Systems" : "Locations"}</button>
+          );
+        })}
+      </div>
+
+      <div className={styles.spacer} />
+
+      {hasManualOrder && (
+        <button type="button" className={styles.manualOrderPill} onClick={onResetOrder} title="Reset to PRECEDES-defined order">
+          manual order · reset
+        </button>
+      )}
+
+      {/* Zoom controls */}
+      <div className={styles.segGroup} role="group" aria-label="Zoom">
+        <button type="button" className={styles.segBtn} onClick={() => onZoom("out")}  title="Zoom out">−</button>
+        <button type="button" className={`${styles.segBtn} ${styles.zoomPct}`} onClick={() => onZoom("reset")} title="Reset (100%)">{zoomPct}%</button>
+        <button type="button" className={styles.segBtn} onClick={() => onZoom("in")}   title="Zoom in">+</button>
+        <button type="button" className={styles.segBtn} onClick={() => onZoom("fit")}  title="Fit to canvas">⤢</button>
       </div>
     </div>
   );
 }
 
-function Legend() {
+// =====================================================================
+//   Initiative banner (top-center overlay)
+// =====================================================================
+function InitiativeBanner({ i }: { i: { name: string; affectedActivities: number; status: "in_progress" } }) {
+  return (
+    <div className={styles.initiativeBanner}>
+      <span className={styles.initiativeDot} />
+      <span>
+        <strong>{i.name}</strong>
+        <span style={{ marginLeft: 8, color: "color-mix(in oklch, var(--accent) 60%, var(--fg))" }}>
+          · {i.status.replace("_", " ")} · affects {i.affectedActivities} activit{i.affectedActivities === 1 ? "y" : "ies"}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+// =====================================================================
+//   Legend (bottom-left)
+// =====================================================================
+function Legend({ visibleLayers }: { visibleLayers: VisibleLayers }) {
   return (
     <div className={styles.legend}>
-      <div className={styles.legendBlock}>
-        <Glyph kind="activity" /> <span>ACTIVITY</span>
-      </div>
-      <div className={styles.legendBlock}>
-        <Glyph kind="role" /> <span>ROLE</span>
-      </div>
-      <div className={styles.legendBlock}>
-        <Glyph kind="system" /> <span>SYSTEM</span>
-      </div>
-      <div className={styles.legendBlock}>
-        <Glyph kind="location" /> <span>LOCATION</span>
-      </div>
+      <div className={styles.legendBlock}><Glyph kind="activity" /> <span>ACTIVITY</span></div>
+      {visibleLayers.roles      && <div className={styles.legendBlock}><Glyph kind="role" /> <span>ROLE</span></div>}
+      {visibleLayers.systems    && <div className={styles.legendBlock}><Glyph kind="system" /> <span>SYSTEM</span></div>}
+      {visibleLayers.locations  && <div className={styles.legendBlock}><Glyph kind="location" /> <span>LOCATION</span></div>}
       <div className={styles.legendDivider} />
-      <div className={styles.legendBlock}>
-        <span className={`${styles.lline} ${styles.linePrecedes}`} /> <span>PRECEDES</span>
-      </div>
-      <div className={styles.legendBlock}>
-        <span className={`${styles.lline} ${styles.lineExecutes}`} /> <span>EXECUTES</span>
-      </div>
-      <div className={styles.legendBlock}>
-        <span className={`${styles.lline} ${styles.lineUsesSystem}`} /> <span>USES_SYSTEM</span>
-      </div>
-      <div className={styles.legendBlock}>
-        <span className={`${styles.lline} ${styles.lineAtLocation}`} /> <span>AT_LOCATION</span>
-      </div>
+      <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.linePrecedes}`} /> <span>PRECEDES</span></div>
+      {visibleLayers.roles      && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineExecutes}`} /> <span>EXECUTES</span></div>}
+      {visibleLayers.systems    && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineUsesSystem}`} /> <span>USES_SYSTEM</span></div>}
+      {visibleLayers.locations  && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineAtLocation}`} /> <span>AT_LOCATION</span></div>}
       <div className={styles.legendDivider} />
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaOk}`} /> <span>SLA · OK</span></div>
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaWarn}`} /> <span>SLA · WARN</span></div>
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaBreach}`} /> <span>SLA · BREACH</span></div>
-      <div className={styles.legendDivider} />
-      <div className={styles.legendBlock}><strong>TEAMS</strong></div>
-      <div className={styles.legendBlock}><span className={`${styles.teamSwatch}`} style={{ background: "var(--danger)" }} /> <span>CUSTOMER SERVICE</span></div>
-      <div className={styles.legendBlock}><span className={`${styles.teamSwatch}`} style={{ background: "var(--accent)" }} /> <span>WAREHOUSE</span></div>
-      <div className={styles.legendBlock}><span className={`${styles.teamSwatch}`} style={{ background: "var(--good)" }} /> <span>DC OPERATIONS</span></div>
-      <div className={styles.legendBlock}><span className={`${styles.teamSwatch}`} style={{ background: "var(--warn)" }} /> <span>LAST-MILE</span></div>
     </div>
   );
 }
@@ -341,17 +395,277 @@ function Glyph({ kind }: { kind: "activity" | "role" | "system" | "location" }) 
   return <span className={styles.gLocation} />;
 }
 
+function HintCard() {
+  return (
+    <div className={styles.hint}>
+      <span>scroll · zoom</span>
+      <span className={styles.hintSep}>·</span>
+      <span>drag · pan</span>
+      <span className={styles.hintSep}>·</span>
+      <span>click · select</span>
+    </div>
+  );
+}
+
+function CrossLink({ journeyId }: { journeyId: string }) {
+  if (!journeyId) return null;
+  return (
+    <a
+      className={styles.crossLink}
+      href={`#/explorer/journey-detail?id=${encodeURIComponent(journeyId)}`}
+      title="Open this journey in the list-based detail view"
+    >
+      Open in list view →
+    </a>
+  );
+}
+
+// =====================================================================
+//   Right rail — selection-aware
+// =====================================================================
+function RailContent({
+  journey,
+  data,
+  selected,
+  onClearSelected,
+}: {
+  journey: { id: string; name: string; domainName?: string };
+  data: JourneyData;
+  selected: SelectedRef;
+  onClearSelected: () => void;
+}) {
+  if (selected) {
+    return <SelectedNodePanel data={data} selected={selected} onClear={onClearSelected} />;
+  }
+  return <CompositionPanel journey={journey} data={data} />;
+}
+
+function SelectedNodePanel({
+  data,
+  selected,
+  onClear,
+}: {
+  data: JourneyData;
+  selected: NonNullable<SelectedRef>;
+  onClear: () => void;
+}) {
+  if (selected.kind === "activity") {
+    const a = data.activities.find((x) => x.id === selected.id);
+    if (!a) return null;
+    const roles    = data.roles.filter((r) => r.columns.includes(a.column));
+    const systems  = data.systems.filter((s) => s.usages.some((u) => u.column === a.column));
+    const locs     = data.locations.filter((l) => l.columns.includes(a.column));
+    const upstream = data.precedes.filter((p) => p.to_col === a.column);
+    const downstream = data.precedes.filter((p) => p.from_col === a.column);
+    return (
+      <>
+        <Card title="Selected activity" actions={<CloseBtn onClick={onClear} />}>
+          <SecLabel>ACTIVITY · #{a.column + 1}</SecLabel>
+          <div className={styles.bigTitle}>{a.name}</div>
+          <code className={styles.id}>{a.id}</code>
+        </Card>
+        <Card title="Roles executing">
+          {roles.length === 0 ? <Empty /> : (
+            <ul className={styles.bindList}>
+              {roles.map((r) => (
+                <li key={r.id}>
+                  <span className={styles.bindStripe} style={{ background: teamColor(r.team_color) }} />
+                  <strong>{r.name}</strong>
+                  {r.team_name && <span className={styles.bindMicro}>{r.team_name}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card title="Systems used">
+          {systems.length === 0 ? <Empty /> : (
+            <ul className={styles.bindList}>
+              {systems.map((s) => {
+                const u = s.usages.find((x) => x.column === a.column);
+                return (
+                  <li key={s.id}>
+                    <strong>{s.name}</strong>
+                    {u && u.target_ms != null && u.actual_ms != null && (
+                      <span className={styles.bindMicro}>
+                        <SlaPill target={u.target_ms} actual={u.actual_ms} />
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+        <Card title="Locations">
+          {locs.length === 0 ? <Empty /> : (
+            <ul className={styles.bindList}>
+              {locs.map((l) => <li key={l.id}><strong>{l.name}</strong></li>)}
+            </ul>
+          )}
+        </Card>
+        <Card title="Adjacent activities">
+          <ul className={styles.bindList}>
+            {upstream.length === 0 && downstream.length === 0 && <Empty />}
+            {upstream.map((p, i) => (
+              <li key={`u${i}`}>
+                <span style={{ color: "var(--muted)" }}>← </span>
+                <strong>{nameAt(data.activities, p.from_col)}</strong>
+                {p.target_ms != null && p.actual_ms != null && (
+                  <span className={styles.bindMicro}>
+                    <SlaPill target={p.target_ms} actual={p.actual_ms} />
+                  </span>
+                )}
+              </li>
+            ))}
+            {downstream.map((p, i) => (
+              <li key={`d${i}`}>
+                <span style={{ color: "var(--muted)" }}>→ </span>
+                <strong>{nameAt(data.activities, p.to_col)}</strong>
+                {p.target_ms != null && p.actual_ms != null && (
+                  <span className={styles.bindMicro}>
+                    <SlaPill target={p.target_ms} actual={p.actual_ms} />
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </>
+    );
+  }
+
+  if (selected.kind === "role") {
+    const r = data.roles.find((x) => x.id === selected.id);
+    if (!r) return null;
+    const acts = data.activities.filter((a) => r.columns.includes(a.column));
+    return (
+      <>
+        <Card title="Selected role" actions={<CloseBtn onClick={onClear} />}>
+          <SecLabel>ROLE</SecLabel>
+          <div className={styles.bigTitle}>
+            <span className={styles.titleStripe} style={{ background: teamColor(r.team_color) }} />
+            {r.name}
+          </div>
+          {r.team_name && <Pill tone={TEAM_TONE[r.team_id ?? ""] ?? "neutral"}>{r.team_name}</Pill>}
+          <div style={{ marginTop: 8 }}><code className={styles.id}>{r.id}</code></div>
+        </Card>
+        <Card title="Activities executed">
+          <ul className={styles.bindList}>
+            {acts.map((a) => (
+              <li key={a.id}>
+                <strong>#{a.column + 1}</strong>
+                <span style={{ marginLeft: 6 }}>{a.name}</span>
+                {r.durations[a.column] != null && (
+                  <span className={styles.bindMicro}>{r.durations[a.column]}m</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </>
+    );
+  }
+
+  if (selected.kind === "system") {
+    const s = data.systems.find((x) => x.id === selected.id);
+    if (!s) return null;
+    return (
+      <>
+        <Card title="Selected system" actions={<CloseBtn onClick={onClear} />}>
+          <SecLabel>SYSTEM</SecLabel>
+          <div className={styles.bigTitle}>{s.name}</div>
+          {s.kind && <Pill tone="accent">{s.kind}</Pill>}
+          <div style={{ marginTop: 8 }}><code className={styles.id}>{s.id}</code></div>
+        </Card>
+        <Card title="USES_SYSTEM bindings">
+          <table className={styles.usageTable}>
+            <thead><tr><th>Activity</th><th>Target</th><th>Actual</th><th>SLA</th></tr></thead>
+            <tbody>
+              {s.usages.map((u, i) => (
+                <tr key={i}>
+                  <td>#{u.column + 1} · {nameAt(data.activities, u.column)}</td>
+                  <td className={styles.num}>{u.target_ms != null ? `${u.target_ms}ms` : "—"}</td>
+                  <td className={styles.num}>{u.actual_ms != null ? `${u.actual_ms}ms` : "—"}</td>
+                  <td>{u.target_ms != null && u.actual_ms != null && <SlaPill target={u.target_ms} actual={u.actual_ms} />}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </>
+    );
+  }
+
+  // Location
+  const l = data.locations.find((x) => x.id === selected.id);
+  if (!l) return null;
+  const acts = data.activities.filter((a) => l.columns.includes(a.column));
+  return (
+    <>
+      <Card title="Selected location" actions={<CloseBtn onClick={onClear} />}>
+        <SecLabel>LOCATION</SecLabel>
+        <div className={styles.bigTitle}>{l.name}</div>
+        <code className={styles.id}>{l.id}</code>
+      </Card>
+      <Card title="Activities at this location">
+        <ul className={styles.bindList}>
+          {acts.map((a) => (
+            <li key={a.id}>
+              <strong>#{a.column + 1}</strong>
+              <span style={{ marginLeft: 6 }}>{a.name}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </>
+  );
+}
+
+function CloseBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className={styles.closeBtn} onClick={onClick} aria-label="Clear selection">×</button>
+  );
+}
+
+function Empty() {
+  return <span style={{ color: "var(--muted)", fontSize: 12 }}>none</span>;
+}
+
+function SlaPill({ target, actual }: { target: number; actual: number }) {
+  const tone: "good" | "warn" | "danger" =
+    actual <= target ? "good" : actual <= target * 1.5 ? "warn" : "danger";
+  return <Pill tone={tone}>{actual}/{target}ms</Pill>;
+}
+
+function teamColor(c?: string): string {
+  switch (c) {
+    case "accent": return "var(--accent)";
+    case "good":   return "var(--good)";
+    case "warn":   return "var(--warn)";
+    case "danger": return "var(--danger)";
+    default:       return "var(--muted-2)";
+  }
+}
+
+function nameAt(activities: ActivityNode[], col: number): string {
+  return activities.find((a) => a.column === col)?.name ?? "—";
+}
+
+// =====================================================================
+//   Composition rail (when nothing is selected)
+// =====================================================================
 function CompositionPanel({
   journey,
   data,
 }: {
-  journey: { id: string; name: string; domainId?: string; domainName?: string };
+  journey: { id: string; name: string; domainName?: string };
   data: JourneyData;
 }) {
   const sla = computeSlaSummary(data);
-  const accountable = "VP Operations";   // hardcoded — would come from ACCOUNTABLE edge in a future schema
+  const accountable = "VP Operations";
   const cost = 8.5;
   const runs = 12_400;
+  const handoffs = countHandoffs(data);
   return (
     <>
       <Card title="Journey">
@@ -366,14 +680,15 @@ function CompositionPanel({
           { label: "systems",       value: data.systems.length },
           { label: "locations",     value: data.locations.length },
           { label: "edges",         value: countEdges(data) },
+          { label: "hand-offs",     value: handoffs },
           { label: "critical path", value: `${Math.round(data.precedes.reduce((s, e) => s + (e.target_ms ?? 0), 0) / 1000)}s` },
         ]} />
       </Card>
       <Card title="Cost / Run">
         <KeyValueList rows={[
-          { label: "USD / run",   value: `$${cost.toFixed(2)}` },
+          { label: "USD / run",    value: `$${cost.toFixed(2)}` },
           { label: "runs / month", value: runs.toLocaleString() },
-          { label: "USD / month", value: `$${(cost * runs).toLocaleString()}` },
+          { label: "USD / month",  value: `$${(cost * runs).toLocaleString()}` },
         ]} />
       </Card>
       <Card title="SLA rollup">
@@ -391,29 +706,38 @@ function CompositionPanel({
       </Card>
       <Card title="Accountable">
         <KeyValueList rows={[
-          { label: "role",  value: accountable },
-          { label: "id",    value: <code className={styles.id}>r_vp_ops</code> },
+          { label: "role", value: accountable },
+          { label: "id",   value: <code className={styles.id}>r_vp_ops</code> },
         ]} />
       </Card>
       <div className={styles.tip}>
-        Click a <strong>node</strong> to focus it in the canvas — connected
-        edges dim out unrelated nodes.
+        Click a <strong>node</strong> to focus it · drag the <strong>handle</strong> beside an activity to reorder · scroll to zoom, drag empty space to pan.
       </div>
     </>
   );
 }
 
-function StatusBar({ journey, data }: { journey: { id: string; name: string }; data: JourneyData }) {
+// =====================================================================
+//   Bottom status bar
+// =====================================================================
+function StatusBar({
+  journey, data, selected, zoomPct,
+}: {
+  journey: { id: string; name: string };
+  data: JourneyData;
+  selected: SelectedRef;
+  zoomPct: number;
+}) {
   const sla = computeSlaSummary(data);
   const nodes = data.activities.length + data.roles.length + data.systems.length + data.locations.length;
   const edges = countEdges(data);
-  // SoD pairs heuristic: how many activities share the same role across
-  // the chain? We treat that as the number of activities where the role
-  // also appears for a different activity (toy version).
   const sod = data.roles.filter((r) => r.columns.length > 1).length;
-  // "hand-offs": distinct adjacent role boundaries — count PRECEDES edges
-  // where the upstream and downstream roles differ.
   const handoffs = countHandoffs(data);
+
+  const selectionLabel = selected
+    ? `${selected.kind} · ${selectedName(data, selected) ?? selected.id.slice(0, 8)}`
+    : "no selection";
+
   return (
     <div className={styles.statusbar}>
       <span><strong>{nodes}</strong> nodes</span>
@@ -424,13 +748,24 @@ function StatusBar({ journey, data }: { journey: { id: string; name: string }; d
       <span>·</span>
       <span>read-only ✓</span>
       <span>·</span>
+      <span>{selectionLabel}</span>
+      <span>·</span>
       <span><strong>{handoffs}</strong> hand-offs</span>
       <span>·</span>
       <span><strong>{sod}</strong> SoD pairs</span>
-      <span className={styles.spacer} />
+      <span className={styles.statusSpacer} />
+      <span>zoom <strong>{zoomPct}%</strong></span>
+      <span>·</span>
       <span>journey · <code>{journey.id.slice(0, 12)}…</code></span>
     </div>
   );
+}
+
+function selectedName(data: JourneyData, s: NonNullable<SelectedRef>): string | undefined {
+  if (s.kind === "activity") return data.activities.find((a) => a.id === s.id)?.name;
+  if (s.kind === "role")     return data.roles.find((r) => r.id === s.id)?.name;
+  if (s.kind === "system")   return data.systems.find((sy) => sy.id === s.id)?.name;
+  return data.locations.find((l) => l.id === s.id)?.name;
 }
 
 function countEdges(d: JourneyData): number {
@@ -441,8 +776,6 @@ function countEdges(d: JourneyData): number {
 }
 
 function countHandoffs(d: JourneyData): number {
-  // For each PRECEDES, find the roles of from-activity and to-activity;
-  // if any role of from differs from all roles of to, count one handoff.
   let n = 0;
   for (const p of d.precedes) {
     const fromRoles = d.roles.filter((r) => r.columns.includes(p.from_col)).map((r) => r.id).sort().join(",");
@@ -452,9 +785,41 @@ function countHandoffs(d: JourneyData): number {
   return n;
 }
 
+// =====================================================================
+//   Manual-reorder application
+// =====================================================================
+function applyManualOrder(d: JourneyData, order: string[]): JourneyData {
+  // order is an array of activity ids in the desired column order.
+  const newCol = new Map<string, number>();
+  order.forEach((id, idx) => newCol.set(id, idx));
+  // Map from old column → new column for activities present in `order`.
+  const oldNew = new Map<number, number>();
+  for (const a of d.activities) {
+    const nc = newCol.get(a.id);
+    if (nc !== undefined) oldNew.set(a.column, nc);
+  }
+  const mapCol = (c: number): number => oldNew.get(c) ?? c;
+
+  return {
+    activities: d.activities.map((a) => ({ ...a, column: mapCol(a.column) })),
+    roles: d.roles.map((r) => ({
+      ...r,
+      columns: r.columns.map(mapCol),
+      durations: Object.fromEntries(Object.entries(r.durations).map(([k, v]) => [String(mapCol(Number(k))), v])) as Record<number, number>,
+    })),
+    systems: d.systems.map((s) => ({
+      ...s,
+      usages: s.usages.map((u) => ({ ...u, column: mapCol(u.column) })),
+    })),
+    locations: d.locations.map((l) => ({ ...l, columns: l.columns.map(mapCol) })),
+    precedes: d.precedes.map((p) => ({ ...p, from_col: mapCol(p.from_col), to_col: mapCol(p.to_col) })),
+  };
+}
+
+// =====================================================================
+//   Data loader
+// =====================================================================
 async function loadJourneyData(journeyId: string): Promise<JourneyData> {
-  // Single Cypher passthrough — flat rows we group client-side.
-  // Pulls activities + their PRECEDES + EXECUTES + USES_SYSTEM + AT_LOCATION.
   const [precedesRes, executesRes, usesRes, locsRes, activitiesRes] = await Promise.all([
     api.cypher(
       `MATCH (j:UserJourney {id:$id})
@@ -491,8 +856,7 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
 
   const journeyActivities = activitiesRes.rows[0]?.activities ?? [];
 
-  // Topologically order activities by PRECEDES.
-  const precedesRaw = (precedesRes.rows as unknown as Array<{ fromId: string; toId: string; attrs: string }>);
+  const precedesRaw = precedesRes.rows as unknown as Array<{ fromId: string; toId: string; attrs: string }>;
   const succ = new Map<string, string[]>();
   const indeg = new Map<string, number>();
   for (const a of journeyActivities) { indeg.set(a.id, 0); succ.set(a.id, []); }
@@ -514,7 +878,6 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
       }
     }
   }
-  // Append any activities not reached (disconnected).
   for (const a of journeyActivities) {
     if (!ordered.find((x) => x.id === a.id)) ordered.push(a);
   }
@@ -534,7 +897,6 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     };
   });
 
-  // Roles
   const roleMap = new Map<string, RoleNode>();
   for (const r of executesRes.rows as unknown as Array<{ roleId: string; roleName: string; roleAttrs: string; aId: string; attrs: string }>) {
     const col = colOf.get(r.aId);
@@ -544,13 +906,11 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     let node = roleMap.get(r.roleId);
     if (!node) {
       node = {
-        id: r.roleId,
-        name: r.roleName,
-        team_id: rAttrs.team_id as string | undefined,
-        team_name: rAttrs.team_name as string | undefined,
+        id: r.roleId, name: r.roleName,
+        team_id:    rAttrs.team_id as string | undefined,
+        team_name:  rAttrs.team_name as string | undefined,
         team_color: rAttrs.team_color as string | undefined,
-        columns: [],
-        durations: {},
+        columns: [], durations: {},
       };
       roleMap.set(r.roleId, node);
     }
@@ -558,7 +918,6 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     if (typeof eAttrs.duration_min === "number") node.durations[col] = eAttrs.duration_min;
   }
 
-  // Systems
   const sysMap = new Map<string, SystemNode>();
   for (const u of usesRes.rows as unknown as Array<{ aId: string; sysId: string; sysName: string; sysAttrs: string; attrs: string }>) {
     const col = colOf.get(u.aId);
@@ -567,12 +926,7 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     const uAttrs = parseAttrs(u.attrs);
     let node = sysMap.get(u.sysId);
     if (!node) {
-      node = {
-        id: u.sysId,
-        name: u.sysName,
-        kind: sAttrs.kind as string | undefined,
-        usages: [],
-      };
+      node = { id: u.sysId, name: u.sysName, kind: sAttrs.kind as string | undefined, usages: [] };
       sysMap.set(u.sysId, node);
     }
     node.usages.push({
@@ -582,7 +936,6 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     });
   }
 
-  // Locations
   const locMap = new Map<string, LocationNode>();
   for (const l of locsRes.rows as unknown as Array<{ aId: string; locId: string; locName: string }>) {
     const col = colOf.get(l.aId);
@@ -609,5 +962,4 @@ function parseAttrs(json: string | undefined | null): Record<string, unknown> {
   try { return JSON.parse(json) as Record<string, unknown>; } catch { return {}; }
 }
 
-// Re-export for views/index.tsx registration.
 export { TEAM_TONE };
