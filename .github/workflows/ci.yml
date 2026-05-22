@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: docker compose config -q
+      - run: bun test
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      neo4j:
+        image: neo4j:5-community
+        env:
+          NEO4J_AUTH: neo4j/companygraph_ci_password
+          NEO4J_server_memory_pagecache_size: "256m"
+          NEO4J_server_memory_heap_max__size: "1g"
+        ports:
+          - 7687:7687
+          - 7474:7474
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:7474 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: companygraph_ci_password
+      NEO4J_URI: bolt://localhost:7687
+      HOST: 127.0.0.1
+      API_PORT: 8787
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run test:integration

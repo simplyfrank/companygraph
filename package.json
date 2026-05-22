@@ -1,0 +1,24 @@
+{
+  "name": "companygraph",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "api",
+    "pwa"
+  ],
+  "scripts": {
+    "dev": "bash -c '. ./scripts/runtime-detect.sh && $COMPANYGRAPH_COMPOSE_CMD up -d neo4j && ./scripts/wait-for-neo4j.sh && concurrently -k -n api,pwa \"bun --cwd api run dev\" \"bun --cwd pwa run dev\"'",
+    "stop": "bash -c '. ./scripts/runtime-detect.sh && $COMPANYGRAPH_COMPOSE_CMD down'",
+    "seed": "bun --cwd api run scripts/seed.ts ../shared/seed/retail-mini.json",
+    "schema:apply": "bun --cwd api run scripts/schema-apply.ts",
+    "typecheck": "bun build api/src/server.ts --target=bun --no-bundle --outdir /tmp/companygraph-tc > /dev/null && bun build pwa/src/main.tsx --target=browser --no-bundle --outdir /tmp/companygraph-tc-pwa > /dev/null",
+    "test": "bun test --test-name-pattern '^(?!integration:)'",
+    "test:integration": "bun test --test-name-pattern '^integration:'"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "concurrently": "^9.0.0",
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.env
+.env.local
+
+# Neo4j named-volume data dir (only used if compose maps a host path)
+neo4j_data/
+
+# Bun
+.bun/
+bun.lockb.tmp
+
+# Editor + OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Build artefacts
+/tmp/companygraph-tc*/
+
+# ontology-manager — runtime audit-archive dir (FR-13a).
+data/ontology-manager/
