@@ -2,6 +2,7 @@ import { NODE_LABELS, type NodeLabel } from "@companygraph/shared/schema/nodes";
 import { UUIDV7_REGEX } from "../ids";
 import type { ErrorEnvelope } from "@companygraph/shared/types";
 import { ValidationError, type ErrorCode } from "../errors";
+import { getSchema } from "../ontology/cache/schema";
 
 // Runtime guard for URL `:label` params. Closes design-review C-05 —
 // without this guard, `req.params.label as NodeLabel` would silently
@@ -53,4 +54,26 @@ export async function readJson(req: Request): Promise<unknown> {
   } catch {
     throw new ValidationError("invalid_payload", { cause: "request body is not valid JSON" });
   }
+}
+
+// T-13 §5.5 — Registry-backed URL-param guards for ontology routes.
+// Uses the schema cache so cache-hits cost < 1 ms; cache-misses hit Neo4j.
+// Returns the validated name string, or null when unknown / wrong type.
+
+export async function parseRegistryLabel(s: unknown): Promise<string | null> {
+  if (typeof s !== "string" || s.length === 0) return null;
+  const schema = await getSchema();
+  return schema.nodeLabels.some((l) => l.name === s) ? s : null;
+}
+
+export async function parseEdgeTypeName(s: unknown): Promise<string | null> {
+  if (typeof s !== "string" || s.length === 0) return null;
+  const schema = await getSchema();
+  return schema.edgeTypes.some((t) => t.name === s) ? s : null;
+}
+
+// Parse a boolean URL query param present as "true" / "1" / absent.
+export function parseQueryBool(url: URL, param: string): boolean {
+  const v = url.searchParams.get(param);
+  return v === "true" || v === "1";
 }
