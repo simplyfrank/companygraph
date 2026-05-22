@@ -1,27 +1,22 @@
-// T-18c — POST /api/v1/ontology/rollback/:version_id handler stub.
+// T-18c — POST /api/v1/ontology/rollback/:version_id handler (design §4.8, FR-18).
 //
-// This is a *route stub* for T-17 / T-18 scope. The full rollback executor
-// (storage helper that restores a prior schema in a single Neo4j tx and
-// writes a new version row pointing at the rolled-back-to schema as parent)
-// lands in a follow-on commit.
-//
-// What this stub does today:
-//
+// Route guards (READ tx):
 //   1. Validates `:version_id` is a UUIDv7 via `parseId`.
 //   2. Looks up the version row in `_OntologyVersion` (READ tx).
 //   3. Returns 404 not_found when the version_id is unknown.
 //   4. Returns 400 rollback_below_bootstrap when the target row is the
 //      first `_OntologyVersion` row by `ts ASC` OR carries
 //      `summary === "system_bootstrap_seed"` (pass-1 design-review C-03).
-//   5. Otherwise returns 501 not_implemented with a `details.hint`
-//      pointing at the follow-on commit.
 //
-// Unblocks the route mount + the integration smoke test without forcing
-// the rollback executor to ship in this batch.
+// After guards pass, delegates to `executeRollback` (ontology/storage/rollback.ts)
+// which runs the inverse audit replay in a single executeWrite transaction.
+// Post-commit `ontologyEvents.emit("ontology.changed")` fires from here.
 
 import type { Driver } from "neo4j-driver";
 import { getDriver } from "../neo4j/driver";
-import { error, parseId } from "./_helpers";
+import { executeRollback } from "../ontology/storage/rollback";
+import { ontologyEvents } from "../ontology/events";
+import { ok, error, parseId } from "./_helpers";
 
 // POST /api/v1/ontology/rollback/:version_id
 export async function handleRollback(
@@ -82,17 +77,21 @@ export async function handleRollback(
       );
     }
 
-    // Step 5 — stub. Full executor lands in a follow-on commit.
-    return error(
-      501,
-      "not_implemented",
-      "rollback executor not yet shipped",
-      {
-        version_id: validId,
-        hint: "Full rollback executor lands in a follow-on commit",
-      },
-    );
-  } finally {
+    // Step 5 — execute rollback.
+    const actorParam = new URL(_req.url).searchParams.get("actor") ?? "api:rollback";
+    // Close the read session before opening the write tx inside executeRollback.
     await session.close();
+    const result = await executeRollback(driver, validId, actorParam);
+    ontologyEvents.emit("ontology.changed", {
+      event_id: result.version_id,
+      version_id: result.version_id,
+      ts: new Date().toISOString(),
+      diff: [{ op: "test", path: "/rollback/target", value: validId }],
+    });
+    return ok(result);
+  } finally {
+    // session may already be closed above; close() on an already-closed
+    // session is a no-op in the neo4j-driver v5 API.
+    try { await session.close(); } catch { /* already closed */ }
   }
 }
