@@ -16,6 +16,7 @@ function resetStore() {
 
 describe("SchemaBootstrap (AC-21 + C-03 fix)", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     resetStore();
     _resetSchemaBootstrapWarning();
     vi.restoreAllMocks();
@@ -30,7 +31,7 @@ describe("SchemaBootstrap (AC-21 + C-03 fix)", () => {
     );
     render(
       <SchemaBootstrap>
-        <div data-test-id="content">ready</div>
+        <div data-testid="content">ready</div>
       </SchemaBootstrap>,
     );
     await waitFor(() => {
@@ -46,7 +47,7 @@ describe("SchemaBootstrap (AC-21 + C-03 fix)", () => {
     );
     render(
       <SchemaBootstrap>
-        <div data-test-id="content">ready</div>
+        <div data-testid="content">ready</div>
       </SchemaBootstrap>,
     );
     await waitFor(() => {
@@ -63,7 +64,7 @@ describe("SchemaBootstrap (AC-21 + C-03 fix)", () => {
     );
     render(
       <SchemaBootstrap>
-        <div data-test-id="content">ready</div>
+        <div data-testid="content">ready</div>
       </SchemaBootstrap>,
     );
     await waitFor(() => {

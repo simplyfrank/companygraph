@@ -53,7 +53,7 @@ export function SchemaBootstrap({ children, fallback, loading }: Props) {
     return (
       <>
         {fallback ?? (
-          <div role="alert" data-test-id="schema-bootstrap-error">
+          <div role="alert" data-testid="schema-bootstrap-error">
             <p>Schema service is unavailable.</p>
             <p>{error}</p>
             <button type="button" onClick={() => void refresh()}>
@@ -66,7 +66,7 @@ export function SchemaBootstrap({ children, fallback, loading }: Props) {
   }
 
   if (!schema) {
-    return <>{loading ?? <div data-test-id="schema-bootstrap-loading">Loading…</div>}</>;
+    return <>{loading ?? <div data-testid="schema-bootstrap-loading">Loading…</div>}</>;
   }
 
   return <>{children}</>;
