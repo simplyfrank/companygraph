@@ -1,16 +1,23 @@
+// AC-15 / NFR-02 / T-09b sibling refactor — export iterates the runtime
+// registry via the §6.1 schema cache, not the compile-time NODE_LABELS /
+// EDGE_TYPES const tuples. Round-trippability through POST /import is
+// preserved: every label that has data nodes is exported under its
+// registry name, every type with edges under its registry name.
+
 import { getDriver } from "../neo4j/driver";
-import { NODE_LABELS, type NodeLabel } from "@companygraph/shared/schema/nodes";
-import { EDGE_TYPES, type EdgeType } from "@companygraph/shared/schema/edges";
+import { getSchema } from "../ontology/cache/schema";
 import type { Node, Edge } from "@companygraph/shared/types";
 
 // GET /api/v1/export — buffered JSON, ordered by id ASC, round-trippable
 // through POST /import (FR-17 / AC-25).
 export async function handleExportJson(): Promise<Response> {
+  const schema = await getSchema();
   const driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });
   try {
-    const nodes: (Node & { label: NodeLabel })[] = [];
-    for (const label of NODE_LABELS) {
+    const nodes: (Node & { label: string })[] = [];
+    for (const labelRow of schema.nodeLabels) {
+      const label = labelRow.name;
       const r = await session.run(
         `MATCH (n:\`${label}\`) RETURN n ORDER BY n.id ASC`,
       );
@@ -28,7 +35,8 @@ export async function handleExportJson(): Promise<Response> {
       }
     }
     const edges: Edge[] = [];
-    for (const type of EDGE_TYPES) {
+    for (const typeRow of schema.edgeTypes) {
+      const type = typeRow.name;
       const r = await session.run(
         `MATCH (a)-[r:\`${type}\`]->(b) RETURN r, a.id AS fromId, b.id AS toId ORDER BY r.id ASC`,
       );
@@ -60,9 +68,11 @@ export function handleExportNdjson(): Response {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const enc = new TextEncoder();
+      const schema = await getSchema();
       const session = driver.session({ defaultAccessMode: "READ" });
       try {
-        for (const label of NODE_LABELS) {
+        for (const labelRow of schema.nodeLabels) {
+          const label = labelRow.name;
           const result = await session.run(
             `MATCH (n:\`${label}\`) RETURN n ORDER BY n.id ASC`,
           );
@@ -78,7 +88,8 @@ export function handleExportNdjson(): Response {
             controller.enqueue(enc.encode(JSON.stringify(row) + "\n"));
           }
         }
-        for (const type of EDGE_TYPES) {
+        for (const typeRow of schema.edgeTypes) {
+          const type = typeRow.name;
           const result = await session.run(
             `MATCH (a)-[r:\`${type}\`]->(b) RETURN r, a.id AS fromId, b.id AS toId ORDER BY r.id ASC`,
           );

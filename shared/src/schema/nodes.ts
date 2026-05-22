@@ -38,7 +38,11 @@ export type NodeUpdateInput = z.infer<typeof nodeUpdateSchema>;
 
 export const nodeReadSchema = z.object({
   id: uuidv7,
-  label: z.enum(NODE_LABELS),
+  // z.string() rather than z.enum(NODE_LABELS): the ontology registry is
+  // runtime-extensible; labels added via POST /api/v1/ontology/node-labels
+  // must be deserialisable here. NODE_LABELS still exists as the compile-time
+  // seed set but must not gate the read schema.
+  label: z.string().min(1),
   name: z.string(),
   description: z.string(),
   createdAt: z.string().datetime(),

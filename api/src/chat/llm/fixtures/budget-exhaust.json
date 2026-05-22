@@ -4,66 +4,42 @@
       "stop_reason": "tool_use",
       "text": "{\"intent\": \"in_scope\", \"role_id\": \"graph_analyst\"}",
       "tool_calls": [
-        {
-          "id": "toolu_01budget1",
-          "name": "list_domains",
-          "input": {}
-        }
+        { "id": "toolu_01budget1", "name": "describe_schema", "input": {} }
       ],
       "usage": { "input_tokens": 1100, "output_tokens": 40 }
     },
     {
       "stop_reason": "tool_use",
       "tool_calls": [
-        {
-          "id": "toolu_01budget2",
-          "name": "get_domain",
-          "input": { "id": "d_retail" }
-        }
+        { "id": "toolu_01budget2", "name": "describe_schema", "input": {} }
       ],
       "usage": { "input_tokens": 1300, "output_tokens": 35 }
     },
     {
       "stop_reason": "tool_use",
       "tool_calls": [
-        {
-          "id": "toolu_01budget3",
-          "name": "list_nodes_by_label",
-          "input": { "label": "UserJourney" }
-        }
+        { "id": "toolu_01budget3", "name": "describe_schema", "input": {} }
       ],
       "usage": { "input_tokens": 1500, "output_tokens": 35 }
     },
     {
       "stop_reason": "tool_use",
       "tool_calls": [
-        {
-          "id": "toolu_01budget4",
-          "name": "list_nodes_by_label",
-          "input": { "label": "Activity" }
-        }
+        { "id": "toolu_01budget4", "name": "describe_schema", "input": {} }
       ],
       "usage": { "input_tokens": 1700, "output_tokens": 35 }
     },
     {
       "stop_reason": "tool_use",
       "tool_calls": [
-        {
-          "id": "toolu_01budget5",
-          "name": "list_nodes_by_label",
-          "input": { "label": "Role" }
-        }
+        { "id": "toolu_01budget5", "name": "describe_schema", "input": {} }
       ],
       "usage": { "input_tokens": 1900, "output_tokens": 35 }
     },
     {
       "stop_reason": "tool_use",
       "tool_calls": [
-        {
-          "id": "toolu_01budget6",
-          "name": "list_nodes_by_label",
-          "input": { "label": "System" }
-        }
+        { "id": "toolu_01budget6", "name": "describe_schema", "input": {} }
       ],
       "usage": { "input_tokens": 2100, "output_tokens": 35 }
     }

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getDriver } from "../neo4j/driver";
 import { runPassthrough } from "../neo4j/read-only-session";
-import { error, ok, parseId, parseLabel, readJson } from "./_helpers";
+import { error, ok, parseId, parseRegistryLabel, readJson } from "./_helpers";
 import { ValidationError } from "../errors";
 
 const MAX_DEPTH = 8;
@@ -38,9 +38,23 @@ export async function handleGetJourney(_req: Request, idParam: string): Promise<
     getDriver(),
     `MATCH (j:UserJourney {id: $id})
      OPTIONAL MATCH (a:Activity)-[:PART_OF]->(j)
-     WITH j, collect(CASE WHEN a IS NULL THEN NULL ELSE {id: a.id, name: a.name} END) AS allActivities
+     WITH j,
+          collect(CASE WHEN a IS NULL THEN NULL
+                  ELSE {
+                    id: a.id, name: a.name,
+                    sla_target_hours:  apoc.convert.fromJsonMap(coalesce(a.attributes_json, "{}"))[\'sla_target_hours\'],
+                    p95_hours:         apoc.convert.fromJsonMap(coalesce(a.attributes_json, "{}"))[\'p95_hours\'],
+                    kpi_score:         apoc.convert.fromJsonMap(coalesce(a.attributes_json, "{}"))[\'kpi_score\']
+                  } END) AS allActivities
+     WITH j, [x IN allActivities WHERE x IS NOT NULL] AS activities,
+          apoc.convert.fromJsonMap(coalesce(j.attributes_json, "{}")) AS jAttrs
      RETURN j.id AS id, j.name AS name, j.description AS description,
-            [x IN allActivities WHERE x IS NOT NULL] AS activities`,
+            activities,
+            jAttrs[\'sla_target_hours\'] AS sla_target_hours,
+            jAttrs[\'p95_hours\']        AS p95_hours,
+            jAttrs[\'kpi_score\']        AS kpi_score,
+            jAttrs[\'owner_team\']       AS owner_team,
+            jAttrs[\'_verification\']    AS verification`,
     { id },
   );
   if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
@@ -166,7 +180,7 @@ export async function handleSearch(req: Request): Promise<Response> {
       fieldErrors: parsed.error.flatten().fieldErrors,
     });
   }
-  const label = parseLabel(parsed.data.label);
+  const label = await parseRegistryLabel(parsed.data.label);
   if (!label) {
     return error(400, "unknown_label", "unknown label", { label: parsed.data.label });
   }

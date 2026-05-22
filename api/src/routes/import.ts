@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  NODE_LABELS,
   nodeCreateSchema,
 } from "@companygraph/shared/schema/nodes";
 import { edgeCreateSchema } from "@companygraph/shared/schema/edges";
@@ -18,8 +17,13 @@ const importPayloadSchema = z.object({
   edges: z.array(z.record(z.unknown())),
 });
 
+// label is z.string() — the ontology registry is runtime-extensible.
+// Registry-existence is enforced downstream by assertAttributesMatchSchema
+// (not_found → 400 attribute_violation) and by the upsertNode Cypher
+// (unknown label → empty MERGE result or Neo4j error). The frozen
+// NODE_LABELS enum was the bug identified in the data-loading analysis.
 const nodeWithLabelSchema = nodeCreateSchema.and(
-  z.object({ label: z.enum(NODE_LABELS) }),
+  z.object({ label: z.string().min(1) }),
 );
 
 interface RowError {

@@ -3,9 +3,14 @@ import { nodeCreateSchema, type Node, type NodeLabel } from "./schema/nodes";
 import { edgeCreateSchema, type Edge, type EdgeType } from "./schema/edges";
 
 // Bulk import envelope (FR-06).
+// Note: `label` is z.string() here because the ontology registry is
+// runtime-extensible (POST /api/v1/ontology/node-labels). The frozen
+// NODE_LABELS enum guard was the source of the bug fixed in stats.ts;
+// the same fix propagates here. The API layer validates against the
+// live registry schema cache; the shared schema only enforces structure.
 export const importPayloadSchema = z.object({
   nodes: z.array(z.object({
-    label: z.enum(["Domain", "UserJourney", "Activity", "Role", "System", "Location"]),
+    label: z.string().min(1),
   }).and(nodeCreateSchema)),
   edges: z.array(edgeCreateSchema),
 });
@@ -31,9 +36,12 @@ export const importResponseSchema = z.object({
 export type ImportResponse = z.infer<typeof importResponseSchema>;
 
 // /api/v1/stats response — all keys always present per FR-11.
+// Keys are `string` (not the frozen compile-time union) because the
+// ontology registry is runtime-extensible; new labels/types added via
+// POST /api/v1/ontology/* appear in /stats within the cache TTL.
 export interface Stats {
-  nodes: Record<NodeLabel, number>;
-  edges: Record<EdgeType, number>;
+  nodes: Record<string, number>;
+  edges: Record<string, number>;
 }
 
 // /api/v1/healthz response.

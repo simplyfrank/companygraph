@@ -1,11 +1,8 @@
 import type { Driver } from "neo4j-driver";
 import {
-  EDGE_TYPES,
   type EdgeCreateInput,
   type Edge,
-  type EdgeType,
 } from "@companygraph/shared/schema/edges";
-import { type NodeLabel } from "@companygraph/shared/schema/nodes";
 import { generateId } from "../ids";
 import { ValidationError, isConstraintViolation } from "../errors";
 import { getEdgeEndpoints } from "../ontology/cache/edge-endpoints";
@@ -42,7 +39,7 @@ async function validateEdge(
   driver: Driver,
   input: EdgeCreateInput,
   ctx?: { phase: 1 | 2 },
-): Promise<{ fromLabel: NodeLabel; toLabel: NodeLabel }> {
+): Promise<{ fromLabel: string; toLabel: string }> {
   const phaseDetail = ctx ? { phase: ctx.phase } : {};
 
   // (1) Resolve the allowed (fromLabel, toLabel) pair list from the
@@ -51,14 +48,12 @@ async function validateEdge(
   // `getEdgeEndpoints` returns ReadonlyArray<readonly [string, string]>.
   const allowed = await getEdgeEndpoints(input.type, driver);
 
-  // Build the cross-type collision EXISTS clause only when an id is
-  // supplied. When no id is provided a new one will be generated, so
-  // there can be no collision.
-  const otherTypes = input.id !== undefined
-    ? EDGE_TYPES.filter((t) => t !== input.type)
-    : [];
-  const collisionExpr = otherTypes.length > 0
-    ? otherTypes.map((t) => `EXISTS { MATCH ()-[r:\`${t}\`]-() WHERE r.id = $edgeId }`).join(" OR ")
+  // Cross-type id collision check: type-agnostic EXISTS covers all
+  // registered edge types including runtime-registered ones. The old
+  // compile-time EDGE_TYPES filter is gone — it missed any type added
+  // via POST /api/v1/ontology/edge-types after server start.
+  const collisionExpr = input.id !== undefined
+    ? "EXISTS { MATCH ()-[r {id: $edgeId}]-() WHERE type(r) <> $edgeType }"
     : "false";
 
   const session = driver.session({ defaultAccessMode: "READ" });
@@ -69,12 +64,17 @@ async function validateEdge(
        RETURN labels(a)[0] AS fromLabel,
               labels(b)[0] AS toLabel,
               (${collisionExpr}) AS idCollision`,
-      { fromId: input.fromId, toId: input.toId, edgeId: input.id ?? null },
+      {
+        fromId: input.fromId,
+        toId: input.toId,
+        edgeId: input.id ?? null,
+        edgeType: input.type,
+      },
     );
 
     const rec = res.records[0];
-    const fromLabel = rec?.get("fromLabel") as NodeLabel | null | undefined;
-    const toLabel   = rec?.get("toLabel")   as NodeLabel | null | undefined;
+    const fromLabel = rec?.get("fromLabel") as string | null | undefined;
+    const toLabel   = rec?.get("toLabel")   as string | null | undefined;
 
     if (!fromLabel) {
       throw new ValidationError("edge_endpoint_missing", {
@@ -107,7 +107,7 @@ async function validateEdge(
   }
 }
 
-function deserializeEdge(type: EdgeType, record: {
+function deserializeEdge(type: string, record: {
   get: (k: string) => unknown;
 }): Edge {
   const rel = record.get("r") as {

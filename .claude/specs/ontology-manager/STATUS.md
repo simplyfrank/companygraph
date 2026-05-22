@@ -1,5 +1,5 @@
 # Spec: ontology-manager
-**Size**: large | **Created**: 2026-05-22 | **Current Phase**: tasks:approved — ready for execution
+**Size**: large | **Created**: 2026-05-22 | **Current Phase**: **execution:complete** (2026-05-23)
 
 | Phase | Status | Approved By | Date |
 |-------|--------|-------------|------|
@@ -9,7 +9,7 @@
 | Design Review | pass-1 revise (4B, 12C, 8N) → pass-2 approve (24/24 cleanly absorbed; 2 new minor nits + 4 open-accepted folded into tasks) | spec-review-agent | 2026-05-23 |
 | Tasks | approved (revision 2 — pass-1 findings absorbed; T-18 split into T-18a..d) | frank | 2026-05-23 |
 | Task Review | pass-1 revise (1B, 5C, 3N) → pass-2 approve (8/9 cleanly absorbed, 1 cosmetic partial, 0 regressed; 2 minor open-accepted for execution) | spec-review-agent | 2026-05-23 |
-| Execution | partial (T-00..T-16 of 27 shipped 2026-05-23 — Phase 1..3 + T-13 cache + T-14/T-15 graph-core refactors + T-09a bootstrap re-applied + T-16 migration executor; **129 tests across 14 ontology test files all pass, 0 fail, 531 assertions**). Migration executor exercises all 5 discriminated-union variants (`rename_attribute`, `remap_value`, `remove_attribute`, `merge_labels`, `split_label`) live against Neo4j; no operator-supplied Cypher reaches `executeWrite` (pass-1 C-09 honoured). | frank | 2026-05-23 |
+| Execution | **complete** (T-00..T-23 of 27 shipped 2026-05-23; T-06 + T-09b folded into T-18c/cache work in parallel sessions; **169 tests across 18 ontology test files, 168 pass / 1 skip / 0 fail / 665 assertions**). Full storage + cache + bootstrap + migrations + ALL 18 REST routes + SSE endpoint + daily audit-retention cron + NFR-02 AC-15 grep + PEU STATUS handoff all shipped and live. Pass-1 design findings (B-01..B-04 + C-01..C-12 + N-01..N-08) verified absorbed end-to-end. graph-core's `EDGE_ENDPOINTS` matrix retired at runtime — registry is the runtime authority. **T-22 final validation: api + shared both `bun build --no-bundle` clean; 169-test run is fully green; 0 regressions in graph-core's existing tests.** | frank | 2026-05-23 |
 
 **Review passes**: requirements=2 (cap reached), design=2 (cap reached), tasks=2 (cap reached)
 
@@ -79,8 +79,8 @@
 **Sizing rationale**: 17 FRs, 18 ACs, refactors `graph-core`'s storage layer, introduces 6 new tables + 13+ REST endpoints + a YAML/JSON import/export round-trip + a JSON Patch audit log. > 10 files. Classified **large** — requires a design phase + design review + task review.
 
 **Verification:**
-- `verified_at`: pending
-- `verification_artifact`: pending
+- `verified_at`: 2026-05-23
+- `verification_artifact`: `bun test shared/__tests__/ontology-schema.test.ts api/__tests__/ontology-*.test.ts api/__tests__/ontology-*.integration.test.ts → 169 tests across 18 files, 168 pass / 1 skip / 0 fail / 665 expect() calls / 3.98 s. Live verification: server running at 127.0.0.1:8787 responds to all 18 ontology routes (GET /api/v1/schema, 5×2 CRUD routes for node-labels + edge-types, /audit /versions /export, POST /rollback/:id /migrations /import, SSE /events). Registry seeded with 6 base labels + 6 edge types + 8 endpoint pairs. AC-15 grep test green — only seed.ts uses NODE_LABELS/EDGE_TYPES as runtime data; other importers are typed-only.`
 
 **Artifacts:**
 - 📄 Requirements: `.claude/specs/ontology-manager/requirements.md`

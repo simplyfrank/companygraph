@@ -56,6 +56,14 @@ export async function handleOntologyEvents(req: Request): Promise<Response> {
         }
       };
 
+      // Emit an immediate `: connected` comment so the response headers
+      // flush to the client without waiting for the first event. Bun's
+      // fetch resolves the `await fetch()` promise on first chunk; an
+      // initial no-op chunk lets the caller proceed to trigger
+      // mutations. The line is a valid SSE comment per the spec
+      // (`field-name == ""` → ignored by the EventSource consumer).
+      enqueue(`: connected\n\n`);
+
       // === Pass-1 B-02 fix (b): subscribe BEFORE replay; buffer live events during replay. ===
       const liveBuffer: OntologyChangedEvent[] = [];
       let replayDone = false;

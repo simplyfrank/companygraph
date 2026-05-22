@@ -15,13 +15,13 @@ import {
   noContent,
   ok,
   parseId,
-  parseLabel,
+  parseRegistryLabel,
   readJson,
 } from "./_helpers";
 
 export async function handleNodePost(req: Request, labelParam: string): Promise<Response> {
-  const label = parseLabel(labelParam);
-  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
+  const label = await parseRegistryLabel(labelParam);
+  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
   const body = await readJson(req);
   const input = parseOrThrow(nodeCreateSchema, body);
   const node = await createNode(getDriver(), label, input);
@@ -29,8 +29,8 @@ export async function handleNodePost(req: Request, labelParam: string): Promise<
 }
 
 export async function handleNodeGet(_req: Request, labelParam: string, idParam: string): Promise<Response> {
-  const label = parseLabel(labelParam);
-  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
+  const label = await parseRegistryLabel(labelParam);
+  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const node = await getNode(getDriver(), label, id);
@@ -38,8 +38,8 @@ export async function handleNodeGet(_req: Request, labelParam: string, idParam: 
 }
 
 export async function handleNodePatch(req: Request, labelParam: string, idParam: string): Promise<Response> {
-  const label = parseLabel(labelParam);
-  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
+  const label = await parseRegistryLabel(labelParam);
+  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const body = await readJson(req);
@@ -49,8 +49,8 @@ export async function handleNodePatch(req: Request, labelParam: string, idParam:
 }
 
 export async function handleNodeDelete(req: Request, labelParam: string, idParam: string): Promise<Response> {
-  const label = parseLabel(labelParam);
-  if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
+  const label = await parseRegistryLabel(labelParam);
+  if (!label) return error(404, "not_found", "unknown node label", { label: labelParam });
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const cascade = new URL(req.url).searchParams.get("cascade") === "true";

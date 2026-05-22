@@ -1,7 +1,6 @@
 import type { Driver } from "neo4j-driver";
 import type { z } from "zod";
 import {
-  type NodeLabel,
   type NodeCreateInput,
   type NodeUpdateInput,
   type Node,
@@ -67,7 +66,7 @@ async function assertAttributesMatchSchema(
   ERROR_CODE_THROWERS.attribute_violation({ missing, type_mismatch });
 }
 
-function deserializeNode(label: NodeLabel, neoNode: {
+function deserializeNode(label: string, neoNode: {
   properties: {
     id: string;
     name: string;
@@ -92,7 +91,7 @@ function deserializeNode(label: NodeLabel, neoNode: {
 // (closes design-review B-02).
 export async function createNode(
   driver: Driver,
-  label: NodeLabel,
+  label: string,
   input: NodeCreateInput,
 ): Promise<Node> {
   // FR-04 — per-label attribute schema enforcement (runs BEFORE the
@@ -127,7 +126,7 @@ export async function createNode(
 
 export async function getNode(
   driver: Driver,
-  label: NodeLabel,
+  label: string,
   id: string,
 ): Promise<Node> {
   const session = driver.session({ defaultAccessMode: "READ" });
@@ -151,7 +150,7 @@ export async function getNode(
 // Empty body is the C-08 pinned decision: 200 + bump updatedAt only.
 export async function patchNode(
   driver: Driver,
-  label: NodeLabel,
+  label: string,
   id: string,
   input: NodeUpdateInput,
 ): Promise<Node> {
@@ -200,7 +199,7 @@ export async function patchNode(
 // POST /api/v1/import (and seed loader only) — idempotent MERGE-on-id.
 export async function upsertNode(
   driver: Driver,
-  label: NodeLabel,
+  label: string,
   input: NodeCreateInput,
 ): Promise<Node> {
   // FR-04 — per-label attribute schema enforcement on the import path.
@@ -240,7 +239,7 @@ export async function upsertNode(
 
 export async function deleteNode(
   driver: Driver,
-  label: NodeLabel,
+  label: string,
   id: string,
   cascade: boolean,
 ): Promise<void> {

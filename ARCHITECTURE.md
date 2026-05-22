@@ -269,6 +269,32 @@ code.
 
 ---
 
+## §16 — Runtime-registry propagation (data-loading path)
+
+The ontology registry is runtime-extensible. Node labels and edge types added
+via `POST /api/v1/ontology/node-labels` and `POST /api/v1/ontology/edge-types`
+must be accepted by all write paths without a server restart. The compile-time
+frozen lists (`NODE_LABELS`, `EDGE_TYPES`) are **seed constants only** — they
+must not gate validation on any write path.
+
+**Rule:** All write-path label/type guards must read the live registry:
+
+| Location | Old (frozen) | New (runtime) |
+|---|---|---|
+| `routes/stats.ts` | `NODE_LABELS` / `EDGE_TYPES` const iteration | `getSchema()` cache |
+| `routes/nodes.ts` | `parseLabel` → `NODE_LABELS.includes` | `parseRegistryLabel` → schema cache |
+| `routes/import.ts` | `z.enum(NODE_LABELS)` | `z.string().min(1)` |
+| `shared/schema/edges.ts` `edgeCreateSchema` | `z.enum(EDGE_TYPES)` | `z.string().min(1)` |
+| `storage/edges.ts` collision EXISTS | compile-time `EDGE_TYPES.filter(…)` EXISTS list | type-agnostic `WHERE type(r) <> $edgeType` |
+| `storage/nodes.ts` function signatures | `label: NodeLabel` | `label: string` |
+| `shared/schema/nodes.ts` `nodeReadSchema` | `z.enum(NODE_LABELS)` | `z.string().min(1)` |
+| `shared/src/types.ts` `Stats` | `Record<NodeLabel,number>` | `Record<string,number>` |
+
+The runtime enforcement chain for edge types is:
+`edgeCreateSchema` (structural) → `validateEdge` → `getEdgeEndpoints` (registry cache) → pair whitelist.
+
+---
+
 ## Open technical debt (not yet fixed)
 
 | Issue | File | Notes |

@@ -1,17 +1,14 @@
-import { NODE_LABELS, type NodeLabel } from "@companygraph/shared/schema/nodes";
 import { UUIDV7_REGEX } from "../ids";
 import type { ErrorEnvelope } from "@companygraph/shared/types";
 import { ValidationError, type ErrorCode } from "../errors";
 import { getSchema } from "../ontology/cache/schema";
 
-// Runtime guard for URL `:label` params. Closes design-review C-05 —
-// without this guard, `req.params.label as NodeLabel` would silently
-// admit arbitrary strings (including Cypher-injection payloads) into the
-// storage layer's template-interpolated label.
-export function parseLabel(s: unknown): NodeLabel | null {
-  return typeof s === "string" && (NODE_LABELS as readonly string[]).includes(s)
-    ? (s as NodeLabel) : null;
-}
+// AC-15 / NFR-02 — the previous synchronous `parseLabel(s)` was removed
+// when this module stopped importing the compile-time NODE_LABELS const
+// tuple. The async `parseRegistryLabel` below replaces it on every
+// URL-param guard site (routes/nodes.ts, routes/query.ts, ontology
+// routes). Sole legal importer of NODE_LABELS is `api/src/ontology/seed.ts`
+// (the privileged bootstrap path), enforced by `ontology-no-frozen-import.test.ts`.
 
 export function parseId(s: unknown): string | null {
   return typeof s === "string" && UUIDV7_REGEX.test(s) ? s : null;

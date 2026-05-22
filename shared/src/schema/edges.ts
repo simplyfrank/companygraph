@@ -31,7 +31,11 @@ export const EDGE_ENDPOINTS = {
 
 export const edgeCreateSchema = z.object({
   id: uuidv7.optional(),
-  type: z.enum(EDGE_TYPES),
+  // z.string() rather than z.enum(EDGE_TYPES): the ontology registry is
+  // runtime-extensible. The allowed-type check is enforced at write time
+  // by validateEdge → getEdgeEndpoints (storage/edges.ts). EDGE_TYPES
+  // remains for compile-time seed callers and typed downstream code.
+  type: z.string().min(1),
   fromId: uuidv7,
   toId: uuidv7,
   attributes: z.record(z.unknown()).default({}),

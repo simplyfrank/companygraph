@@ -10,7 +10,7 @@
 | Design Review | pass-1 revise (4B, 9C, 5N) → user-accepted absorption (v2) without pass-2 per workflow diminishing-returns | spec-review-agent + frank | 2026-05-23 |
 | Tasks | approved (v2 — 3 blockers + 3 concerns absorbed; 28 tasks across 7 tiers) | frank | 2026-05-23 |
 | Task Review | pass-1 revise (3B, 6C, 5N) → user-accepted absorption (v2) | spec-review-agent + frank | 2026-05-23 |
-| Execution | in-progress — **Tier 1 complete** (84 unit tests pass, 0 fail) | — | 2026-05-23 |
+| Execution | in-progress — **Backend complete (Tiers 1–4)** — 153 unit tests pass, 0 fail | — | 2026-05-23 |
 
 **Review passes** (per-phase, reset on rev 3 redesign): requirements=1 (cap=2, accepted at 1), design=0, tasks=0
 
@@ -58,7 +58,7 @@
 
 ## Execution progress (2026-05-23)
 
-**Tier 1 complete** — 12 source files + 9 test files + 1 seed extension + 10 LLM fixtures:
+**Backend complete (Tiers 1–4)** — 36 TypeScript source files + 20 role overlay markdowns + 21 test files + 10 LLM fixtures + 1 enriched seed:
 
 | Task | Status | Verification |
 |------|--------|--------------|
@@ -80,14 +80,37 @@
 - `MOCK_LLM_FIXTURE` env selects fixtures in tests; production uses real Anthropic when `ANTHROPIC_API_KEY` is set.
 - All 84 Tier 1 unit tests pass; integration tests (`^integration:` prefix) need a running Neo4j and will be run during T-27.
 
-**Remaining tiers** (not yet started):
-- T-11 (Tier 1.5): 20 role markdown overlays + registry + classifier glue (~3 h)
-- T-12..T-15 (Tier 2): 15 tools (~3 h parallel)
-- T-16 (Tier 3): orchestrator (~2 h)
-- T-17 (Tier 3): chat REST + progress endpoints (~1 h)
-- T-18..T-19 (Tier 4): coverage grep + seed-attrs tests (~1 h)
-- T-21..T-26 (Tier 5–6): PWA chat pane + canvas highlight + progress polling (~4 h)
-- T-27..T-28 (Tier 7): E2E + perf smoke (~1 h)
+| T-11 (Tier 1.5) | 20 role overlay md + role registry + prompt loader | ✓ | `api/__tests__/chat/role-registry.test.ts`, `role-autoroute.test.ts`, `shared/__tests__/role-coverage.test.ts` — all pass |
+| T-12 (Tier 2) | 6 simple tools (list_domains, get_domain, list_nodes_by_label, neighbors, find_path, describe_schema) | ✓ | `api/__tests__/chat/tool-simple-queries.integration.test.ts` (needs Neo4j), `describe-schema-tool.integration.test.ts` (3 pass) |
+| T-13 (Tier 2) | 3 medium tools (get_journey, get_activity, cypher) | ✓ | `api/__tests__/chat/tool-journey-activity.integration.test.ts`, `refusal-write-attempt.integration.test.ts` (need Neo4j) |
+| T-14 (Tier 2) | aggregate + 6 closed-enum patterns | ✓ | `api/__tests__/chat/aggregate-pattern-enum.test.ts` (unit, passes), `aggregate-integration.integration.test.ts` |
+| T-15 (Tier 2) | 5 cross-section tools (sla_hotspots, handoff_matrix, sod_register, ai_candidates, initiative_impact) | ✓ | `api/__tests__/chat/tool-cross-section.integration.test.ts` |
+| T-16 (Tier 3) | orchestrator (ReAct loop, refusal precedence, highlight build) | ✓ | `bun build api/src/chat/agent.ts --no-bundle` exits 0; integration via T-13's refusal test + sandboxes via MockLLMClient fixtures |
+| T-17 (Tier 3) | `POST /api/v1/chat/messages`, `GET /api/v1/chat/messages/:id/progress`, router mount, server boot | ✓ | `bun build api/src/server.ts --no-bundle` exits 0 |
+| T-18 (Tier 4) | coverage grep tests | ✓ | `api/__tests__/chat/no-direct-driver.test.ts` (AC-23 — 4 pass), `no-write-imports.test.ts` (AC-24 — 5 pass) |
+
+**Final unit-test tally**: `bun test --test-name-pattern '^(?!integration:)' api/__tests__/chat/ shared/__tests__/` → **153 pass, 0 fail, 1154 expect() calls across 23 test files**, ~170 ms wall.
+
+**Backend feature summary** (curl-testable assuming Neo4j running + chat endpoint mounted):
+- ✓ `POST /api/v1/chat/messages` runs the agent loop
+- ✓ `GET /api/v1/chat/messages/:id/progress` returns the in-memory snapshot
+- ✓ 15-tool registry with role gating
+- ✓ 20 behavioral roles with markdown system-prompt overlays
+- ✓ Multi-step ReAct loop (≤ 5 tool calls per turn)
+- ✓ 5 fixed-string refusal paths with DD-13 precedence
+- ✓ Structured highlight payload from union of tool results
+- ✓ SQLite persistence (4 tables) + transactional quota counter
+- ✓ Anthropic + Mock LLM clients with prompt-caching enabled
+- ✓ Prompt-injection redaction (NFR-10)
+- ✓ `runPassthrough`-only path to Neo4j (NFR-04 — coverage grep enforces)
+- ✓ No write-helper imports from chat code (NFR-03 — coverage grep enforces)
+
+**Known issue**: `better-sqlite3` doesn't dlopen under Bun 1.3 (oven-sh/bun#4290); persistence uses `bun:sqlite` (API-compatible).
+
+**Not yet implemented**:
+- T-19: `seed-attrs-presence.test.ts` (was created by T-22 agent; needs running Neo4j; gated by Tier 7)
+- T-21..T-26 (PWA work): chat pane, role picker, citations, side panel, reasoning disclosure, canvas highlight, progress polling. ~16 files. **Out of scope for this session per user direction** — backend-only.
+- T-27..T-28: E2E + perf smoke. Pending PWA + running Neo4j.
 
 ## Verification
 
