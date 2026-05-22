@@ -1,11 +1,15 @@
 import type { ReactNode } from "react";
 import type { Route } from "../route";
+import { NotFoundPanel } from "./_shared";
 
 import { ExplorerDomains } from "./explorer/Domains";
 import { ExplorerJourney } from "./explorer/Journey";
 import { ExplorerJourneyGraph } from "./explorer/JourneyGraph";
 import { ExplorerSystems } from "./explorer/Systems";
 import { ExplorerPath } from "./explorer/Path";
+import { ExplorerActivities } from "./explorer/Activities";
+import { ExplorerRoles } from "./explorer/Roles";
+import { ExplorerLocations } from "./explorer/Locations";
 
 import { ChatThread } from "./chat/Thread";
 
@@ -45,8 +49,14 @@ const VIEWS: ViewMap = {
     "domains":        (r) => <ExplorerDomains route={r} />,
     "journey-detail": (r) => <ExplorerJourney route={r} />,
     "journey-graph":  (r) => <ExplorerJourneyGraph route={r} />,
-    "systems":        () => <ExplorerSystems />,
+    "systems":        (r) => <ExplorerSystems route={r} />,
     "path-finder":    () => <ExplorerPath />,
+    // Virtual explorer tabs — not in SURFACES (no SubNav entry) but
+    // routable via parseHash's EXPLORER_VIRTUAL_TABS allowlist. Each
+    // file handles its own list + detail split via route.entityId.
+    "activities":     (r) => <ExplorerActivities route={r} />,
+    "roles":          (r) => <ExplorerRoles route={r} />,
+    "locations":      (r) => <ExplorerLocations route={r} />,
   },
   chat: {
     thread: () => <ChatThread />,
