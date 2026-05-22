@@ -1,0 +1,1506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Journey catalog — companygraph</title>
+<style>
+  :root {
+    --bg:      oklch(99% 0.002 240);
+    --surface: oklch(100% 0 0);
+    --surface-2: oklch(98% 0.004 250);
+    --fg:      oklch(18% 0.012 250);
+    --muted:   oklch(54% 0.012 250);
+    --muted-2: oklch(70% 0.01 250);
+    --border:  oklch(92% 0.005 250);
+    --border-strong: oklch(86% 0.008 250);
+    --accent:  oklch(58% 0.18 255);
+    --accent-soft: oklch(96% 0.025 255);
+    --good:    oklch(58% 0.16 145);
+    --warn:    oklch(70% 0.16 75);
+    --danger:  oklch(60% 0.22 25);
+
+    --team-cs: oklch(60% 0.22 25);
+    --team-wh: oklch(58% 0.18 255);
+    --team-dc: oklch(58% 0.16 145);
+    --team-lm: oklch(58% 0.18 295);
+    --team-hq: oklch(50% 0.06 250);
+    --team-mk: oklch(70% 0.16 75);
+
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    --font-body:    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --font-mono:    ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    --maxw: 1240px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
+
+  .page { max-width: var(--maxw); margin: 0 auto; padding: 0 32px; }
+
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklch, var(--surface) 92%, transparent);
+    backdrop-filter: saturate(180%) blur(8px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar .row { display: flex; align-items: center; height: 56px; gap: 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: -0.012em; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 2px; background: var(--accent); }
+  .topbar nav { display: flex; gap: 22px; margin-left: auto; }
+  .topbar nav a { color: var(--muted); font-size: 13px; }
+  .topbar nav a:hover { color: var(--fg); text-decoration: none; }
+  .topbar .meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); }
+
+  .hero { padding: 56px 0 36px; border-bottom: 1px solid var(--border); }
+  .hero .kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .hero h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(34px, 4.5vw, 50px); line-height: 1.05; letter-spacing: -0.025em; margin: 0 0 18px; max-width: 22ch; text-wrap: balance; }
+  .hero .lede { font-size: 17px; line-height: 1.5; color: var(--muted); max-width: 64ch; margin: 0 0 28px; }
+  .hero .stats { display: grid; grid-template-columns: repeat(6, max-content); gap: 40px; padding: 22px 0 0; border-top: 1px solid var(--border); margin-top: 8px; }
+  .hero .stat .n { font-family: var(--font-display); font-weight: 500; font-size: 26px; letter-spacing: -0.02em; color: var(--fg); }
+  .hero .stat .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  @media (max-width: 820px) { .hero .stats { grid-template-columns: repeat(3, 1fr); gap: 18px; } }
+
+  .body { display: grid; grid-template-columns: 220px 1fr; gap: 48px; padding: 40px 0 96px; }
+  @media (max-width: 980px) { .body { grid-template-columns: 1fr; gap: 18px; } .sidebar { position: static !important; } }
+  .sidebar { position: sticky; top: 80px; align-self: start; font-size: 13px; }
+  .sidebar .label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+  .sidebar .label:first-child { margin-top: 0; }
+  .sidebar a { display: flex; align-items: baseline; gap: 8px; padding: 4px 6px; color: var(--fg); border-radius: 3px; }
+  .sidebar a:hover { color: var(--accent); background: var(--surface); text-decoration: none; }
+  .sidebar a .num { font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 22px; }
+
+  main { min-width: 0; }
+  .domain-block { margin: 0 0 56px; scroll-margin-top: 72px; }
+  .domain-header { display: flex; align-items: baseline; gap: 12px; padding: 0 0 16px; border-bottom: 1px solid var(--border); margin: 0 0 22px; }
+  .domain-header .pill { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); color: var(--muted); }
+  .domain-header h2 { font-family: var(--font-display); font-weight: 600; font-size: 24px; letter-spacing: -0.022em; margin: 0; }
+  .domain-header .count { font-size: 13px; color: var(--muted); margin-left: auto; }
+
+  .journey { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 0; margin: 0 0 28px; overflow: hidden; scroll-margin-top: 72px; }
+  .j-head { padding: 18px 22px 14px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto; gap: 14px 24px; align-items: start; }
+  .j-head .jid { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .j-head h3 { font-family: var(--font-display); font-weight: 600; font-size: 21px; letter-spacing: -0.018em; margin: 0 0 6px; }
+  .j-head .descr { color: var(--muted); font-size: 13.5px; max-width: 60ch; }
+  .j-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+  .j-meta .pill { font-family: var(--font-mono); font-size: 10.5px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); color: var(--muted); background: var(--surface-2); white-space: nowrap; }
+  .j-meta .pill.good { color: var(--good); border-color: color-mix(in oklch, var(--good) 30%, var(--border)); }
+  .j-meta .pill.warn { color: var(--warn); border-color: color-mix(in oklch, var(--warn) 35%, var(--border)); }
+  .j-meta .pill.danger { color: var(--danger); border-color: color-mix(in oklch, var(--danger) 30%, var(--border)); }
+  .j-meta .pill.accent { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 30%, var(--border)); background: var(--accent-soft); }
+
+  .j-attrs { padding: 10px 22px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .j-attrs .kv .l { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .j-attrs .kv .v { font-size: 13px; color: var(--fg); margin-top: 2px; font-weight: 500; }
+  .j-attrs .kv .v small { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); font-weight: 400; display: block; }
+  @media (max-width: 920px) { .j-attrs { grid-template-columns: repeat(3, 1fr); } }
+
+  .j-body { display: grid; grid-template-columns: 1fr 280px; gap: 0; border-top: 0; }
+  @media (max-width: 920px) { .j-body { grid-template-columns: 1fr; } }
+  .j-main { padding: 18px 22px; min-width: 0; border-right: 1px solid var(--border); }
+  .j-side { padding: 18px 20px; background: var(--surface-2); font-size: 12.5px; min-width: 0; }
+
+  .mini-svg-wrap { border: 1px solid var(--border); border-radius: 5px; padding: 10px; margin-bottom: 16px; background: var(--surface-2); overflow-x: auto; }
+  .mini-svg { display: block; width: 100%; height: auto; min-height: 110px; }
+  .mini-svg .nlbl { font-family: var(--font-mono); font-size: 9px; fill: var(--muted); }
+  .mini-svg .nodebox { fill: var(--surface); stroke: var(--border-strong); stroke-width: 1; }
+  .mini-svg .nodebox.handoff { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 3 2; }
+  .mini-svg .name { font-size: 10px; fill: var(--fg); font-family: var(--font-body); font-weight: 500; }
+  .mini-svg .seq { font-family: var(--font-mono); font-size: 8.5px; fill: var(--muted); font-weight: 500; }
+  .mini-svg .arrow { stroke: var(--border-strong); stroke-width: 1.2; fill: none; }
+  .mini-svg .arrow.warn { stroke: var(--warn); stroke-dasharray: 4 2; }
+  .mini-svg .arrow.breach { stroke: var(--danger); }
+  .mini-svg .sla-dot { stroke-width: 0.6; }
+  .mini-svg .sla-dot.good { fill: var(--good); stroke: var(--good); }
+  .mini-svg .sla-dot.warn { fill: var(--warn); stroke: var(--warn); }
+  .mini-svg .sla-dot.breach { fill: var(--danger); stroke: var(--danger); }
+  .mini-svg .team-cs { fill: var(--team-cs); }
+  .mini-svg .team-wh { fill: var(--team-wh); }
+  .mini-svg .team-dc { fill: var(--team-dc); }
+  .mini-svg .team-lm { fill: var(--team-lm); }
+  .mini-svg .team-hq { fill: var(--team-hq); }
+  .mini-svg .team-mk { fill: var(--team-mk); }
+  .mini-svg .team-stripe { width: 22px; height: 2.5px; }
+
+  table.actv { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.actv th { text-align: left; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; padding: 7px 8px 7px 0; border-bottom: 1px solid var(--border); }
+  table.actv td { padding: 6px 8px 6px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.actv tr:last-child td { border-bottom: 0; }
+  table.actv td.seq { font-family: var(--font-mono); color: var(--muted); width: 24px; }
+  table.actv td.name { font-weight: 500; }
+  table.actv td.role .team-chip { display: inline-block; width: 6px; height: 6px; border-radius: 1.5px; margin-right: 5px; vertical-align: middle; }
+  table.actv td .micro { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); }
+  table.actv td.sla { white-space: nowrap; }
+  .sla-chip { font-family: var(--font-mono); font-size: 10px; padding: 1px 5px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+  .sla-chip.good { color: var(--good); border-color: color-mix(in oklch, var(--good) 30%, var(--border)); }
+  .sla-chip.warn { color: var(--warn); border-color: color-mix(in oklch, var(--warn) 30%, var(--border)); }
+  .sla-chip.breach { color: var(--danger); border-color: color-mix(in oklch, var(--danger) 30%, var(--border)); background: color-mix(in oklch, var(--danger) 8%, var(--surface)); }
+
+  .side-section { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
+  .side-section:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+  .side-section .lbl { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .side-section ul.compact { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+  .side-section ul.compact li { padding: 5px 0; border-top: 1px dashed var(--border); color: var(--fg); }
+  .side-section ul.compact li:first-child { border-top: 0; }
+  .side-section ul.compact li .micro { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); display: block; }
+  .side-section .empty { color: var(--muted-2); font-size: 12px; font-style: italic; }
+  .side-section .row { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; font-size: 12px; }
+  .side-section .row span:first-child { color: var(--muted); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin: 0 0 28px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .legend .swatch { display: inline-flex; align-items: center; gap: 5px; }
+  .legend .swatch .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .legend .swatch .stripe { width: 14px; height: 4px; border-radius: 2px; }
+
+  .x-section { margin: 0 0 36px; scroll-margin-top: 72px; }
+  .x-section .sec-title { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+  .x-card { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+  .x-card table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .x-card th { text-align: left; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .x-card td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .x-card tr:last-child td { border-bottom: 0; }
+  .x-card td.num { text-align: right; font-family: var(--font-mono); font-size: 12.5px; }
+  .x-card td.j { font-weight: 500; }
+  .x-card td.j .micro { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); font-weight: 400; display: block; }
+
+  .ho-matrix { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .ho-matrix th, .ho-matrix td { text-align: center; padding: 4px 6px; border: 1px solid var(--border); }
+  .ho-matrix th.row, .ho-matrix td.row-label { text-align: left; min-width: 130px; padding: 6px 10px; background: var(--surface-2); font-family: var(--font-body); font-size: 12.5px; font-weight: 500; }
+  .ho-matrix th { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: var(--surface-2); }
+  .ho-matrix td.v0 { color: var(--muted-2); }
+  .ho-matrix td.v1 { background: color-mix(in oklch, var(--accent) 12%, var(--surface)); color: var(--fg); font-family: var(--font-mono); }
+  .ho-matrix td.v2 { background: color-mix(in oklch, var(--accent) 28%, var(--surface)); color: var(--fg); font-family: var(--font-mono); }
+  .ho-matrix td.v3 { background: color-mix(in oklch, var(--accent) 45%, var(--surface)); color: white; font-family: var(--font-mono); }
+
+  footer { border-top: 1px solid var(--border); padding: 28px 0 56px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  footer .ref { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="page row">
+    <div class="brand"><span class="dot"></span><span>companygraph / journey catalog</span></div>
+    <nav>
+      <a href="#index">Index</a>
+      <a href="#dom-acquisition">Acquisition</a>
+      <a href="#dom-fulfillment">Fulfillment</a>
+      <a href="#dom-inventory">Inventory</a>
+      <a href="#dom-service">Service</a>
+      <a href="#sla-hotspots">SLA</a>
+      <a href="#handoff-matrix">Hand-offs</a>
+      <a href="#ai-candidates">AI</a>
+    </nav>
+    <div class="meta">v0.1 · 14 journeys</div>
+  </div>
+</header>
+
+<section class="hero page" id="index">
+  <div class="kicker">Journey catalog — test dataset</div>
+  <h1>Fourteen retail journeys across four domains.</h1>
+  <p class="lede">Seed data for stress-testing the companygraph interface. Each journey carries a full set of activities, role + team bindings, SLA-bearing system edges, transition timing, hand-offs, segregation-of-duties conflicts, and active initiative effects. Designed to surface every visualization edge case that <a href="companygraph-views.html">the explorer</a> needs to handle gracefully.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">14</div><div class="l">Journeys</div></div>
+    <div class="stat"><div class="n">87</div><div class="l">Activities</div></div>
+    <div class="stat"><div class="n">68</div><div class="l">SLA edges</div></div>
+    <div class="stat"><div class="n">14</div><div class="l">Hand-offs</div></div>
+    <div class="stat"><div class="n">7</div><div class="l">SoD conflicts</div></div>
+    <div class="stat"><div class="n">9</div><div class="l">SLA breaches</div></div>
+  </div>
+</section>
+
+<div class="page body">
+
+  <aside class="sidebar">
+    <div class="label">Domains</div>
+    <a href="#dom-acquisition"><span class="num">3</span>Customer Acquisition</a>
+    <a href="#dom-fulfillment"><span class="num">4</span>Order Fulfillment</a>
+    <a href="#dom-inventory"><span class="num">3</span>Inventory &amp; Merch</a>
+    <a href="#dom-service"><span class="num">4</span>Customer Service</a>
+
+    <div class="label">Cross-cuts</div>
+    <a href="#sla-hotspots"><span class="num">·</span>SLA hotspots</a>
+    <a href="#handoff-matrix"><span class="num">·</span>Hand-off matrix</a>
+    <a href="#ai-candidates"><span class="num">·</span>AI candidates</a>
+    <a href="#sod-register"><span class="num">·</span>SoD register</a>
+    <a href="#initiative-impact"><span class="num">·</span>Initiative impact</a>
+
+    <div class="label">References</div>
+    <a href="companygraph-views.html"><span class="num">↗</span>Explorer</a>
+    <a href="companygraph-user-stories.html"><span class="num">↗</span>User stories</a>
+  </aside>
+
+  <main>
+
+    <div class="legend">
+      <div class="swatch"><span class="stripe" style="background:var(--team-cs);"></span>Customer Service</div>
+      <div class="swatch"><span class="stripe" style="background:var(--team-wh);"></span>Warehouse</div>
+      <div class="swatch"><span class="stripe" style="background:var(--team-dc);"></span>DC Operations</div>
+      <div class="swatch"><span class="stripe" style="background:var(--team-lm);"></span>Last-mile</div>
+      <div class="swatch"><span class="stripe" style="background:var(--team-hq);"></span>HQ</div>
+      <div class="swatch"><span class="stripe" style="background:var(--team-mk);"></span>Marketing</div>
+      <div class="swatch"><span class="dot" style="background:var(--good);"></span>SLA ok</div>
+      <div class="swatch"><span class="dot" style="background:var(--warn);"></span>warn</div>
+      <div class="swatch"><span class="dot" style="background:var(--danger);"></span>breach</div>
+    </div>
+
+    <!-- ============================ DOMAIN: ACQUISITION ============================ -->
+    <section class="domain-block" id="dom-acquisition">
+      <div class="domain-header">
+        <span class="pill">domain</span>
+        <h2>Customer Acquisition</h2>
+        <span class="count">3 journeys · 19 activities · 1 breach</span>
+      </div>
+
+      <article class="journey" id="j-web-browse-buy">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_web_browse_buy</div>
+            <h3>Web browse → buy</h3>
+            <p class="descr">Anonymous visitor lands on the homepage, searches the catalog, adds a product to cart, and completes online payment. Fully automated journey; the customer is the only role.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">acquisition</span>
+            <span class="pill">7 activities</span>
+            <span class="pill warn">1 warn</span>
+            <span class="pill">0 hand-offs</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">Director of Digital<small>role: r_dir_digital</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-05-12<small>by maya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 0.31<small>~38k/day</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">1.14M<small>peak 62k/h</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">4m 22s<small>p99 18m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">42<small>seq 7 · sys 7 · roles 1</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow warn"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <line x1="680" y1="55" x2="720" y2="55" class="arrow"></line>
+                <line x1="800" y1="55" x2="840" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="29" text-anchor="middle">Land</text><circle class="sla-dot good" cx="40" cy="40" r="3"></circle></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="29" text-anchor="middle">Search</text><circle class="sla-dot warn" cx="40" cy="40" r="3"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="29" text-anchor="middle">Product</text><circle class="sla-dot good" cx="40" cy="40" r="3"></circle></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="29" text-anchor="middle">Cart</text><circle class="sla-dot good" cx="40" cy="40" r="3"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="29" text-anchor="middle">Checkout</text><circle class="sla-dot good" cx="40" cy="40" r="3"></circle></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="29" text-anchor="middle">Pay auth</text><circle class="sla-dot good" cx="40" cy="40" r="3"></circle></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">7</text><text class="name" x="40" y="29" text-anchor="middle">Confirm</text><circle class="sla-dot good" cx="40" cy="40" r="3"></circle></g>
+                <g transform="translate(860,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Land on homepage</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>Web frontend<div class="micro">read</div></td><td>0m<div class="micro">automated</div></td><td class="sla"><span class="sla-chip good">180/250ms</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Search &amp; browse</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>Search engine<div class="micro">read</div></td><td>0m<div class="micro">automated</div></td><td class="sla"><span class="sla-chip warn">920/800ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">View product page</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>Catalog · CMS<div class="micro">read</div></td><td>0m</td><td class="sla"><span class="sla-chip good">320/600ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Add to cart</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>Cart service<div class="micro">write</div></td><td>0m</td><td class="sla"><span class="sla-chip good">160/300ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Checkout flow</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>Checkout svc<div class="micro">readwrite</div></td><td>0m</td><td class="sla"><span class="sla-chip good">410/600ms</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Payment authorise</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>Payment gw<div class="micro">PCI</div></td><td>0m</td><td class="sla"><span class="sla-chip good">680/1000ms</span></td></tr>
+                <tr><td class="seq">7</td><td class="name">Confirmation email</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>Email service<div class="micro">async</div></td><td>0m</td><td class="sla"><span class="sla-chip good">820/2000ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 7</div>
+              <div class="row"><span>ok</span><strong>6</strong></div>
+              <div class="row"><span>warn</span><strong>1</strong></div>
+              <div class="row"><span>breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none — single self-serve channel</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Initiative</div>
+              <ul class="compact">
+                <li><strong>Search-engine migration</strong><span class="micro">target Δ p99 −400ms · in_progress</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD conflicts</div>
+              <div class="empty">none</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Regulatory</div>
+              <div class="row"><span>PCI</span><strong>Pay auth</strong></div>
+              <div class="row"><span>GDPR</span><strong>4 activities</strong></div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-in-store-buy">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_in_store_buy</div>
+            <h3>In-store browse → buy</h3>
+            <p class="descr">Walk-in customer is greeted, demos a product, completes purchase at POS. Loyalty enrolment is offered inline at the till.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">acquisition</span>
+            <span class="pill">7 activities</span>
+            <span class="pill good">all ok</span>
+            <span class="pill">0 hand-offs</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">Store Operations Lead<small>r_store_ops_lead</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-30<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 4.20<small>FTE-heavy</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">42k<small>12 stores</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">11m 30s<small>p99 25m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">36<small>seq 7 · sys 3 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <line x1="680" y1="55" x2="720" y2="55" class="arrow"></line>
+                <line x1="800" y1="55" x2="840" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Greet</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Demo</text></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Scan SKU</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Loyalty</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Cash-up</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Hand over</text></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">7</text><text class="name" x="40" y="32" text-anchor="middle">Receipt</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(860,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Greet customer</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>—</td><td>1m<div class="micro">manual</div></td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Demo product</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>—</td><td>5m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Scan SKU</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>POS<div class="micro">readwrite</div></td><td>30s</td><td class="sla"><span class="sla-chip good">210/250ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Add loyalty card</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>POS · Loyalty<div class="micro">readwrite</div></td><td>20s</td><td class="sla"><span class="sla-chip good">390/600ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Cash-up at POS</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>POS · Payment gw<div class="micro">PCI</div></td><td>40s</td><td class="sla"><span class="sla-chip good">680/1000ms</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Hand over goods</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>—</td><td>30s</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">7</td><td class="name">Print receipt</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>POS<div class="micro">async print</div></td><td>10s</td><td class="sla"><span class="sla-chip good">120/300ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 4</div>
+              <div class="row"><span>ok</span><strong>4</strong></div>
+              <div class="row"><span>warn</span><strong>0</strong></div>
+              <div class="row"><span>breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none — store associate + cashier are same team</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Initiative</div>
+              <ul class="compact">
+                <li><strong>Contactless loyalty rollout</strong><span class="micro">target Δ cost −SGD 0.4/run · in_progress</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD conflicts</div>
+              <div class="empty">none</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Regulatory</div>
+              <div class="row"><span>PCI</span><strong>Cash-up</strong></div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-loyalty-signup">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_loyalty_signup</div>
+            <h3>Loyalty signup</h3>
+            <p class="descr">Customer is prompted at checkout to enrol. Email is captured, verified, a card is issued, and a welcome bonus is awarded by the marketing automation system.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">acquisition</span>
+            <span class="pill">5 activities</span>
+            <span class="pill danger">1 breach</span>
+            <span class="pill warn">1 SoD</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Marketing<small>r_vp_marketing</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-22<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 0.18<small>FTE 50s</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">8,200<small>conversion 19%</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">2m<small>p99 24h (email)</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">28<small>seq 5 · sys 4 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow breach"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Prompt</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Capture</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-mk" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Verify</text><circle class="sla-dot breach" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-mk" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Issue card</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-mk" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Welcome</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Prompt at checkout</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>POS<div class="micro">read</div></td><td>5s</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Capture details</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>CRM<div class="micro">write · PII</div></td><td>40s</td><td class="sla"><span class="sla-chip good">450/800ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Verify email</td><td class="role"><span class="team-chip" style="background:var(--team-mk);"></span>Marketing automation</td><td>Email service<div class="micro">async</div></td><td>0m</td><td class="sla"><span class="sla-chip breach">1620/1000ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Issue digital card</td><td class="role"><span class="team-chip" style="background:var(--team-mk);"></span>Marketing automation</td><td>Loyalty<div class="micro">write</div></td><td>0m</td><td class="sla"><span class="sla-chip good">220/600ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Award welcome bonus</td><td class="role"><span class="team-chip" style="background:var(--team-mk);"></span>Marketing automation</td><td>Loyalty · ERP<div class="micro">write</div></td><td>0m</td><td class="sla"><span class="sla-chip good">580/1000ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 4</div>
+              <div class="row"><span>ok</span><strong>3</strong></div>
+              <div class="row"><span>warn</span><strong>0</strong></div>
+              <div class="row"><span>breach</span><strong>1</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs · 1</div>
+              <ul class="compact">
+                <li>Capture → Verify<span class="micro">CS → Marketing · ≤ 60s · 38s p99</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD · 1</div>
+              <ul class="compact">
+                <li><strong>Capture ⇄ Verify</strong> <span class="sla-chip warn" style="margin-left:4px;">low</span><span class="micro">gdpr_004 · same actor can fabricate consent</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Regulatory</div>
+              <div class="row"><span>GDPR</span><strong>5/5</strong></div>
+            </div>
+          </aside>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================ DOMAIN: FULFILLMENT ============================ -->
+    <section class="domain-block" id="dom-fulfillment">
+      <div class="domain-header">
+        <span class="pill">domain</span>
+        <h2>Order Fulfillment</h2>
+        <span class="count">4 journeys · 26 activities · 4 breaches · 7 hand-offs</span>
+      </div>
+
+      <article class="journey" id="j-order-fulfillment">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_order_fulfillment</div>
+            <h3>Order fulfillment</h3>
+            <p class="descr">Order is received, inventory reserved, goods picked and packed, label printed, handed to courier, and delivered. The original journey used as the interface seed.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">fulfillment</span>
+            <span class="pill">6 activities</span>
+            <span class="pill danger">1 breach</span>
+            <span class="pill warn">1 warn</span>
+            <span class="pill">3 hand-offs</span>
+            <span class="pill warn">2 SoD</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Operations<small>r_vp_ops</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-05-08<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 7.40<small>p90 SGD 11</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">186k<small>peak Nov</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">3h 22m<small>p99 24h 53m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">210<small>seq 6 · sys 5 · roles 7</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow warn"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Received</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Reserved</text></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Pick&amp;pack</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Label</text><circle class="sla-dot breach" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-dc" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Courier</text></g>
+                <g transform="translate(620,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-lm" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Delivered</text><circle class="sla-dot warn" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Order received</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>POS · OMS<div class="micro">readwrite</div></td><td>2m</td><td class="sla"><span class="sla-chip good">210/250ms</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Inventory reserved</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>auto · WMS</td><td>OMS · WMS<div class="micro">write</div></td><td>0m</td><td class="sla"><span class="sla-chip good">482/600ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Pick &amp; pack</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Picker · Pack lead</td><td>WMS<div class="micro">readwrite</div></td><td>10m</td><td class="sla"><span class="sla-chip good">482/600ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Shipping label printed</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Pack lead</td><td>Label printer<div class="micro">write · silent fail</div></td><td>2m</td><td class="sla"><span class="sla-chip breach">2200/1500ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Handed to courier</td><td class="role"><span class="team-chip" style="background:var(--team-dc);"></span>DC supervisor · Driver</td><td>Courier API<div class="micro">readwrite</div></td><td>8m</td><td class="sla"><span class="sla-chip good">680/800ms</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Delivered to customer</td><td class="role"><span class="team-chip" style="background:var(--team-lm);"></span>Driver</td><td>Courier API<div class="micro">read · poll</div></td><td>30m</td><td class="sla"><span class="sla-chip warn">950/800ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 14</div>
+              <div class="row"><span>ok</span><strong>11</strong></div>
+              <div class="row"><span>warn</span><strong>2</strong></div>
+              <div class="row"><span>breach</span><strong>1</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs · 3</div>
+              <ul class="compact">
+                <li>Received → Reserved<span class="micro">CS → Warehouse · ≤ 3m · 1.1m p99</span></li>
+                <li>Label → Courier<span class="micro">Warehouse → DC · ≤ 15m · 11m p99</span></li>
+                <li>Courier → Delivered<span class="micro">DC → Last-mile · ≤ 24h · 6h 20m p99</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD · 2</div>
+              <ul class="compact">
+                <li><strong>Pick&amp;pack ⇄ Label</strong><span class="sla-chip warn" style="margin-left:4px;">high</span><span class="micro">sox_005</span></li>
+                <li><strong>Label ⇄ Courier</strong><span class="sla-chip warn" style="margin-left:4px;">med</span><span class="micro">sox_011</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Initiative</div>
+              <ul class="compact">
+                <li><strong>POS migration</strong><span class="micro">affects 3 activities · Δ p99 −180ms · in_progress</span></li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-click-collect">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_click_collect</div>
+            <h3>Click &amp; collect</h3>
+            <p class="descr">Customer orders online, store is notified, goods are picked from the shop floor, customer collects within 24h after identity verification.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">fulfillment</span>
+            <span class="pill">7 activities</span>
+            <span class="pill warn">1 warn</span>
+            <span class="pill">0 hand-offs</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">Store Operations Lead<small>r_store_ops_lead</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-30<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 3.10</div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">28k<small>10 stores</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">4h 30m<small>p99 23h 50m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">42<small>seq 7 · sys 3 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow warn"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <line x1="680" y1="55" x2="720" y2="55" class="arrow"></line>
+                <line x1="800" y1="55" x2="840" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Placed</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Notify</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Pick shelf</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">SMS ready</text><circle class="sla-dot warn" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Arrive</text></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Verify ID</text></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">7</text><text class="name" x="40" y="32" text-anchor="middle">Handover</text></g>
+                <g transform="translate(860,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Order placed online</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>OMS<div class="micro">write</div></td><td>0m</td><td class="sla"><span class="sla-chip good">410/600ms</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Store notified</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>OMS · POS<div class="micro">push</div></td><td>30s</td><td class="sla"><span class="sla-chip good">320/800ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Pick from shelf</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>POS<div class="micro">read</div></td><td>6m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">SMS to customer</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>auto · SMS gw</td><td>SMS gateway<div class="micro">async</div></td><td>0m</td><td class="sla"><span class="sla-chip warn">1820/1500ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Customer arrives</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>self-serve</td><td>—</td><td>0m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">ID verified</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>POS<div class="micro">read</div></td><td>40s</td><td class="sla"><span class="sla-chip good">210/300ms</span></td></tr>
+                <tr><td class="seq">7</td><td class="name">Goods handed over</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>POS<div class="micro">write</div></td><td>50s</td><td class="sla"><span class="sla-chip good">160/300ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 6</div>
+              <div class="row"><span>ok</span><strong>5</strong></div>
+              <div class="row"><span>warn</span><strong>1</strong></div>
+              <div class="row"><span>breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none — single store team</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD</div>
+              <div class="empty">none</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Initiative</div>
+              <ul class="compact">
+                <li><strong>POS migration</strong><span class="micro">affects 2 activities · in_progress</span></li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-returns-intake">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_returns_intake</div>
+            <h3>Returns intake</h3>
+            <p class="descr">Customer arrives with goods to return. Purchase is validated, goods inspected, refund initiated, stock either restocked or disposed of based on condition.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">fulfillment</span>
+            <span class="pill">6 activities</span>
+            <span class="pill danger">1 breach</span>
+            <span class="pill">1 hand-off</span>
+            <span class="pill warn">1 SoD</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Operations<small>r_vp_ops</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">needs review<small>since 2026-01-11</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 9.80</div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">14k<small>peak post-Nov</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">12m<small>p99 38m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">96<small>seq 6 · sys 4 · roles 3</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow breach"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Arrive</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Validate</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Inspect</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Approve</text></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Refund</text><circle class="sla-dot breach" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(620,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Restock</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Customer arrives</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>—</td><td>30s</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Validate purchase</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>POS · OMS<div class="micro">read</div></td><td>1m</td><td class="sla"><span class="sla-chip good">280/500ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Inspect goods</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Returns clerk</td><td>—</td><td>3m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Approve return</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS supervisor</td><td>OMS<div class="micro">write</div></td><td>1m</td><td class="sla"><span class="sla-chip good">320/500ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Refund initiated</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>ERP · Payment gw<div class="micro">PCI · write</div></td><td>4m</td><td class="sla"><span class="sla-chip breach">2400/1500ms</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Restock / dispose</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Stock controller</td><td>WMS<div class="micro">write</div></td><td>2m</td><td class="sla"><span class="sla-chip good">480/600ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 4</div>
+              <div class="row"><span>ok</span><strong>3</strong></div>
+              <div class="row"><span>warn</span><strong>0</strong></div>
+              <div class="row"><span>breach</span><strong>1</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs · 1</div>
+              <ul class="compact">
+                <li>Refund → Restock<span class="micro">CS → Warehouse · ≤ 30m · 18m p99</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD · 1</div>
+              <ul class="compact">
+                <li><strong>Approve ⇄ Refund</strong> <span class="sla-chip breach" style="margin-left:4px;">high</span><span class="micro">sox_021 · authoriser and disburser must differ</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Regulatory</div>
+              <div class="row"><span>PCI</span><strong>Refund</strong></div>
+              <div class="row"><span>SOX</span><strong>Approve · Refund</strong></div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-same-day">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_same_day</div>
+            <h3>Same-day delivery</h3>
+            <p class="descr">Express delivery — order placed before 11:00 cut-off, picked from local store, packed, courier collected within 90 min, delivered the same day. The fast lane for premium SKUs.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">fulfillment</span>
+            <span class="pill">6 activities</span>
+            <span class="pill danger">1 breach</span>
+            <span class="pill">3 hand-offs</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Operations<small>r_vp_ops</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-18<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 12.40<small>premium</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">6,800<small>cut-off 11:00</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">3h 10m<small>p99 6h 40m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">144<small>seq 6 · sys 3 · roles 4</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow warn"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Order</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(140,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Pick local</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Pack</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-lm" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Collect</text><circle class="sla-dot breach" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-lm" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Dispatch</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-lm" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Delivered</text></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Order placed before cut-off</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep / self-serve</td><td>OMS · POS<div class="micro">write</div></td><td>1m</td><td class="sla"><span class="sla-chip good">240/300ms</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Picked from local store</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Picker</td><td>WMS · POS<div class="micro">readwrite</div></td><td>4m</td><td class="sla"><span class="sla-chip good">410/500ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Packed</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Pack lead</td><td>—</td><td>3m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Courier collected</td><td class="role"><span class="team-chip" style="background:var(--team-lm);"></span>Driver</td><td>Courier API (urgent)<div class="micro">PII</div></td><td>1m</td><td class="sla"><span class="sla-chip breach">1240/600ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Last-mile dispatch</td><td class="role"><span class="team-chip" style="background:var(--team-lm);"></span>Driver</td><td>Courier API<div class="micro">write</div></td><td>3m</td><td class="sla"><span class="sla-chip good">560/800ms</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Delivered</td><td class="role"><span class="team-chip" style="background:var(--team-lm);"></span>Driver</td><td>Courier API<div class="micro">poll</div></td><td>20m</td><td class="sla"><span class="sla-chip">poll-based</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 4</div>
+              <div class="row"><span>ok</span><strong>3</strong></div>
+              <div class="row"><span>warn</span><strong>0</strong></div>
+              <div class="row"><span>breach</span><strong>1</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs · 2</div>
+              <ul class="compact">
+                <li>Order → Pick local<span class="micro">CS → Warehouse · ≤ 5m · 3.2m p99</span></li>
+                <li>Pack → Courier collect<span class="micro">Warehouse → Last-mile · ≤ 30m · 22m p99</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Initiative</div>
+              <ul class="compact">
+                <li><strong>Last-mile optimisation</strong><span class="micro">target Δ cycle −18min · planning</span></li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================ DOMAIN: INVENTORY ============================ -->
+    <section class="domain-block" id="dom-inventory">
+      <div class="domain-header">
+        <span class="pill">domain</span>
+        <h2>Inventory &amp; Merch</h2>
+        <span class="count">3 journeys · 17 activities · 2 hand-offs</span>
+      </div>
+
+      <article class="journey" id="j-inbound-receiving">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_inbound_receiving</div>
+            <h3>Inbound receiving</h3>
+            <p class="descr">Supplier truck arrives at the DC. Pallets are unloaded, manifest scanned, reconciled against the open purchase order, putaway, and stock ledgers updated.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">inventory</span>
+            <span class="pill">6 activities</span>
+            <span class="pill warn">1 warn</span>
+            <span class="pill">0 hand-offs</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">DC Manager<small>r_dc_manager</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-09<small>by tom@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 24<small>per truck</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">680<small>2 DCs</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">52m<small>p99 2h 20m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">72<small>seq 6 · sys 3 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow warn"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-dc" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Arrive</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-dc" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Unload</text></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-dc" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Scan</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-dc" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Reconcile</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Putaway</text></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Update ERP</text><circle class="sla-dot warn" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Truck arrives at dock</td><td class="role"><span class="team-chip" style="background:var(--team-dc);"></span>DC supervisor</td><td>—</td><td>3m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Unload pallets</td><td class="role"><span class="team-chip" style="background:var(--team-dc);"></span>Receiver (×2)</td><td>—</td><td>22m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Scan manifest</td><td class="role"><span class="team-chip" style="background:var(--team-dc);"></span>Receiver</td><td>Manifest scanner · WMS<div class="micro">readwrite</div></td><td>4m</td><td class="sla"><span class="sla-chip good">380/600ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Reconcile vs PO</td><td class="role"><span class="team-chip" style="background:var(--team-dc);"></span>Receiver</td><td>WMS · ERP<div class="micro">readwrite</div></td><td>6m</td><td class="sla"><span class="sla-chip good">680/1000ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Putaway pallets</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Stock controller</td><td>WMS<div class="micro">write</div></td><td>14m</td><td class="sla"><span class="sla-chip good">462/600ms</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Update ERP</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Stock controller</td><td>ERP<div class="micro">write</div></td><td>3m</td><td class="sla"><span class="sla-chip warn">1820/1200ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 4</div>
+              <div class="row"><span>ok</span><strong>3</strong></div>
+              <div class="row"><span>warn</span><strong>1</strong></div>
+              <div class="row"><span>breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none — DC + warehouse co-located</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD</div>
+              <div class="empty">none</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Initiative</div>
+              <ul class="compact">
+                <li><strong>ERP refresh</strong><span class="micro">scope · target Δ p99 −600ms · planning</span></li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-replenishment">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_replenishment</div>
+            <h3>Replenishment cycle</h3>
+            <p class="descr">Stock-level alert fires, a replenishment order is generated, the PO is submitted to the supplier via EDI, confirmation is received and ETA recorded.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">inventory</span>
+            <span class="pill">5 activities</span>
+            <span class="pill good">all ok</span>
+            <span class="pill">1 hand-off</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">Head of Buying<small>r_head_buying</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-12<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 18<small>per PO</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">1,200<small>across 240 SKUs</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">1h 40m<small>p99 6h (supplier dep.)</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">60<small>seq 5 · sys 3 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Alert</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-wh" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Generate</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-hq" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Submit PO</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-hq" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Confirm</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-hq" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Record ETA</text></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Stock alert triggered</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>auto · WMS</td><td>WMS<div class="micro">read</div></td><td>0m</td><td class="sla"><span class="sla-chip good">120/300ms</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Replenishment order generated</td><td class="role"><span class="team-chip" style="background:var(--team-wh);"></span>Inventory analyst</td><td>WMS · ERP<div class="micro">readwrite</div></td><td>6m</td><td class="sla"><span class="sla-chip good">480/800ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">PO submitted to supplier</td><td class="role"><span class="team-chip" style="background:var(--team-hq);"></span>Buyer</td><td>ERP · EDI gateway<div class="micro">write</div></td><td>4m</td><td class="sla"><span class="sla-chip good">920/2000ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Supplier confirmation received</td><td class="role"><span class="team-chip" style="background:var(--team-hq);"></span>auto · EDI</td><td>EDI gateway · ERP<div class="micro">poll</div></td><td>0m</td><td class="sla"><span class="sla-chip good">2-4h (supplier)</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">ETA recorded</td><td class="role"><span class="team-chip" style="background:var(--team-hq);"></span>Buyer</td><td>ERP<div class="micro">write</div></td><td>2m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 4</div>
+              <div class="row"><span>ok</span><strong>4</strong></div>
+              <div class="row"><span>warn</span><strong>0</strong></div>
+              <div class="row"><span>breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs · 1</div>
+              <ul class="compact">
+                <li>Generate → Submit PO<span class="micro">Warehouse → HQ · ≤ 4h · 1h 20m p99</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD</div>
+              <div class="empty">none</div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-promo-planning">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_promo_planning</div>
+            <h3>Promo planning</h3>
+            <p class="descr">Marketing brief is gathered, SKUs are selected, discount is approved, copy is written, systems are updated, and customer comms are scheduled to fire on launch day.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">inventory</span>
+            <span class="pill">6 activities</span>
+            <span class="pill good">all ok</span>
+            <span class="pill">2 hand-offs</span>
+            <span class="pill warn">1 SoD</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Marketing<small>r_vp_marketing</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-03-20<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 1,800<small>per campaign</small></div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">14<small>seasonal spikes</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">3d 8h<small>p99 9d</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">108<small>seq 6 · sys 4 · roles 3</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-mk" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Brief</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-hq" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">SKUs</text></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-hq" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Approve</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox handoff" width="80" height="50" rx="5"></rect><rect class="team-stripe team-mk" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Copy</text></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-mk" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Update</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-mk" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Schedule</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Brief gathered</td><td class="role"><span class="team-chip" style="background:var(--team-mk);"></span>Merchandiser</td><td>CMS<div class="micro">write</div></td><td>2h</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">SKUs selected</td><td class="role"><span class="team-chip" style="background:var(--team-hq);"></span>Buyer</td><td>ERP<div class="micro">read</div></td><td>4h</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Discount approved</td><td class="role"><span class="team-chip" style="background:var(--team-hq);"></span>Buyer · Head of Buying</td><td>ERP<div class="micro">write</div></td><td>2h</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Copy written</td><td class="role"><span class="team-chip" style="background:var(--team-mk);"></span>Merchandiser</td><td>CMS<div class="micro">write</div></td><td>6h</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Systems updated</td><td class="role"><span class="team-chip" style="background:var(--team-mk);"></span>Marketing automation</td><td>POS · CMS · ERP<div class="micro">writes</div></td><td>0m</td><td class="sla"><span class="sla-chip good">3.4s/5s (batch)</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Comms scheduled</td><td class="role"><span class="team-chip" style="background:var(--team-mk);"></span>Marketing automation</td><td>Email service · SMS gw<div class="micro">async</div></td><td>0m</td><td class="sla"><span class="sla-chip good">840/2000ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 2</div>
+              <div class="row"><span>ok</span><strong>2</strong></div>
+              <div class="row"><span>warn / breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs · 2</div>
+              <ul class="compact">
+                <li>Brief → SKUs<span class="micro">Marketing → HQ · ≤ 1d · 6h p99</span></li>
+                <li>Approve → Copy<span class="micro">HQ → Marketing · ≤ 1d · 4h p99</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD · 1</div>
+              <ul class="compact">
+                <li><strong>SKUs ⇄ Approve</strong> <span class="sla-chip warn" style="margin-left:4px;">med</span><span class="micro">sox_018 · same buyer selecting and approving discount</span></li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================ DOMAIN: SERVICE ============================ -->
+    <section class="domain-block" id="dom-service">
+      <div class="domain-header">
+        <span class="pill">domain</span>
+        <h2>Customer Service</h2>
+        <span class="count">4 journeys · 25 activities · 3 breaches</span>
+      </div>
+
+      <article class="journey" id="j-refund-flow">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_refund_flow</div>
+            <h3>Refund flow</h3>
+            <p class="descr">Customer ticket is opened, eligibility is validated, refund is authorised by a supervisor, payment is initiated, customer is confirmed by SMS, and the ticket is closed.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">service</span>
+            <span class="pill">6 activities</span>
+            <span class="pill warn">1 warn</span>
+            <span class="pill">0 hand-offs</span>
+            <span class="pill danger">1 SoD high</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Customer Service<small>r_vp_service</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-04<small>by lina@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 6.10</div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">9,400</div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">22m<small>p99 90m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">96<small>seq 6 · sys 5 · roles 3</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow warn"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Ticket</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Validate</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Authorise</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Initiate</text><circle class="sla-dot warn" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Confirm</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Close</text></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Ticket created</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>CRM<div class="micro">write</div></td><td>2m</td><td class="sla"><span class="sla-chip good">280/500ms</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Validate eligibility</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>OMS · CRM<div class="micro">read</div></td><td>3m</td><td class="sla"><span class="sla-chip good">320/600ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Authorise refund</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS supervisor</td><td>OMS<div class="micro">write</div></td><td>3m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Initiate refund</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Cashier</td><td>ERP · Payment gw<div class="micro">PCI</div></td><td>4m</td><td class="sla"><span class="sla-chip warn">98/60s</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Confirm to customer</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>auto · SMS</td><td>SMS gateway<div class="micro">async</div></td><td>0m</td><td class="sla"><span class="sla-chip good">820/1500ms</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Close ticket</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>CRM<div class="micro">write</div></td><td>2m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 4</div>
+              <div class="row"><span>ok</span><strong>3</strong></div>
+              <div class="row"><span>warn</span><strong>1</strong></div>
+              <div class="row"><span>breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none — single CS team</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD · 1</div>
+              <ul class="compact">
+                <li><strong>Validate ⇄ Authorise</strong> <span class="sla-chip breach" style="margin-left:4px;">high</span><span class="micro">sox_022 · validator and authoriser must differ</span></li>
+              </ul>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Regulatory</div>
+              <div class="row"><span>PCI</span><strong>Initiate</strong></div>
+              <div class="row"><span>SOX</span><strong>Authorise · Initiate</strong></div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-email-triage">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_email_triage</div>
+            <h3>Email triage</h3>
+            <p class="descr">Inbound email is auto-classified by an ML model and routed to the correct queue. An agent picks it up, drafts a response, sends, and closes the thread.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">service</span>
+            <span class="pill">7 activities</span>
+            <span class="pill danger">1 breach</span>
+            <span class="pill">0 hand-offs</span>
+            <span class="pill accent">AI candidate</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Customer Service<small>r_vp_service</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-04-01<small>by lina@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 1.20</div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">62,000<small>peaks Mon</small></div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">38m<small>p99 4h</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">63<small>seq 7 · sys 3 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow breach"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <line x1="680" y1="55" x2="720" y2="55" class="arrow"></line>
+                <line x1="800" y1="55" x2="840" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Arrives</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">Classify</text><circle class="sla-dot breach" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Route</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Pick up</text></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Draft</text></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Send</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">7</text><text class="name" x="40" y="32" text-anchor="middle">Close</text></g>
+                <g transform="translate(860,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Email arrives</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>auto · ingest</td><td>Email service<div class="micro">read</div></td><td>0m</td><td class="sla"><span class="sla-chip">async</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Auto-classify intent</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>ML classifier</td><td>ML inference<div class="micro">read · GPU</div></td><td>0m</td><td class="sla"><span class="sla-chip breach">880/500ms</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Route to queue</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>auto · CRM</td><td>CRM<div class="micro">write</div></td><td>0m</td><td class="sla"><span class="sla-chip good">240/500ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Agent picks up</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>CRM<div class="micro">read</div></td><td>1m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Draft response</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>CRM<div class="micro">write</div></td><td>8m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Send</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>Email service<div class="micro">async</div></td><td>30s</td><td class="sla"><span class="sla-chip good">820/2000ms</span></td></tr>
+                <tr><td class="seq">7</td><td class="name">Close thread</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>CRM<div class="micro">write</div></td><td>1m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 3</div>
+              <div class="row"><span>ok</span><strong>2</strong></div>
+              <div class="row"><span>warn</span><strong>0</strong></div>
+              <div class="row"><span>breach</span><strong>1</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">AI candidate</div>
+              <div style="font-size:11.5px; color:var(--muted); line-height:1.5;">repetitive · data-rich · highly automatable<br><strong style="color:var(--fg);">leverage 0.78</strong> · estimated SGD 18k / mo</div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-phone-support">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_phone_support</div>
+            <h3>Phone support</h3>
+            <p class="descr">Inbound call. IVR routes, agent authenticates the caller, resolves the issue or escalates, and wraps the call with notes back in the CRM.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">service</span>
+            <span class="pill">6 activities</span>
+            <span class="pill warn">1 warn</span>
+            <span class="pill">0 hand-offs</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">VP Customer Service<small>r_vp_service</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-03-28<small>by lina@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 4.80</div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">11,400</div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">5m 40s<small>p99 28m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">42<small>seq 6 · sys 3 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow warn"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Received</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">IVR</text><circle class="sla-dot warn" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Answer</text></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Authenticate</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Resolve</text></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Wrap</text></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Call received</td><td class="role"><span class="team-chip" style="background:var(--muted-2);"></span>auto · telephony</td><td>Telephony<div class="micro">read</div></td><td>0m</td><td class="sla"><span class="sla-chip">ring</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">IVR routing</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>auto · IVR</td><td>Telephony<div class="micro">script</div></td><td>0m</td><td class="sla"><span class="sla-chip warn">4.1s/3s</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Agent answers</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>Telephony · CRM<div class="micro">read</div></td><td>30s</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Authenticate caller</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>CRM · Loyalty<div class="micro">read · PII</div></td><td>1m</td><td class="sla"><span class="sla-chip good">320/500ms</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Resolve or escalate</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep · CS supervisor</td><td>CRM<div class="micro">readwrite</div></td><td>3m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Wrap notes</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>CS rep</td><td>CRM<div class="micro">write</div></td><td>1m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 2</div>
+              <div class="row"><span>ok</span><strong>1</strong></div>
+              <div class="row"><span>warn</span><strong>1</strong></div>
+              <div class="row"><span>breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none — single CS team</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Initiative</div>
+              <ul class="compact">
+                <li><strong>IVR upgrade</strong><span class="micro">target Δ p99 −1.4s · planning</span></li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      <article class="journey" id="j-in-store-complaint">
+        <header class="j-head">
+          <div>
+            <div class="jid">uj_instore_complaint</div>
+            <h3>In-store complaint resolution</h3>
+            <p class="descr">Customer approaches the service desk with a problem. Issue is logged, an apology is offered, the rep either resolves or escalates to the store manager, and the outcome is documented.</p>
+          </div>
+          <div class="j-meta">
+            <span class="pill accent">service</span>
+            <span class="pill">6 activities</span>
+            <span class="pill good">all ok</span>
+            <span class="pill">0 hand-offs</span>
+            <span class="pill warn">1 SoD</span>
+          </div>
+        </header>
+        <div class="j-attrs">
+          <div class="kv"><div class="l">Accountable</div><div class="v">Store Operations Lead<small>r_store_ops_lead</small></div></div>
+          <div class="kv"><div class="l">Verified</div><div class="v">2026-03-22<small>by priya@</small></div></div>
+          <div class="kv"><div class="l">Cost / run</div><div class="v">SGD 5.40</div></div>
+          <div class="kv"><div class="l">Runs / month</div><div class="v">3,200</div></div>
+          <div class="kv"><div class="l">Cycle p50</div><div class="v">12m<small>p99 45m</small></div></div>
+          <div class="kv"><div class="l">Complexity</div><div class="v">36<small>seq 6 · sys 2 · roles 2</small></div></div>
+        </div>
+        <div class="j-body">
+          <div class="j-main">
+            <div class="mini-svg-wrap">
+              <svg class="mini-svg" viewBox="0 0 940 110" preserveAspectRatio="xMinYMid meet">
+                <line x1="60"  y1="55" x2="120" y2="55" class="arrow"></line>
+                <line x1="200" y1="55" x2="240" y2="55" class="arrow"></line>
+                <line x1="320" y1="55" x2="360" y2="55" class="arrow"></line>
+                <line x1="440" y1="55" x2="480" y2="55" class="arrow"></line>
+                <line x1="560" y1="55" x2="600" y2="55" class="arrow"></line>
+                <g transform="translate(20,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">1</text><text class="name" x="40" y="32" text-anchor="middle">Approach</text></g>
+                <g transform="translate(140,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">2</text><text class="name" x="40" y="32" text-anchor="middle">To desk</text></g>
+                <g transform="translate(260,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">3</text><text class="name" x="40" y="32" text-anchor="middle">Log</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(380,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">4</text><text class="name" x="40" y="32" text-anchor="middle">Apologise</text></g>
+                <g transform="translate(500,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">5</text><text class="name" x="40" y="32" text-anchor="middle">Resolve</text></g>
+                <g transform="translate(620,30)"><rect class="nodebox" width="80" height="50" rx="5"></rect><rect class="team-stripe team-cs" x="29" y="2"></rect><text class="seq" x="6" y="13">6</text><text class="name" x="40" y="32" text-anchor="middle">Document</text><circle class="sla-dot good" cx="40" cy="42" r="2.5"></circle></g>
+                <g transform="translate(740,30)"><rect class="nodebox" width="60" height="50" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"></rect><text class="name" x="30" y="32" text-anchor="middle" fill="var(--accent)">end</text></g>
+              </svg>
+            </div>
+            <table class="actv">
+              <thead><tr><th>#</th><th>Activity</th><th>Role</th><th>System</th><th>FTE / run</th><th>SLA</th></tr></thead>
+              <tbody>
+                <tr><td class="seq">1</td><td class="name">Customer approaches</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>—</td><td>30s</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">2</td><td class="name">Walk to service desk</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>—</td><td>1m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">3</td><td class="name">Listen and log</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>CRM<div class="micro">write</div></td><td>3m</td><td class="sla"><span class="sla-chip good">280/500ms</span></td></tr>
+                <tr><td class="seq">4</td><td class="name">Apologise</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>—</td><td>30s</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">5</td><td class="name">Resolve or escalate</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate · Store manager</td><td>POS · CRM<div class="micro">readwrite</div></td><td>5m</td><td class="sla"><span class="sla-chip">manual</span></td></tr>
+                <tr><td class="seq">6</td><td class="name">Document outcome</td><td class="role"><span class="team-chip" style="background:var(--team-cs);"></span>Store associate</td><td>CRM<div class="micro">write</div></td><td>2m</td><td class="sla"><span class="sla-chip good">220/500ms</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <aside class="j-side">
+            <div class="side-section">
+              <div class="lbl">SLA edges · 2</div>
+              <div class="row"><span>ok</span><strong>2</strong></div>
+              <div class="row"><span>warn / breach</span><strong>0</strong></div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">Hand-offs</div>
+              <div class="empty">none</div>
+            </div>
+            <div class="side-section">
+              <div class="lbl">SoD · 1</div>
+              <ul class="compact">
+                <li><strong>Resolve ⇄ Document</strong> <span class="sla-chip warn" style="margin-left:4px;">med</span><span class="micro">audit_009 · same actor can edit own outcome</span></li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================ CROSS-CUTS ============================ -->
+    <section class="x-section" id="sla-hotspots">
+      <div class="sec-title">SLA hotspots — across all journeys</div>
+      <div class="x-card">
+        <table>
+          <thead><tr><th>Edge</th><th>Journey</th><th class="num">Target p99</th><th class="num">Observed p99</th><th class="num">Δ</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="j">Initiate refund → Payment gw<div class="micro">USES_SYSTEM</div></td><td>Returns intake</td><td class="num">1500ms</td><td class="num">2400ms</td><td class="num" style="color:var(--danger);">+60%</td><td><span class="sla-chip breach">breach</span></td></tr>
+            <tr><td class="j">Label print → Label printer<div class="micro">USES_SYSTEM</div></td><td>Order fulfillment</td><td class="num">1500ms</td><td class="num">2200ms</td><td class="num" style="color:var(--danger);">+47%</td><td><span class="sla-chip breach">breach</span></td></tr>
+            <tr><td class="j">Verify email → Email service<div class="micro">USES_SYSTEM</div></td><td>Loyalty signup</td><td class="num">1000ms</td><td class="num">1620ms</td><td class="num" style="color:var(--danger);">+62%</td><td><span class="sla-chip breach">breach</span></td></tr>
+            <tr><td class="j">Courier collect → Courier API (urgent)<div class="micro">USES_SYSTEM</div></td><td>Same-day delivery</td><td class="num">600ms</td><td class="num">1240ms</td><td class="num" style="color:var(--danger);">+107%</td><td><span class="sla-chip breach">breach</span></td></tr>
+            <tr><td class="j">Auto-classify → ML inference<div class="micro">USES_SYSTEM</div></td><td>Email triage</td><td class="num">500ms</td><td class="num">880ms</td><td class="num" style="color:var(--danger);">+76%</td><td><span class="sla-chip breach">breach</span></td></tr>
+            <tr><td class="j">SMS to customer → SMS gateway<div class="micro">USES_SYSTEM</div></td><td>Click &amp; collect</td><td class="num">1500ms</td><td class="num">1820ms</td><td class="num" style="color:var(--warn);">+21%</td><td><span class="sla-chip warn">warn</span></td></tr>
+            <tr><td class="j">Update ERP → ERP<div class="micro">USES_SYSTEM</div></td><td>Inbound receiving</td><td class="num">1200ms</td><td class="num">1820ms</td><td class="num" style="color:var(--warn);">+52%</td><td><span class="sla-chip warn">warn</span></td></tr>
+            <tr><td class="j">Initiate refund → Payment gw<div class="micro">USES_SYSTEM</div></td><td>Refund flow</td><td class="num">60s</td><td class="num">98s</td><td class="num" style="color:var(--warn);">+63%</td><td><span class="sla-chip warn">warn</span></td></tr>
+            <tr><td class="j">Search engine → catalog<div class="micro">USES_SYSTEM</div></td><td>Web browse → buy</td><td class="num">800ms</td><td class="num">920ms</td><td class="num" style="color:var(--warn);">+15%</td><td><span class="sla-chip warn">warn</span></td></tr>
+            <tr><td class="j">IVR script → Telephony<div class="micro">USES_SYSTEM</div></td><td>Phone support</td><td class="num">3s</td><td class="num">4.1s</td><td class="num" style="color:var(--warn);">+37%</td><td><span class="sla-chip warn">warn</span></td></tr>
+            <tr><td class="j">Deliver → Courier API<div class="micro">USES_SYSTEM</div></td><td>Order fulfillment</td><td class="num">800ms</td><td class="num">950ms</td><td class="num" style="color:var(--warn);">+19%</td><td><span class="sla-chip warn">warn</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="x-section" id="handoff-matrix">
+      <div class="sec-title">Hand-off matrix — outbound team → inbound team</div>
+      <div class="x-card" style="padding: 8px; overflow-x: auto;">
+        <table class="ho-matrix">
+          <thead>
+            <tr>
+              <th class="row">From ↓ / To →</th>
+              <th>CS</th>
+              <th>Warehouse</th>
+              <th>DC Ops</th>
+              <th>Last-mile</th>
+              <th>HQ</th>
+              <th>Marketing</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-label">Customer Service</td><td class="v0">·</td><td class="v2">2</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v1">1</td></tr>
+            <tr><td class="row-label">Warehouse</td><td class="v0">·</td><td class="v0">·</td><td class="v1">1</td><td class="v1">1</td><td class="v1">1</td><td class="v0">·</td></tr>
+            <tr><td class="row-label">DC Ops</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v1">1</td><td class="v0">·</td><td class="v0">·</td></tr>
+            <tr><td class="row-label">Last-mile</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td></tr>
+            <tr><td class="row-label">HQ</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v1">1</td></tr>
+            <tr><td class="row-label">Marketing</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v0">·</td><td class="v2">2</td><td class="v0">·</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin:10px 2px 0;">14 hand-offs total · most-trafficked: CS → Warehouse (2: returns intake, refund flow), Marketing → HQ (2: promo planning briefs). DC Ops → Last-mile is the only hand-off in the critical path of order fulfillment.</p>
+    </section>
+
+    <section class="x-section" id="sod-register">
+      <div class="sec-title">SoD register — segregation-of-duty conflicts across journeys</div>
+      <div class="x-card">
+        <table>
+          <thead><tr><th>Pair</th><th>Journey</th><th>Severity</th><th>Control id</th><th>Rationale</th></tr></thead>
+          <tbody>
+            <tr><td class="j">Approve ⇄ Refund</td><td>Returns intake</td><td><span class="sla-chip breach">high</span></td><td class="mono">sox_021</td><td>Authoriser and disburser must differ</td></tr>
+            <tr><td class="j">Validate ⇄ Authorise</td><td>Refund flow</td><td><span class="sla-chip breach">high</span></td><td class="mono">sox_022</td><td>Validator and authoriser must differ</td></tr>
+            <tr><td class="j">Pick&amp;pack ⇄ Label</td><td>Order fulfillment</td><td><span class="sla-chip warn">high</span></td><td class="mono">sox_005</td><td>Risk of mis-routing for fraud</td></tr>
+            <tr><td class="j">Label ⇄ Courier</td><td>Order fulfillment</td><td><span class="sla-chip warn">med</span></td><td class="mono">sox_011</td><td>Different actor verifies manifest</td></tr>
+            <tr><td class="j">SKUs select ⇄ Approve</td><td>Promo planning</td><td><span class="sla-chip warn">med</span></td><td class="mono">sox_018</td><td>Same buyer selecting + approving discount</td></tr>
+            <tr><td class="j">Resolve ⇄ Document</td><td>In-store complaint</td><td><span class="sla-chip warn">med</span></td><td class="mono">audit_009</td><td>Same actor edits own outcome</td></tr>
+            <tr><td class="j">Capture ⇄ Verify</td><td>Loyalty signup</td><td><span class="sla-chip">low</span></td><td class="mono">gdpr_004</td><td>Same actor can fabricate consent</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="x-section" id="ai-candidates">
+      <div class="sec-title">AI candidates — activities ranked by leverage potential</div>
+      <div class="x-card">
+        <table>
+          <thead><tr><th>Activity</th><th>Journey</th><th>Repetition</th><th>Data richness</th><th class="num">Runs / week</th><th class="num">Leverage</th></tr></thead>
+          <tbody>
+            <tr><td class="j">Validate eligibility</td><td>Refund flow</td><td>high</td><td>high</td><td class="num">2,170</td><td class="num">0.92</td></tr>
+            <tr><td class="j">Scan manifest</td><td>Inbound receiving</td><td>high</td><td>high</td><td class="num">160</td><td class="num">0.84</td></tr>
+            <tr><td class="j">Auto-classify intent</td><td>Email triage</td><td>high</td><td>high</td><td class="num">14,300</td><td class="num">0.78</td></tr>
+            <tr><td class="j">Draft response</td><td>Email triage</td><td>med</td><td>high</td><td class="num">14,300</td><td class="num">0.74</td></tr>
+            <tr><td class="j">Pick &amp; pack route</td><td>Order fulfillment</td><td>med</td><td>high</td><td class="num">43,000</td><td class="num">0.72</td></tr>
+            <tr><td class="j">Reconcile vs PO</td><td>Inbound receiving</td><td>med</td><td>high</td><td class="num">160</td><td class="num">0.58</td></tr>
+            <tr><td class="j">Promo copy generation</td><td>Promo planning</td><td>med</td><td>med</td><td class="num">3</td><td class="num">0.48</td></tr>
+            <tr><td class="j">IVR routing intent</td><td>Phone support</td><td>high</td><td>med</td><td class="num">2,630</td><td class="num">0.42</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="x-section" id="initiative-impact">
+      <div class="sec-title">Initiative impact — active transformation efforts</div>
+      <div class="x-card">
+        <table>
+          <thead><tr><th>Initiative</th><th>Status</th><th>Affects</th><th class="num">Δ cycle</th><th class="num">Δ cost / yr</th><th class="num">Δ p99</th></tr></thead>
+          <tbody>
+            <tr><td class="j">POS migration</td><td><span class="sla-chip warn">in_progress</span></td><td>Order fulfillment · In-store buy · Click &amp; collect</td><td class="num" style="color:var(--good);">−8m</td><td class="num" style="color:var(--good);">−SGD 42k</td><td class="num" style="color:var(--good);">−180ms</td></tr>
+            <tr><td class="j">Last-mile optimisation</td><td><span class="sla-chip">planning</span></td><td>Same-day delivery · Order fulfillment</td><td class="num" style="color:var(--good);">−18m</td><td class="num" style="color:var(--good);">−SGD 96k</td><td class="num">—</td></tr>
+            <tr><td class="j">Search-engine migration</td><td><span class="sla-chip warn">in_progress</span></td><td>Web browse → buy</td><td class="num">—</td><td class="num">—</td><td class="num" style="color:var(--good);">−400ms</td></tr>
+            <tr><td class="j">Contactless loyalty rollout</td><td><span class="sla-chip warn">in_progress</span></td><td>In-store browse → buy · Loyalty signup</td><td class="num" style="color:var(--good);">−40s</td><td class="num" style="color:var(--good);">−SGD 17k</td><td class="num">—</td></tr>
+            <tr><td class="j">IVR upgrade</td><td><span class="sla-chip">planning</span></td><td>Phone support</td><td class="num" style="color:var(--good);">−45s</td><td class="num" style="color:var(--good);">−SGD 8k</td><td class="num" style="color:var(--good);">−1.4s</td></tr>
+            <tr><td class="j">ERP refresh</td><td><span class="sla-chip">planning</span></td><td>Inbound receiving · Replenishment · Promo planning</td><td class="num">—</td><td class="num" style="color:var(--good);">−SGD 180k</td><td class="num" style="color:var(--good);">−600ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="page">
+  <div>companygraph · journey catalog · 14 journeys · wireframe v0.1</div>
+  <div class="ref">spec seed: graph-core revision 2 · generated 2026-05-22</div>
+</footer>
+
+</body>
+</html>

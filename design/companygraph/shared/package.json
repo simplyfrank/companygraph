@@ -1,0 +1,17 @@
+{
+  "name": "@companygraph/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema/nodes": "./src/schema/nodes.ts",
+    "./schema/edges": "./src/schema/edges.ts",
+    "./types": "./src/types.ts",
+    "./seed/retail-mini.json": "./seed/retail-mini.json"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  }
+}
