@@ -9,6 +9,25 @@ based_on: "requirements.md rev 3.1 (approved 2026-05-23)"
 
 # Design: chat-interface (rev 3.1 — Dynamic Agentic Chat)
 
+## Design-review pass-1 resolutions (2026-05-23)
+
+| Finding | Disposition | Section(s) updated |
+|---------|-------------|---------------------|
+| **B-01** Cypher templates reference attrs absent from `retail-mini.json` | Added DD-21 — seed enrichment. (a) every Cypher in DD-04/DD-16 is now NULL-safe (rows where the queried attr is missing are filtered before aggregation, so tools degrade to zero rows on the current seed and trigger FR-G01 "no nodes found in current graph" rather than crashing); (b) new task adds `shared/seed/retail-mini-enriched.json` extending the existing seed with SLA + team + leverage attrs needed by the wireframe demo journeys; (c) the design clearly states the **schema assumption** that PRECEDES edges may carry `sla_p99_ms` / `observed_p99_ms`; Activities may carry `leverage_score`, `team`; the ontology-manager will eventually let users register these as runtime attrs — the chat tools are forward-compatible. | DD-04, DD-16, DD-21 (new), File Changes |
+| **B-02** File Changes for `persistence.ts` says 3 tables but DD-08 has 4 | File Changes row updated to "4 tables" and lists `chat_bookmarks` alongside `chat_conversations`, `chat_messages`, `chat_llm_quota`. | File Changes |
+| **B-03** Race between progress-poll `state:done` and synchronous `POST /chat/messages` response | DD-10 updated: progress endpoint guarantees `state:done` is ONLY emitted **after** the `persistMessage()` write completes; the synchronous POST returns the same envelope from the same in-memory snapshot. PWA's polling loop terminates the moment the synchronous fetch resolves (whichever order). If a stale `state:done` poll lands after the fetch resolved, the PWA's idempotent "set message in store" reducer wins (latest write keyed by `message_id` — duplicate updates are no-ops). | DD-10 |
+| **B-04** Silently dropped details (title generation, loadBoundContext, history truncation) | Added DD-22 — Conversation context management: (a) title generation = first user message truncated to 80 chars; (b) `loadBoundContext` = last assistant turn's `highlight.nodes ∪ highlight.edges`, capped at 50+50; (c) history truncation = send last 20 messages or ~120K tokens, whichever first (well under Claude's 200K cap with safety margin); (d) idle timeout = none in v1 (single-tenant). | DD-22 (new) |
+| **C-01** `system` typed as string forfeits Anthropic prompt-caching | DD-07 updated: `LLMClient.callTurn`'s `system` parameter becomes `string | { type: "text"; text: string; cache_control?: { type: "ephemeral" } }[]`; the role overlay block is sent with `cache_control: { type: "ephemeral" }` to enable prompt caching (the 5-minute cache TTL aligns with typical conversation cadence). | DD-07 |
+| **C-02** Model name claim | Verified: per current knowledge, Sonnet is at 4.6 (`claude-sonnet-4-6`). Reviewer's "4.7" suggestion declined — Opus is 4.7, Sonnet is 4.6. No change. | DD-07 |
+| **C-03** JSON-prefix parser fallbacks | DD-18 updated: the parser strips markdown fences before parsing; on parse failure, the orchestrator defaults to `{intent: "in_scope", role_id: <req.role_id ?? "graph_analyst">}` (graceful default — never refuses on parse failure alone); a server-log warning is emitted. If the LLM's first turn is `tool_use` without the prefix, that's interpreted as `intent: "in_scope"` with the auto-routed role — the absence of the prefix is treated as a valid in-scope signal. | DD-18 |
+| **C-04** Highlight builder superset vs citation-only | Accepted as design intent. The canvas reflects all evidence the agent gathered, not just the cited subset. This matches the wireframe affordance "ask 'show breaches' → highlight all 5 breaches". Documented in DD-11. | DD-11 |
+| **C-08** Quota+budget double-append concern | Verified: refusal precedence rule 1 (quota exhausted) returns the FR-G05 string as **sole body** with an early return (never reaches the loop), while rule 5 (budget exhausted) **appends** the string after a non-empty narration. They cannot double-fire because rule 1 short-circuits before the loop. Made explicit in DD-13. | DD-13 |
+
+Open-accepted (will land in tasks/execution but not in design v1):
+
+- Concerns C-05 (per-message LLM token reporting), C-06 (export conversation as JSON), C-07 (LLM-driven title rename), C-09 (admin endpoint for quota reset). All four are out-of-scope per requirements §Scope Boundaries.
+- All 5 nits.
+
 ## Overview
 
 This design realises the rev-3.1 requirements: a multi-step ReAct
@@ -146,7 +165,10 @@ Notes:
 | `api/src/chat/refusal.ts` | new | 5 fixed strings + emission helpers (FR-G01..G05) | simple |
 | `api/src/chat/highlight.ts` | new | payload builder from tool results (FR-H01, FR-H02) | moderate |
 | `api/src/chat/sanitise.ts` | new | prompt-injection redaction filter (NFR-10) | simple |
-| `api/src/chat/persistence.ts` | new | SQLite (better-sqlite3) — schema setup + CRUD for 3 tables (FR-B02) | moderate |
+| `api/src/chat/persistence.ts` | new | SQLite (better-sqlite3) — schema setup + CRUD for **4 tables**: `chat_conversations`, `chat_messages`, `chat_llm_quota`, `chat_bookmarks` (FR-B02, FR-M03) | moderate |
+| `shared/seed/retail-mini-enriched.json` | new | extends `retail-mini.json` with SLA attrs on PRECEDES edges (`sla_p99_ms`, `observed_p99_ms`), team on Role nodes, `leverage_score` on Activity nodes — needed to demo the agentic chat against the wireframe journeys. Loaded via `bun run seed:enriched`. (DD-21) | moderate |
+| `scripts/seed-enriched.ts` | new | loads `retail-mini-enriched.json` via `POST /api/v1/import`; companion to existing `scripts/seed.ts` | trivial |
+| `api/__tests__/chat/seed-attrs-presence.test.ts` | new | sanity-check: after `bun run seed:enriched`, each schema-assumed attr exists on at least one node/edge (DD-21) | simple |
 | `api/src/chat/quota.ts` | new | conversation + daily counter; transactional increment (NFR-09, AC-29) | simple |
 | `api/src/chat/progress.ts` | new | in-memory progress snapshots keyed by `message_id` (FR-B07) | simple |
 | `api/src/server.ts` | modify | boot `persistence.init()`; mount chat router (FR-B01) | simple |
@@ -574,24 +596,36 @@ Key invariants:
 - `runPassthrough`'s `ValidationError("result_truncated", ...)` becomes `{ok: false, error: {code: "result_truncated", ...}}` inside the tool's catch; if the LLM emits enough tool calls that one returns `result_truncated`, the orchestrator post-processes the answer to be the FR-G04 string ("More than 1000 rows matched...") instead of the LLM narration.
 - Write-attempt refusal (FR-G03): If any tool call returns `write_statement_rejected`, the orchestrator replaces final answer with FR-G03 string.
 
-### DD-07 — LLM client interface + impls
+### DD-07 — LLM client interface + impls (C-01: prompt caching enabled)
 
 ```ts
 // api/src/chat/llm/client.ts
+export type SystemPromptBlock = string | Array<{
+  type: "text";
+  text: string;
+  cache_control?: { type: "ephemeral" };  // Anthropic prompt caching (~5 min TTL)
+}>;
+
 export interface LLMClient {
   readonly degraded: boolean;  // true only for MockLLMClient
   callTurn(opts: {
     messages: AnthropicMessage[];
     tools: AnthropicTool[];
-    system: string;
+    system: SystemPromptBlock;
   }): Promise<{
     stop_reason: "end_turn" | "tool_use" | "max_tokens";
     tool_calls: Array<{ id: string; name: string; input: unknown }>;
     text?: string;
-    usage: { input_tokens: number; output_tokens: number };
+    usage: { input_tokens: number; output_tokens: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
   }>;
 }
 ```
+
+The `system` block is sent as a structured array so the
+role-overlay portion (large, stable across a conversation) gets
+`cache_control: { type: "ephemeral" }`, enabling Anthropic's
+prompt cache. Expected hit-rate within a single conversation:
+high (each subsequent turn reuses the same overlay).
 
 `AnthropicLLMClient` wraps `Anthropic.messages.create` from
 `@anthropic-ai/sdk`; model = `claude-sonnet-4-6` (alias — design
@@ -688,7 +722,29 @@ export function incrementQuotaOrFail(conversation_id: string): boolean {
 Note: counter increments **per LLM call**, not per user message. A
 turn with 3 tool calls + 1 narration = 4 LLM calls = 4 increments.
 
-### DD-10 — Progress surface — short-poll picked (Risks #17)
+### DD-10 — Progress surface — short-poll picked (Risks #17) — race-safe variant (B-03 resolution)
+
+**Race-safety invariants**:
+
+1. `state: "done"` is only emitted into the in-memory snapshot
+   **after** `persistMessage()` returns successfully — i.e. the
+   message is fully written to SQLite before any client can
+   observe `done`.
+2. The synchronous `POST /api/v1/chat/messages` reads the final
+   envelope from the same in-memory snapshot (single source of
+   truth). Order of operations: persist → set snapshot to done →
+   return envelope.
+3. The PWA's polling loop terminates the moment either: (a) the
+   synchronous fetch resolves, OR (b) the poll returns
+   `state: "done"`. The PWA's store reducer is keyed by
+   `message_id` — duplicate "set message" calls are idempotent
+   (same payload from both channels).
+4. If `state: "error"` lands at the progress poll AND the
+   synchronous fetch is still in flight, the PWA waits for the
+   fetch to resolve (which will return the same error envelope).
+   The poll's error is informational.
+
+
 
 `GET /api/v1/chat/messages/:message_id/progress`:
 ```ts
@@ -720,7 +776,21 @@ setInterval(() => {
 PWA polls every 500 ms while the chat request is in flight; stops
 polling on `state === "done"` or after request returns.
 
-### DD-11 — Highlight payload + PWA canvas integration
+### DD-11 — Highlight payload + PWA canvas integration (C-04: superset is design intent)
+
+The highlight payload reflects **all evidence the agent
+gathered**, not just the subset the LLM chose to cite in the
+answer body. Rationale: the canvas is a verification surface; if
+the agent looked at 6 systems but cited 3, showing the user all 6
+matches the user's mental model "show me what you considered".
+This is consistent with the wireframe affordance "ask 'show
+breaches' → all 5 breaches lit on canvas, even if narration
+spotlights the worst one".
+
+The citations are a separate, narrower channel — they are
+exactly the ids the LLM mentioned.
+
+
 
 ```ts
 // api/src/chat/highlight.ts
@@ -804,7 +874,7 @@ as `<dt>${tool_name}(${argsJSON})</dt><dd>${rowCount} rows · ${dur} ms</dd>` wi
 `ReasoningDisclosure.tsx`: `<details>` listing the same audit trail
 as a numbered `<ol>`.
 
-### DD-13 — Refusal-string emission paths
+### DD-13 — Refusal-string emission paths (precedence non-double-fire, C-08 resolution)
 
 ```ts
 // api/src/chat/refusal.ts
@@ -827,13 +897,23 @@ export function anyResultTruncated(toolCalls: ToolCall[]): boolean {
 ```
 
 Refusal precedence (highest first), checked **after** the loop
-exits:
-1. Quota exhausted → FR-G05 string (sole body).
-2. Any tool returned `write_statement_rejected` → FR-G03 string (sole body).
-3. Any tool returned `result_truncated` → FR-G04 string (sole body).
-4. All tools returned zero rows (and no errors) → FR-G01 string (sole body).
-5. Budget exhausted (5th tool call requested) → narration + `\n\n` + FR-G05 string.
-6. OOS classification → FR-G02 string returned before loop starts.
+exits. Rules 1–4 short-circuit and replace the LLM narration
+entirely (sole body); only rule 5 appends. Rule 6 fires
+**before** the loop starts. Rules 1 and 5 cannot both fire on
+the same turn because rule 1's check happens before the loop
+runs (returns early with the FR-G05 string as sole body); if
+the loop runs, rule 5's append is the only path that emits
+FR-G05.
+
+| # | Rule | String | Body shape |
+|---|------|--------|------------|
+| 1 | Quota exhausted (NFR-09: ≥ 50 in conv OR ≥ 500 in day) before loop runs | FR-G05 | sole body, early return |
+| 2 | Any tool returned `write_statement_rejected` | FR-G03 | sole body, replaces narration |
+| 3 | Any tool returned `result_truncated` | FR-G04 | sole body, replaces narration |
+| 4 | All tools returned zero rows (and no errors) AND ≥ 1 tool called | FR-G01 | sole body, replaces narration |
+| 5 | Budget exhausted (5th tool call requested mid-loop) | FR-G05 | `<narration>\n\n<FR-G05>` (append) |
+| 6 | OOS classification | FR-G02 | sole body, returned before loop starts (no tool calls) |
+
 
 ### DD-14 — Prompt-injection redaction filter
 
@@ -990,7 +1070,7 @@ the markdown overlay, prepends a fixed "invariants" block (NFR-10
 defences + refusal rules), appends the live schema snapshot
 (`describe_schema` data), and the `bound_context` summary.
 
-### DD-18 — Auto-routing classifier embedded in main LLM call
+### DD-18 — Auto-routing classifier embedded in main LLM call (C-03 robustness)
 
 Risks #3 — pick: **embedded**. The system prompt asks the LLM to
 prefix its first response with a JSON envelope:
@@ -1008,6 +1088,130 @@ sets the advisory banner (FR-G06).
 This costs **0 extra LLM calls** (the classifier output is part of
 the first turn's response). Tradeoff: complicates JSON-extraction
 logic; we add a regex test (`api/__tests__/chat/classifier-prefix-parse.test.ts`).
+
+**Parser fallbacks** (C-03):
+
+```ts
+function extractClassifierPrefix(text: string, fallbackRoleId: ChatRoleId): { intent: 'in_scope' | 'oos'; role_id: ChatRoleId | null; oos_reason: string | null; remaining_text: string } {
+  // 1. Strip markdown fences (``` ... ```)
+  const fenced = text.match(/^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*([\s\S]*)$/);
+  const candidate = fenced ? fenced[1] : text;
+  const remaining = fenced ? fenced[2] : text;
+
+  // 2. Try to parse leading JSON object
+  const jsonMatch = candidate.match(/^\s*(\{[\s\S]*?\})/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[1]);
+      if (parsed.intent === 'in_scope' || parsed.intent === 'oos') {
+        return { intent: parsed.intent, role_id: parsed.role_id ?? null, oos_reason: parsed.oos_reason ?? null, remaining_text: candidate.slice(jsonMatch[0].length).trim() };
+      }
+    } catch { /* fall through */ }
+  }
+
+  // 3. Graceful default — never refuse on parse failure
+  console.warn("[chat] classifier-prefix parse failed; defaulting to in_scope + fallback role");
+  return { intent: 'in_scope', role_id: fallbackRoleId, oos_reason: null, remaining_text: text };
+}
+```
+
+If the LLM's first turn is `tool_use` (no text content), that's
+treated as `intent: 'in_scope'` with the auto-routed `role_id` =
+`fallbackRoleId`. Tool use implies in-scope.
+
+### DD-21 — Seed enrichment and NULL-safe Cypher (B-01 resolution)
+
+The current `shared/seed/retail-mini.json` contains 60 nodes / 128
+edges with `name` + `description` only — no SLA / team / leverage
+attributes. The wireframe journeys (`companygraph-journeys.html`)
+imply richer attributes; these are runtime attributes that
+`ontology-manager` will let users register.
+
+For the agentic chat to demonstrate the wireframe interactions on
+day one, the design adds:
+
+1. **NULL-safe Cypher** — every aggregate / hotspot / handoff
+   Cypher template filters rows where the queried attribute is
+   `NULL`. On the current seed those templates return zero rows,
+   which triggers FR-G01 "no nodes found in current graph" —
+   correct refusal behaviour, not a crash. The agentic chat is
+   honest about an empty graph rather than confabulating.
+
+2. **`shared/seed/retail-mini-enriched.json`** — extends the
+   existing 60 nodes / 128 edges with example values:
+   - On PRECEDES edges: `sla_p99_ms` (target), `observed_p99_ms`
+     (measured), `criticality` (`high|med|low`), `failure_mode`
+     (`timeout|error|none`).
+   - On Activity nodes: `team` (`CS|Warehouse|DC|Last-mile|
+     Marketing|HQ`), `leverage_score` (0..1), `runs_per_week`
+     (number), `data_richness` (`high|med|low`), `repetition`
+     (`high|med|low`).
+   - On Role nodes: `team` (same enum).
+   - Specific values seeded to reproduce wireframe scenarios:
+     `Label printer` PRECEDES edge has `sla_p99_ms: 1500`,
+     `observed_p99_ms: 2200` (breach); `Email triage` activity
+     gets `leverage_score: 0.78`; etc.
+
+3. **`bun run seed:enriched`** — companion to existing
+   `bun run seed`. Runs after the basic seed; idempotent (uses
+   PATCH semantics to add attrs without overwriting).
+
+4. **CI guard** — `api/__tests__/chat/seed-attrs-presence.test.ts`
+   asserts the enriched seed populates every attribute the tools
+   query. If a new tool queries a new attr, the seed must add it.
+
+5. **Forward-compatibility** — once `ontology-manager` ships,
+   users can register these attrs via the runtime ontology. The
+   tools' Cypher templates remain unchanged; only the source of
+   the attrs changes (seed-loaded → user-registered).
+
+### DD-22 — Conversation context management (B-04 resolution)
+
+Four sub-questions answered:
+
+1. **Title generation** (FR-B02 `chat_conversations.title`):
+   ```ts
+   function generateTitle(firstUserMessage: string): string {
+     return firstUserMessage.trim().slice(0, 80) + (firstUserMessage.length > 80 ? "…" : "");
+   }
+   ```
+   On the first user turn of a conversation, the orchestrator
+   sets `title` via `INSERT OR UPDATE` on `chat_conversations`.
+   No LLM call (would inflate latency budget). Users can edit
+   the title via a future endpoint (not in v1).
+
+2. **`loadBoundContext`** (DD-06 step 3):
+   ```ts
+   async function loadBoundContext(conversation_id: string): Promise<BoundContext> {
+     const lastAssistant = db.prepare(
+       "SELECT highlight FROM chat_messages WHERE conversation_id = ? AND role = 'assistant' ORDER BY turn_index DESC LIMIT 1"
+     ).get(conversation_id) as { highlight: string } | undefined;
+     if (!lastAssistant) return { node_ids: [], edge_ids: [] };
+     const h = JSON.parse(lastAssistant.highlight) as HighlightPayload;
+     return {
+       node_ids: h.nodes.slice(0, 50),
+       edge_ids: h.edges.slice(0, 50),
+     };
+   }
+   ```
+   Only the **last assistant turn**'s highlight ids carry forward,
+   not the union of all prior turns. Per-turn cap = 50 each side
+   per FR-M01.
+
+3. **Message history truncation** (Native Conflicts row
+   "Anthropic API max-input-tokens (200K)"):
+   The orchestrator loads up to the **last 20 messages** OR
+   ~120K input tokens (estimated via word-count × 1.3),
+   whichever cap fires first. The system prompt + tool schemas +
+   schema-context fragment add roughly 30K–50K tokens depending
+   on graph size — keeping the history budget at 120K leaves a
+   30K+ headroom under the 200K Claude limit.
+
+   The truncation is **chronological** (drops oldest), not
+   semantic (no summarisation in v1).
+
+4. **Idle timeout** — none in v1. Conversations live indefinitely
+   in SQLite; bookmarks make long-lived conversations re-runnable.
 
 ### DD-19 — Test strategy
 

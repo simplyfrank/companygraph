@@ -6,9 +6,9 @@
 | Requirements | approved (rev 3.1 — all 4 blockers + 6/9 concerns + 6 nits absorbed; 2 concerns open-accepted as FR additions) | frank | 2026-05-23 |
 | Req Review (rev 2) | pass-1 revise (3B, 4C, 3N) → pass-2 approve | spec-review-agent | 2026-05-22 |
 | Req Review (rev 3) | pass-1 revise (4B, 9C, 6N) → user-accepted absorption (rev 3.1) without pass-2 per workflow diminishing-returns guidance | spec-review-agent + frank | 2026-05-23 |
-| Design | in-progress | — | 2026-05-23 |
-| Design Review | pending (large specs require design review) | — | — |
-| Tasks | pending | — | — |
+| Design | approved (v2 — 4 blockers + 5 concerns absorbed; C-02 declined; 4C+5N open-accepted) | frank | 2026-05-23 |
+| Design Review | pass-1 revise (4B, 9C, 5N) → user-accepted absorption (v2) without pass-2 per workflow diminishing-returns | spec-review-agent + frank | 2026-05-23 |
+| Tasks | in-progress | — | 2026-05-23 |
 | Task Review | pending (large spec — task review required) | — | — |
 | Execution | pending | — | — |
 
