@@ -9,6 +9,25 @@ based_on: "design.md v2 (approved 2026-05-23)"
 
 # Tasks: chat-interface (rev 3.1)
 
+## Task-review pass-1 resolutions (2026-05-23)
+
+| Finding | Disposition | Section(s) updated |
+|---------|-------------|---------------------|
+| **B-01** Registry file-write collision (T-12..T-15 all edit `registry.ts`) | Registry switched to **auto-discovery at server boot**: tools self-register by exporting a `TOOL_DEF` const from each file; `registry.ts` imports the directory via an explicit barrel `tools/all.ts` that lists each tool's import (one-line additions per task — these are merged at the barrel level which is cheap to resolve). T-12..T-15 each add their import line to `all.ts`; concurrent edits to the barrel are append-only and conflict-free in 90%+ of cases (the orchestrator runs `bun build` after each task to validate). | T-10, T-12..T-15 |
+| **B-02** T-22 tier inconsistency | T-22 pinned to **Tier 1**. T-14 + T-15 (Tier 2) Deps explicitly include T-22. Effort table updated. | dependency graph, parallel tiers, effort table |
+| **B-03** T-11 wrongly marked parallel with T-12..T-15 | T-11 moved to **Tier 1.5** (after T-09 + T-10, before T-12..T-15). T-12..T-15 unblock once T-11 is done. The graph + tier list both updated. | T-11, dependency graph, parallel tiers |
+| **C-01** T-11 under-rated | Complexity bumped from `moderate` → `high`. 20 markdown overlays @ ~400 words each is genuine work plus the classifier parser and CI coverage test. | T-11 |
+| **C-03** Missing `tool-error-narration.integration.test.ts` | Added explicit Verification entry for AC-27 (a/c) tool error narration on T-16 (already covers AC-27, fleshed out). Test file now named. | T-16 |
+| **C-05** Missing perf-smoke task | Added **T-28 — Performance smoke test** measuring P50/P99 for single-tool + 3-tool + 5-tool flows against the `MockLLMClient` (latency comes mostly from tool exec; pinned latency budget invariants stay testable without Anthropic API calls). | T-28 (new), Dependency graph, Tier 7 |
+
+Open-accepted (don't change tasks):
+
+- **C-02** OpenAPI regeneration — `graph-core` ships an auto-generated `/api/v1/openapi.json`; chat routes will appear automatically if registered via the same mechanism. T-17 modifies `router.ts`, which is the canonical registration site. No additional task.
+- **C-04** CLAUDE.md docs update — not in scope for this spec; will land in a follow-up doc-maintenance task.
+- **5 nits** absorbed inline.
+
+
+
 Tasks are ordered by dependency. The orchestrator implements them in
 order; parallel-safe tasks are flagged in the **Parallel?** column.
 
@@ -133,11 +152,11 @@ Conventions:
 | **Deps** | T-02 |
 | **Parallel?** | yes (independent of T-05..T-08) |
 
-## T-10 — Tool registry + dispatch (skeleton)
+## T-10 — Tool registry + dispatch (skeleton, auto-discovery via barrel)
 
 | Field | Value |
 |-------|-------|
-| **Files** | `api/src/chat/tools/registry.ts` (empty registry + `listToolsForRole` + `zod-to-json-schema` wiring); `api/src/chat/tools/dispatch.ts` (`runTool(name, args, ctx)` with error wrapping + per-turn memoization); `api/src/chat/tools/types.ts` (`ToolContext`, `ToolResult`, `ToolDef<TArgs, TData>`) |
+| **Files** | `api/src/chat/tools/registry.ts` (registry assembled from auto-discovery: `import * as all from './all'` then `Object.values(all).forEach(def => REGISTRY[def.name] = def)`; exports `listToolsForRole` + `zod-to-json-schema` wiring); `api/src/chat/tools/all.ts` (barrel that re-exports each tool's `TOOL_DEF` — populated by T-12..T-15); `api/src/chat/tools/dispatch.ts` (`runTool(name, args, ctx)` with error wrapping + per-turn memoization); `api/src/chat/tools/types.ts` (`ToolContext`, `ToolResult`, `ToolDef<TArgs, TData>`) |
 | **AC** | AC-06 (role gating), AC-27 (error envelope conversion) |
 | **DD** | DD-03 |
 | **Verification** | `api/__tests__/chat/tool-dispatch.test.ts` — fake tools; assert role-gating rejects unauthorised; assert zod-validation errors → `invalid_payload`; assert per-turn memoization; assert thrown `ValidationError` converts to `{ ok: false, error }` |
