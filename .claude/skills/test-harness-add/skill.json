@@ -1,0 +1,1 @@
+{"name":"test-harness-add","description":"Scaffold a new test helper module with contract test + docs","version":"1.0.0","dependencies":{"binaries":["bun"]}}

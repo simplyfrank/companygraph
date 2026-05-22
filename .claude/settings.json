@@ -1,0 +1,82 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(osascript *)",
+      "Bash(./scripts/*)",
+      "Bash(scripts/*)",
+      "Bash(open *)",
+      "Bash(shortcuts run *)",
+      "Bash(launchctl *)",
+      "Bash(shasum *)",
+      "Bash(bun run scripts/*)",
+      "Bash(bun run typecheck)",
+      "Bash(bun test*)",
+      "Bash(.claude/skills/*/scaffold.sh*)",
+      "Bash(.claude/skills/*/sync.sh*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/hooks/session-log.sh start"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/design-system-drift.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/hooks/session-log.sh stop"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$TOOL_INPUT\" | grep -q 'git commit'; then .claude/hooks/pre-commit-check.sh; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/spec-gate-check.sh $file_path"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/spec-completion-check.sh $file_path"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/spec-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/spec-traceability-check.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/design-guard.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

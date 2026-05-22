@@ -1,0 +1,1 @@
+{"name":"review-tools","description":"Full review of agent tool integration — RPC methods, tool registry, cloud/local dispatch, coverage gaps","version":"1.0.0","dependencies":{"binaries":["sqlite3"]}}

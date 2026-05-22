@@ -1,0 +1,6 @@
+{
+  "current_manifest": null,
+  "last_ingest_at": null,
+  "last_applied_surface": null,
+  "notes": "Written by the /design-apply skill. `current_manifest` points at the active manifest.json once `ingest` has run. Empty here because no design drop has been ingested yet (the docs/design zip is currently a 0-byte skeleton — see SKILL.md Global rule 7)."
+}

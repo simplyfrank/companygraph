@@ -1,0 +1,1 @@
+{"name":"design-to-web","description":"Detect design/ drift vs the manifest lock and apply token changes into pwa/src/styles/companygraph/ (tokens-only scope); report component/mock drift for human follow-up","version":"1.0.0","dependencies":{"binaries":["shasum","diff"]}}

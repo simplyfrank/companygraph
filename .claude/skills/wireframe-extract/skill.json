@@ -1,0 +1,1 @@
+{"name":"wireframe-extract","description":"Extract a managed component catalog from ./design/companygraph mocks + DESIGN.md; reconcile a manifest, generate React + TS components, never clobber human work","version":"1.0.0","dependencies":{"binaries":["shasum","bun"]}}

@@ -1,0 +1,1 @@
+{"name":"commit-sequence","description":"Batch logical-group commits with conventional-commit format","version":"1.0.0","dependencies":{"binaries":["git"]}}

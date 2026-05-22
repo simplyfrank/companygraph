@@ -1,0 +1,1 @@
+{"name":"review-feature","description":"Audit a feature's architecture against this codebase's well-architected practices: patterns, reliability, security, observability, data layer, tests, cloud/local boundary, PWA","version":"1.0.0","dependencies":{}}

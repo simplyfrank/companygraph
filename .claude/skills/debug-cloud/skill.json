@@ -1,0 +1,1 @@
+{"name":"debug-cloud","description":"Diagnose EC2 bot issues","version":"1.0.0","dependencies":{"binaries":["ssh"]}}

@@ -1,0 +1,5 @@
+{
+  "name": "tdd",
+  "description": "TDD verification workflow: write failing acceptance tests first, get user approval, then implement to green",
+  "version": "1.0.0"
+}

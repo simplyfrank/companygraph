@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "design-apply manifest",
+  "description": "Per-surface plan + status for the /design-apply conductor. Resumable across sessions. Written by `/design-apply ingest` then enriched by `/design-apply plan`.",
+  "type": "object",
+  "required": ["generated_at", "source_root", "surfaces"],
+  "properties": {
+    "generated_at": { "type": "string", "format": "date-time" },
+    "source_root": { "type": "string", "description": "Usually docs/design" },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "kind", "decision", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "kebab-case stable id, e.g. wardrobe" },
+          "source": { "type": "string", "description": "path of the design artifact under docs/design (or unzipped temp)" },
+          "kind": { "enum": ["surface", "ds-source", "reference"] },
+          "target": {
+            "type": ["string", "null"],
+            "description": "route hash or pwa/views/<x>.js; null until plan resolves it"
+          },
+          "decision": { "enum": ["fresh", "migrate", "unknown"] },
+          "voyager_components": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "CATALOG component names this surface maps to"
+          },
+          "needs_component": {
+            "type": ["string", "null"],
+            "description": "scenario string when a shape has no CATALOG row — apply must run /component new first"
+          },
+          "token_reconciliation": {
+            "type": "array",
+            "description": "foreign value -> nearest Voyager token, or a proposed design-system.yaml retune",
+            "items": {
+              "type": "object",
+              "properties": {
+                "foreign": { "type": "string" },
+                "voyager_token": { "type": ["string", "null"] },
+                "proposed_retune": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "touched_files": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "every file the apply step edited — drives conformance + revert"
+          },
+          "waivers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "explicit user waivers, either `<rule>` or `<relpath>:<rule>`. Recorded only with a written user override in the run-log."
+          },
+          "status": {
+            "enum": ["pending", "applied", "reviewed", "merged", "reverted"]
+          }
+        }
+      }
+    }
+  }
+}

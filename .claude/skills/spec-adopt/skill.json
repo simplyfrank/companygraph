@@ -1,0 +1,4 @@
+{
+  "name": "spec-adopt",
+  "description": "Retrofit an existing code project onto spec-driven development governance: bootstrap the spec pipeline, inventory coverage, write the as-built baseline spec, and activate hard-block enforcement so all future development only actions against specs in .claude/specs/."
+}

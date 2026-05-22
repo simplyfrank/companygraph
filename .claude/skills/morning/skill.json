@@ -1,0 +1,1 @@
+{"name":"morning","description":"Run morning routine","version":"1.0.0","dependencies":{"rpcMethods":["run_task"]}}

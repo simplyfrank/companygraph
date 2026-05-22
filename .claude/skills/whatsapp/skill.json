@@ -1,0 +1,1 @@
+{"name":"whatsapp","description":"WhatsApp messaging","version":"1.0.0","dependencies":{"envVars":["WHATSAPP_TOKEN"]}}

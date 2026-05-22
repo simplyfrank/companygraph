@@ -1,0 +1,1 @@
+{"name":"design-apply","description":"Ingest design artifacts dropped in docs/design and apply them to the PWA — fresh or as a migration — under a deterministic Voyager Midnight design-system conformance gate, surface-by-surface with human review","version":"1.0.0","dependencies":{}}

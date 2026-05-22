@@ -1,0 +1,1 @@
+{"name":"status","description":"Show system status","version":"1.0.0","dependencies":{"rpcMethods":["status"]}}

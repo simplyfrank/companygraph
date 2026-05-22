@@ -1,0 +1,1 @@
+{"name":"stitch","description":"Drive the Stitch visual-design pipeline — assemble prompts from .claude/stitch/ artifacts, call Stitch MCP, log runs, and sync design tokens between design-system.yaml, Stitch projects, and pwa/styles/tokens.css","version":"1.0.0","dependencies":{}}

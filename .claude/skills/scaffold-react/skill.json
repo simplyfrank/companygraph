@@ -1,0 +1,1 @@
+{"name":"scaffold-react","description":"One-command Vite + React + TypeScript app scaffolder; auto-wires companygraph design tokens if present","version":"1.0.0","dependencies":{"binaries":["node","npm"]}}

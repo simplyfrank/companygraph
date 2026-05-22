@@ -1,0 +1,1 @@
+{"name":"research","description":"Deep research with PDF","version":"1.0.0","dependencies":{"envVars":["TAVILY_API_KEY"]}}

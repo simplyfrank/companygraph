@@ -1,0 +1,1 @@
+{"name":"telegram","description":"Telegram integration","version":"1.0.0","dependencies":{"envVars":["TELEGRAM_BOT_TOKEN"]}}

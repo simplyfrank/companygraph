@@ -1,0 +1,6 @@
+{
+  "name": "test",
+  "description": "Generate test files for any module with correct mock setup and templates",
+  "version": "1.0.0",
+  "dependencies": {}
+}

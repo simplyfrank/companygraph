@@ -1,0 +1,1 @@
+{"name":"deploy","description":"Deploy cloud bot and PWA","version":"1.0.0","dependencies":{"binaries":["ssh","rsync","bun"],"envVars":["EC2_HOST"]}}
