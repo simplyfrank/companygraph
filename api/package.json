@@ -1,0 +1,28 @@
+{
+  "name": "@companygraph/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/server.ts",
+  "scripts": {
+    "dev": "bun --hot --env-file=../.env run src/server.ts",
+    "start": "bun --env-file=../.env run src/server.ts"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
+    "@companygraph/shared": "workspace:*",
+    "fast-json-patch": "^3.1.1",
+    "js-yaml": "^4.1.0",
+    "json-schema-to-zod": "^2.6.0",
+    "lru-cache": "^10.4.3",
+    "neo4j-driver": "^5.26.0",
+    "node-cron": "^3.0.3",
+    "uuid": "^11.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node-cron": "^3.0.11",
+    "@types/uuid": "^10.0.0"
+  }
+}
