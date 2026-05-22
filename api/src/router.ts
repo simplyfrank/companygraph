@@ -20,6 +20,23 @@ import { handleHealthz } from "./routes/healthz";
 import { handleStats } from "./routes/stats";
 import { handleExportJson, handleExportNdjson } from "./routes/export";
 import { handleOpenapi } from "./routes/openapi";
+import {
+  handleCreateNodeLabel,
+  handleListNodeLabels,
+  handleGetNodeLabel,
+  handlePatchNodeLabel,
+  handleDeleteNodeLabel,
+} from "./routes/ontology-node-labels";
+import {
+  handleCreateEdgeType,
+  handleListEdgeTypes,
+  handleGetEdgeType,
+  handlePatchEdgeType,
+  handleDeleteEdgeType,
+} from "./routes/ontology-edge-types";
+import { handleGetSchema } from "./routes/ontology-schema";
+import { handleListAudit, handleListVersions } from "./routes/ontology-audit";
+import { handleOntologyImport } from "./routes/ontology-import";
 import { error, fromValidationError } from "./routes/_helpers";
 import { ValidationError } from "./errors";
 import { logRequest } from "./logging";
@@ -97,6 +114,32 @@ async function dispatch(method: string, path: string, req: Request): Promise<Res
   if (neighbors && method === "GET") return handleNeighbors(req, neighbors[1]!);
   if (sub === "query/cypher" && method === "POST") return handleCypher(req);
   if (sub === "query/search" && method === "GET") return handleSearch(req);
+
+  // Ontology routes — /api/v1/ontology/* and /api/v1/schema
+  if (sub === "schema" && method === "GET") return handleGetSchema(req);
+  if (sub === "ontology/node-labels" && method === "GET") return handleListNodeLabels();
+  if (sub === "ontology/node-labels" && method === "POST") return handleCreateNodeLabel(req);
+  if (sub === "ontology/edge-types" && method === "GET") return handleListEdgeTypes();
+  if (sub === "ontology/edge-types" && method === "POST") return handleCreateEdgeType(req);
+  if (sub === "ontology/audit" && method === "GET") return handleListAudit(req);
+  if (sub === "ontology/versions" && method === "GET") return handleListVersions(req);
+  if (sub === "ontology/import" && method === "POST") return handleOntologyImport(req);
+
+  const nodeLabel = sub.match(/^ontology\/node-labels\/([^/]+)$/);
+  if (nodeLabel) {
+    const name = decodeURIComponent(nodeLabel[1]!);
+    if (method === "GET") return handleGetNodeLabel(req, name);
+    if (method === "PATCH") return handlePatchNodeLabel(req, name);
+    if (method === "DELETE") return handleDeleteNodeLabel(req, name);
+  }
+
+  const edgeType = sub.match(/^ontology\/edge-types\/([^/]+)$/);
+  if (edgeType) {
+    const name = decodeURIComponent(edgeType[1]!);
+    if (method === "GET") return handleGetEdgeType(req, name);
+    if (method === "PATCH") return handlePatchEdgeType(req, name);
+    if (method === "DELETE") return handleDeleteEdgeType(req, name);
+  }
 
   return error(404, "not_found", "no route", { method, path });
 }
