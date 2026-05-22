@@ -47,6 +47,7 @@ const SEED_PATH = resolve(
 describe("integration: AC-25 export → import → export round-trip", () => {
   beforeAll(async () => {
     await getDriver().verifyConnectivity();
+    await ensureRegistrySeeded();
     await wipeGraph();
     await seedRetailMini();
   });
@@ -134,12 +135,51 @@ describe("integration: AC-25 export → import → export round-trip", () => {
 // ---- helpers ----
 
 async function wipeGraph(): Promise<void> {
+  // Delete only the application-data labels (the six seed labels plus
+  // any runtime-registered label). Crucially, this preserves the
+  // `_Ontology*` registry rows that the live server's edge-endpoints
+  // cache depends on — wiping those would leave subsequent /import
+  // POSTs rejecting every edge with `edge_endpoint_label_mismatch`
+  // because the registry-driven endpoint matrix would be empty.
   const driver = getDriver();
   const session = driver.session();
   try {
-    await session.run("MATCH (n) DETACH DELETE n");
+    await session.run(
+      `MATCH (n) WHERE NONE(l IN labels(n) WHERE l STARTS WITH '_Ontology')
+       DETACH DELETE n`,
+    );
   } finally {
     await session.close();
+  }
+}
+
+// Ensure the registry has its seed rows before the test runs. If a
+// prior test wiped them, re-seed via the privileged path so the live
+// server's `getEdgeEndpoints` cache can answer correctly for the
+// retail-mini edges.
+async function ensureRegistrySeeded(): Promise<void> {
+  const { applyMetaSchema } = await import("../src/ontology/meta-bootstrap");
+  const { isRegistryEmpty, seedRegistryFromConstTuples } = await import(
+    "../src/ontology/seed"
+  );
+  const driver = getDriver();
+  await applyMetaSchema(driver);
+  if (await isRegistryEmpty(driver)) {
+    await seedRegistryFromConstTuples(driver);
+    // Bust the live server's caches via a round-trip mutation.
+    await fetch(`${BASE_URL}/api/v1/ontology/node-labels`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "RoundtripCacheBust",
+        description: "warm",
+        usage_example: "warm",
+        json_schema_doc: { type: "object" },
+      }),
+    });
+    await fetch(`${BASE_URL}/api/v1/ontology/node-labels/RoundtripCacheBust`, {
+      method: "DELETE",
+    });
   }
 }
 
