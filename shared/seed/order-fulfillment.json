@@ -1,0 +1,66 @@
+{
+  "_comment": "Extension seed: adds Logistics domain + Order fulfillment journey + 6 activities + 5 teamed roles + 4 systems + their edges with sla_ms / latency_ms / duration_min attributes. Designed to be POSTed to /api/v1/import on top of retail-mini.json. Idempotent (MERGE on id) — safe to re-run.",
+  "nodes": [
+    {"label": "Domain", "id": "018f0000-0000-7000-8000-000000000005", "name": "Logistics", "description": "Order fulfilment, warehousing, last-mile delivery.", "attributes": {"subdomains": ["Order Capture", "Warehouse", "Last-Mile"]}},
+
+    {"label": "UserJourney", "id": "018f0000-0001-7000-8000-000000000501", "name": "Order fulfillment", "description": "End-to-end fulfilment of a customer order, from capture to doorstep.", "attributes": {"accountable_role_id": "018f0000-0003-7000-8000-00000000000a", "cost_per_run_usd": 8.50, "runs_per_month": 12400, "critical_path_ms": 305000}},
+
+    {"label": "Activity", "id": "018f0000-0002-7000-8000-000050101001", "name": "Order received", "description": "OMS records a new order from the storefront."},
+    {"label": "Activity", "id": "018f0000-0002-7000-8000-000050101002", "name": "Inventory reserved", "description": "Stock for the order is reserved in WMS."},
+    {"label": "Activity", "id": "018f0000-0002-7000-8000-000050101003", "name": "Pick & pack", "description": "Warehouse picks items + packs into a parcel."},
+    {"label": "Activity", "id": "018f0000-0002-7000-8000-000050101004", "name": "Label printed", "description": "Shipping label printed and applied."},
+    {"label": "Activity", "id": "018f0000-0002-7000-8000-000050101005", "name": "Handed to courier", "description": "Parcel handed off to the courier."},
+    {"label": "Activity", "id": "018f0000-0002-7000-8000-000050101006", "name": "Delivered", "description": "Parcel delivered to the customer."},
+
+    {"label": "Role", "id": "018f0000-0003-7000-8000-000000000007", "name": "CS rep", "description": "Customer service representative who captures the order.", "attributes": {"team_id": "customer_service", "team_name": "Customer Service", "team_color": "danger"}},
+    {"label": "Role", "id": "018f0000-0003-7000-8000-000000000008", "name": "Picker", "description": "Warehouse picker.", "attributes": {"team_id": "warehouse", "team_name": "Warehouse", "team_color": "accent"}},
+    {"label": "Role", "id": "018f0000-0003-7000-8000-000000000009", "name": "Pack lead", "description": "Warehouse pack lead.", "attributes": {"team_id": "warehouse", "team_name": "Warehouse", "team_color": "accent"}},
+    {"label": "Role", "id": "018f0000-0003-7000-8000-00000000000a", "name": "DC supervisor", "description": "Distribution-centre supervisor.", "attributes": {"team_id": "dc_operations", "team_name": "DC Operations", "team_color": "good"}},
+    {"label": "Role", "id": "018f0000-0003-7000-8000-00000000000b", "name": "Driver", "description": "Last-mile driver.", "attributes": {"team_id": "last_mile", "team_name": "Last-Mile", "team_color": "warn"}},
+
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000007", "name": "OMS", "description": "Order Management System.", "attributes": {"kind": "order"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000008", "name": "WMS-2", "description": "Warehouse Management System for fulfillment.", "attributes": {"kind": "warehouse"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000009", "name": "Label printer", "description": "Network label printer (Zebra).", "attributes": {"kind": "printer"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-00000000000a", "name": "Courier API", "description": "Last-mile courier integration.", "attributes": {"kind": "api"}},
+
+    {"label": "Location", "id": "018f0000-0005-7000-8000-000000000005", "name": "Last-mile depot", "description": "Cross-dock for last-mile despatch.", "attributes": {"kind": "depot"}}
+  ],
+  "edges": [
+    {"type": "PART_OF", "id": "018f0000-1000-7000-8000-000000000501", "fromId": "018f0000-0001-7000-8000-000000000501", "toId": "018f0000-0000-7000-8000-000000000005"},
+
+    {"type": "PART_OF", "id": "018f0000-1001-7000-8000-000050101001", "fromId": "018f0000-0002-7000-8000-000050101001", "toId": "018f0000-0001-7000-8000-000000000501"},
+    {"type": "PART_OF", "id": "018f0000-1001-7000-8000-000050101002", "fromId": "018f0000-0002-7000-8000-000050101002", "toId": "018f0000-0001-7000-8000-000000000501"},
+    {"type": "PART_OF", "id": "018f0000-1001-7000-8000-000050101003", "fromId": "018f0000-0002-7000-8000-000050101003", "toId": "018f0000-0001-7000-8000-000000000501"},
+    {"type": "PART_OF", "id": "018f0000-1001-7000-8000-000050101004", "fromId": "018f0000-0002-7000-8000-000050101004", "toId": "018f0000-0001-7000-8000-000000000501"},
+    {"type": "PART_OF", "id": "018f0000-1001-7000-8000-000050101005", "fromId": "018f0000-0002-7000-8000-000050101005", "toId": "018f0000-0001-7000-8000-000000000501"},
+    {"type": "PART_OF", "id": "018f0000-1001-7000-8000-000050101006", "fromId": "018f0000-0002-7000-8000-000050101006", "toId": "018f0000-0001-7000-8000-000000000501"},
+
+    {"type": "PRECEDES", "id": "018f0000-5000-7000-8000-000050101001", "fromId": "018f0000-0002-7000-8000-000050101001", "toId": "018f0000-0002-7000-8000-000050101002", "attributes": {"target_ms": 300000, "actual_ms": 240000}},
+    {"type": "PRECEDES", "id": "018f0000-5000-7000-8000-000050101002", "fromId": "018f0000-0002-7000-8000-000050101002", "toId": "018f0000-0002-7000-8000-000050101003", "attributes": {"target_ms": 300000, "actual_ms": 280000}},
+    {"type": "PRECEDES", "id": "018f0000-5000-7000-8000-000050101003", "fromId": "018f0000-0002-7000-8000-000050101003", "toId": "018f0000-0002-7000-8000-000050101004", "attributes": {"target_ms": 300000, "actual_ms": 260000}},
+    {"type": "PRECEDES", "id": "018f0000-5000-7000-8000-000050101004", "fromId": "018f0000-0002-7000-8000-000050101004", "toId": "018f0000-0002-7000-8000-000050101005", "attributes": {"target_ms": 300000, "actual_ms": 270000}},
+    {"type": "PRECEDES", "id": "018f0000-5000-7000-8000-000050101005", "fromId": "018f0000-0002-7000-8000-000050101005", "toId": "018f0000-0002-7000-8000-000050101006", "attributes": {"target_ms": 300000, "actual_ms": 290000}},
+
+    {"type": "EXECUTES", "id": "018f0000-2000-7000-8000-000050102001", "fromId": "018f0000-0003-7000-8000-000000000007", "toId": "018f0000-0002-7000-8000-000050101001", "attributes": {"duration_min": 2}},
+    {"type": "EXECUTES", "id": "018f0000-2000-7000-8000-000050102002", "fromId": "018f0000-0003-7000-8000-000000000008", "toId": "018f0000-0002-7000-8000-000050101002", "attributes": {"duration_min": 0}},
+    {"type": "EXECUTES", "id": "018f0000-2000-7000-8000-000050102003", "fromId": "018f0000-0003-7000-8000-000000000008", "toId": "018f0000-0002-7000-8000-000050101003", "attributes": {"duration_min": 10}},
+    {"type": "EXECUTES", "id": "018f0000-2000-7000-8000-000050102004", "fromId": "018f0000-0003-7000-8000-000000000009", "toId": "018f0000-0002-7000-8000-000050101003", "attributes": {"duration_min": 10}},
+    {"type": "EXECUTES", "id": "018f0000-2000-7000-8000-000050102005", "fromId": "018f0000-0003-7000-8000-000000000009", "toId": "018f0000-0002-7000-8000-000050101004", "attributes": {"duration_min": 2}},
+    {"type": "EXECUTES", "id": "018f0000-2000-7000-8000-000050102006", "fromId": "018f0000-0003-7000-8000-00000000000a", "toId": "018f0000-0002-7000-8000-000050101005", "attributes": {"duration_min": 8}},
+    {"type": "EXECUTES", "id": "018f0000-2000-7000-8000-000050102007", "fromId": "018f0000-0003-7000-8000-00000000000b", "toId": "018f0000-0002-7000-8000-000050101006", "attributes": {"duration_min": 30}},
+
+    {"type": "USES_SYSTEM", "id": "018f0000-3000-7000-8000-000050102001", "fromId": "018f0000-0002-7000-8000-000050101001", "toId": "018f0000-0004-7000-8000-000000000007", "attributes": {"target_ms": 500, "actual_ms": 250}},
+    {"type": "USES_SYSTEM", "id": "018f0000-3000-7000-8000-000050102002", "fromId": "018f0000-0002-7000-8000-000050101002", "toId": "018f0000-0004-7000-8000-000000000008", "attributes": {"target_ms": 800, "actual_ms": 600}},
+    {"type": "USES_SYSTEM", "id": "018f0000-3000-7000-8000-000050102003", "fromId": "018f0000-0002-7000-8000-000050101003", "toId": "018f0000-0004-7000-8000-000000000007", "attributes": {"target_ms": 800, "actual_ms": 600}},
+    {"type": "USES_SYSTEM", "id": "018f0000-3000-7000-8000-000050102004", "fromId": "018f0000-0002-7000-8000-000050101003", "toId": "018f0000-0004-7000-8000-000000000008", "attributes": {"target_ms": 800, "actual_ms": 600}},
+    {"type": "USES_SYSTEM", "id": "018f0000-3000-7000-8000-000050102005", "fromId": "018f0000-0002-7000-8000-000050101004", "toId": "018f0000-0004-7000-8000-000000000009", "attributes": {"target_ms": 1000, "actual_ms": 1500}},
+    {"type": "USES_SYSTEM", "id": "018f0000-3000-7000-8000-000050102006", "fromId": "018f0000-0002-7000-8000-000050101005", "toId": "018f0000-0004-7000-8000-00000000000a", "attributes": {"target_ms": 1000, "actual_ms": 800}},
+    {"type": "USES_SYSTEM", "id": "018f0000-3000-7000-8000-000050102007", "fromId": "018f0000-0002-7000-8000-000050101006", "toId": "018f0000-0004-7000-8000-00000000000a", "attributes": {"target_ms": 1000, "actual_ms": 800}},
+
+    {"type": "AT_LOCATION", "id": "018f0000-4000-7000-8000-000050101003", "fromId": "018f0000-0002-7000-8000-000050101003", "toId": "018f0000-0005-7000-8000-000000000002"},
+    {"type": "AT_LOCATION", "id": "018f0000-4000-7000-8000-000050101005", "fromId": "018f0000-0002-7000-8000-000050101005", "toId": "018f0000-0005-7000-8000-000000000005"},
+    {"type": "AT_LOCATION", "id": "018f0000-4000-7000-8000-000050101006", "fromId": "018f0000-0002-7000-8000-000050101006", "toId": "018f0000-0005-7000-8000-000000000003"},
+
+    {"type": "PART_OF", "id": "018f0000-1002-7000-8000-000000000005", "fromId": "018f0000-0005-7000-8000-000000000005", "toId": "018f0000-0005-7000-8000-000000000001"}
+  ]
+}
