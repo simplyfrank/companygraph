@@ -49,7 +49,7 @@ const VIEWS: ViewMap = {
     "domains":        (r) => <ExplorerDomains route={r} />,
     "journey-detail": (r) => <ExplorerJourney route={r} />,
     "journey-graph":  (r) => <ExplorerJourneyGraph route={r} />,
-    "systems":        (r) => <ExplorerSystems route={r} />,
+    "systems":        () => <ExplorerSystems />,
     "path-finder":    () => <ExplorerPath />,
     // Virtual explorer tabs — not in SURFACES (no SubNav entry) but
     // routable via parseHash's EXPLORER_VIRTUAL_TABS allowlist. Each
@@ -100,16 +100,8 @@ const VIEWS: ViewMap = {
 
 export function renderView(route: Route): ReactNode {
   const surface = VIEWS[route.surface];
-  if (!surface) return <NotFound route={route} />;
+  if (!surface) return <NotFoundPanel route={route} />;
   const view = surface[route.tab];
-  if (!view) return <NotFound route={route} />;
+  if (!view) return <NotFoundPanel route={route} />;
   return view(route);
-}
-
-function NotFound({ route }: { route: Route }) {
-  return (
-    <div style={{ padding: 24, color: "var(--muted)" }}>
-      Unknown route: <code>{route.surface}/{route.tab}</code>
-    </div>
-  );
 }
