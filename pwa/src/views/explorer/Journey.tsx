@@ -156,9 +156,28 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
   const locations = bound.filter((n) => n.label === "Location").slice(0, 8);
   const uniqueRoles = uniqueBy([...rolesByActivity.values()].flat(), (r) => r.id);
 
+  // FR-20 / AC-16 — parse _verification from the journey's attributes.
+  let verification: { by: string; at: string } | null = null;
+  if (journeyAttrs.status === "ok") {
+    const attrsStr = (journeyAttrs.data.rows[0] as { attrs?: string } | undefined)?.attrs;
+    if (attrsStr) {
+      try {
+        const parsed = JSON.parse(attrsStr) as { _verification?: { by?: string; at?: string } };
+        if (parsed._verification?.by && parsed._verification.at) {
+          verification = { by: parsed._verification.by, at: parsed._verification.at };
+        }
+      } catch {
+        /* malformed attributes_json — ignore */
+      }
+    }
+  }
+
   return (
     <>
       <ViewHeader title={row.name} lede={row.description} />
+      {verification && (
+        <VerificationLine roleId={verification.by} verifiedAt={verification.at} />
+      )}
       <div className={styles.titleActions}>
         <Button tone="primary" href={`#/explorer/journey-graph?journey=${encodeURIComponent(journeyId)}`}>
           View as graph →
@@ -241,6 +260,30 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
         </aside>
       </div>
     </>
+  );
+}
+
+// FR-20 header line — "Verified by '<role-name>' on <date>". The role
+// name is looked up via the `verifyingRoleName` named cypher (T-09c).
+// Loading + role-not-found cases fall back to a graceful pseudo-string
+// rather than blanking the header.
+function VerificationLine({ roleId, verifiedAt }: { roleId: string; verifiedAt: string }) {
+  const role = useFetch(
+    () =>
+      api.cypher(`MATCH (r:Role {id: $roleId}) RETURN r.name AS name`, { roleId }),
+    [roleId],
+  );
+  const roleName =
+    role.status === "ok"
+      ? (role.data.rows[0] as { name?: string } | undefined)?.name ?? roleId
+      : roleId;
+  return (
+    <p
+      data-testid="verification-line"
+      style={{ margin: "0 0 8px", fontSize: 12.5, color: "var(--muted)" }}
+    >
+      Verified by <strong>&lsquo;{roleName}&rsquo;</strong> on {verifiedAt}
+    </p>
   );
 }
 
