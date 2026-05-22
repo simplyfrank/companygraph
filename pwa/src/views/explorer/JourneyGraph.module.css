@@ -6,28 +6,51 @@
   min-height: 0;
 }
 
-/* Top filter bar */
-.filters {
+/* ===== Toolbar (header) ===== */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+
+.toolbarSep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.crumb {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
   color: var(--muted);
-  padding: 0 0 var(--space-sm);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
 }
-.surfaceLabel { color: var(--muted); }
+.crumbSurface { color: var(--muted); }
 .crumbSep { color: var(--muted-2); }
 .crumbLink { color: var(--accent); }
 .crumbActive { color: var(--fg); font-weight: 500; }
-.filtersRight {
-  margin-left: auto;
-  display: flex;
-  gap: var(--space-md);
-  align-items: center;
+
+.spacer {
+  flex: 1;
 }
-.filter { display: flex; align-items: center; gap: 6px; }
+
+/* Filter group (DOMAIN / SUBDOMAIN / JOURNEY + reset) */
+.filterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .filterLabel {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -39,11 +62,15 @@
   height: 28px;
   padding: 0 10px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--fg);
   font-size: 12.5px;
-  min-width: 180px;
+  min-width: 160px;
+  cursor: pointer;
+}
+.filter select:hover {
+  border-color: var(--border-strong);
 }
 .filter select:disabled {
   background: var(--surface-2);
@@ -51,33 +78,76 @@
   cursor: not-allowed;
 }
 
-/* Chain / Radial layout toggle */
-.layoutToggle {
+.filterReset {
+  height: 28px;
+  width: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.filterReset:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+/* Segmented button groups (layout · binds · zoom) */
+.segGroup {
   display: inline-flex;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--surface);
 }
-.toggleBtn {
+.segBtn {
   height: 28px;
-  padding: 0 14px;
+  padding: 0 12px;
   background: transparent;
   border: 0;
+  border-right: 1px solid var(--border);
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
+  font-family: var(--font-body);
 }
-.toggleBtn:hover { color: var(--fg); }
-.toggleActive {
+.segBtn:last-child { border-right: 0; }
+.segBtn:hover { color: var(--fg); }
+.segActive {
   background: var(--accent-soft);
   color: var(--accent);
 }
+.zoomPct {
+  min-width: 56px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
 
-/* Canvas + rail */
+.manualOrderPill {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--accent) 30%, var(--border));
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.manualOrderPill:hover {
+  border-color: var(--accent);
+}
+
+/* ===== Canvas + Rail layout ===== */
 .layout {
   display: grid;
-  grid-template-columns: 1fr var(--panel-w);
+  grid-template-columns: 1fr var(--panel-w, 300px);
   gap: var(--space-xl);
   min-height: 0;
   min-width: 0;
@@ -88,12 +158,48 @@
 
 .canvasWrap {
   position: relative;
-  min-height: 640px;
+  min-height: 660px;
   min-width: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
-/* Floating hint card (canvas top-right). Mirrors the screenshot. */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+}
+
+/* ===== Initiative banner (top-center) ===== */
+.initiativeBanner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklch, var(--accent) 28%, var(--border));
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  backdrop-filter: blur(8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 6;
+  pointer-events: none;
+}
+.initiativeDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent);
+}
+
+/* ===== Floating hint card (top-right) ===== */
 .hint {
   position: absolute;
   right: 16px;
@@ -134,22 +240,7 @@
   text-decoration: none;
 }
 
-.radial {
-  width: 100%;
-  min-height: 540px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-
-.rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  overflow-y: auto;
-}
-
-/* Legend overlay */
+/* ===== Legend (bottom-left) ===== */
 .legend {
   position: absolute;
   left: 16px;
@@ -203,18 +294,11 @@
   border-radius: 2px;
   border: 1px solid;
 }
-.slaOk     { background: color-mix(in oklch, var(--good) 12%, var(--surface)); border-color: color-mix(in oklch, var(--good) 50%, var(--border)); }
-.slaWarn   { background: color-mix(in oklch, var(--warn) 12%, var(--surface)); border-color: color-mix(in oklch, var(--warn) 50%, var(--border)); }
+.slaOk     { background: color-mix(in oklch, var(--good)   12%, var(--surface)); border-color: color-mix(in oklch, var(--good)   50%, var(--border)); }
+.slaWarn   { background: color-mix(in oklch, var(--warn)   12%, var(--surface)); border-color: color-mix(in oklch, var(--warn)   50%, var(--border)); }
 .slaBreach { background: color-mix(in oklch, var(--danger) 12%, var(--surface)); border-color: color-mix(in oklch, var(--danger) 50%, var(--border)); }
 
-.teamSwatch {
-  width: 14px;
-  height: 4px;
-  border-radius: 2px;
-  display: inline-block;
-}
-
-/* Right rail */
+/* ===== Right rail content ===== */
 .bigTitle {
   font-family: var(--font-display);
   font-weight: 600;
@@ -222,6 +306,15 @@
   letter-spacing: -0.015em;
   color: var(--fg);
   margin: 6px 0 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.titleStripe {
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
 }
 .id {
   font-family: var(--font-mono);
@@ -242,7 +335,77 @@
 }
 .tip strong { color: var(--accent); }
 
-/* Bottom status bar */
+.bindList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bindList li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--fg);
+}
+.bindStripe {
+  display: inline-block;
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  flex: none;
+}
+.bindMicro {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.usageTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.usageTable th {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.usageTable td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.usageTable tr:last-child td { border-bottom: 0; }
+.num { text-align: right; }
+
+.closeBtn {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.closeBtn:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+/* ===== Bottom status bar ===== */
 .statusbar {
   display: flex;
   align-items: center;
@@ -257,4 +420,5 @@
   flex-wrap: wrap;
 }
 .statusbar strong { color: var(--fg); }
-.statusbar .spacer { flex: 1; }
+.statusbar code { color: var(--accent); }
+.statusSpacer { flex: 1; }

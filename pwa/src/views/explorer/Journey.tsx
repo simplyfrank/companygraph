@@ -12,8 +12,11 @@ import styles from "./Journey.module.css";
 
 // Architecture: params come from route.params (parsed centrally in parseHash)
 // instead of a local useQuery() hook. No per-view hashchange listeners needed.
+// T-08: also honours `route.entityId` for the new 3-segment deep-link
+// form `#/explorer/journey-detail/<journey-id>` while staying
+// back-compatible with the legacy `?id=` query-param links.
 export function ExplorerJourney({ route }: { route: Route }) {
-  const journeyId = route.params["id"] ?? null;
+  const journeyId = route.entityId ?? route.params["id"] ?? null;
   const activityId = route.params["activity"] ?? null;
   const domainId = route.params["domain"] ?? null;
   const domains = useFetch(() => api.listDomains(), []);
@@ -99,10 +102,31 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
       ),
     [journeyId],
   );
+  // FR-20: read the journey's full attributes_json so the header can
+  // render the `"Verified by '<role>' on <date>"` line from
+  // `attributes._verification`. getJourney's response shape doesn't
+  // include attributes, so we fan out a tiny one-row cypher.
+  const journeyAttrs = useFetch(
+    () =>
+      api.cypher(
+        `MATCH (j:UserJourney {id:$id}) RETURN j.attributes_json AS attrs`,
+        { id: journeyId },
+      ),
+    [journeyId],
+  );
   const neighbors = useFetch(() => api.neighbors(journeyId, 2), [journeyId]);
 
   if (journey.status === "loading") return <Loading what="journey" />;
-  if (journey.status === "error") return <ErrorState message={journey.error} />;
+  if (journey.status === "error") {
+    // 404 from getJourney → NotFound. The error string carries the
+    // status code from json() in api.ts.
+    if (/\b404\b/.test(journey.error)) {
+      return (
+        <ErrorState message={`Journey not found: ${journeyId}`} />
+      );
+    }
+    return <ErrorState message={journey.error} />;
+  }
   const row = journey.data.rows[0];
   if (!row) return <ErrorState message="journey not found" />;
 

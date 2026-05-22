@@ -10,7 +10,7 @@
 | Design Review | pass-1 revise (4B, 9C, 5N) → user-accepted absorption (v2) without pass-2 per workflow diminishing-returns | spec-review-agent + frank | 2026-05-23 |
 | Tasks | approved (v2 — 3 blockers + 3 concerns absorbed; 28 tasks across 7 tiers) | frank | 2026-05-23 |
 | Task Review | pass-1 revise (3B, 6C, 5N) → user-accepted absorption (v2) | spec-review-agent + frank | 2026-05-23 |
-| Execution | in-progress | — | 2026-05-23 |
+| Execution | in-progress — **Tier 1 complete** (84 unit tests pass, 0 fail) | — | 2026-05-23 |
 
 **Review passes** (per-phase, reset on rev 3 redesign): requirements=1 (cap=2, accepted at 1), design=0, tasks=0
 
@@ -56,10 +56,43 @@
 4. **Read-only Cypher gate.** Every tool's Cypher routes through `executeCypherPassthrough`.
 5. **No auth code paths.** AC-25. Extends `graph-core/AC-22` grep to chat surface.
 
+## Execution progress (2026-05-23)
+
+**Tier 1 complete** — 12 source files + 9 test files + 1 seed extension + 10 LLM fixtures:
+
+| Task | Status | Verification |
+|------|--------|--------------|
+| T-01 deps + env | ✓ | `bun install` exits 0; `bun build api/src/server.ts --no-bundle` exits 0 |
+| T-02 shared types | ✓ | `bun build shared/src/index.ts --no-bundle` exits 0 |
+| T-03 SQLite persistence | ✓ | `api/__tests__/chat/persistence.test.ts` — 6 pass |
+| T-04 quota counter | ✓ | `api/__tests__/chat/cost-cap.test.ts` — 3 pass |
+| T-05 refusal helpers | ✓ | `api/__tests__/chat/refusal-helpers.test.ts` — 14 pass (5 verbatim string assertions + 9 precedence rules) |
+| T-06 sanitisation | ✓ | `api/__tests__/chat/prompt-injection-redaction.test.ts` — 13 pass |
+| T-07 highlight builder | ✓ | `api/__tests__/chat/highlight-builder.test.ts` — 8 pass |
+| T-08 progress store | ✓ | `api/__tests__/chat/progress-store.test.ts` — 7 pass |
+| T-09 LLM clients + factory + 10 fixtures | ✓ | `api/__tests__/chat/llm-client-mock.test.ts`, `llm-degraded-mode.test.ts`, `classifier-prefix-parse.test.ts` — 30 pass |
+| T-10 tool registry + dispatch skeleton | ✓ | `bun build api/src/chat/tools/dispatch.ts --no-bundle` exits 0 (tool defs land in T-12..T-15) |
+| T-20 errors namespace | ✓ | Chat-namespace codes typed via `ChatErrorCode` in `shared/src/types.ts`; existing `api/src/errors.ts` untouched |
+| T-22 enriched seed | ✓ | `shared/seed/retail-mini-enriched.json` (188 attribute entries) + `scripts/seed-enriched.ts` |
+
+**Notes**:
+- `better-sqlite3` does not work under Bun 1.3 (native N-API bindings — oven-sh/bun#4290); persistence uses `bun:sqlite` with the same surface API.
+- `MOCK_LLM_FIXTURE` env selects fixtures in tests; production uses real Anthropic when `ANTHROPIC_API_KEY` is set.
+- All 84 Tier 1 unit tests pass; integration tests (`^integration:` prefix) need a running Neo4j and will be run during T-27.
+
+**Remaining tiers** (not yet started):
+- T-11 (Tier 1.5): 20 role markdown overlays + registry + classifier glue (~3 h)
+- T-12..T-15 (Tier 2): 15 tools (~3 h parallel)
+- T-16 (Tier 3): orchestrator (~2 h)
+- T-17 (Tier 3): chat REST + progress endpoints (~1 h)
+- T-18..T-19 (Tier 4): coverage grep + seed-attrs tests (~1 h)
+- T-21..T-26 (Tier 5–6): PWA chat pane + canvas highlight + progress polling (~4 h)
+- T-27..T-28 (Tier 7): E2E + perf smoke (~1 h)
+
 ## Verification
 
-- `verified_at`: pending
-- `verification_artifact`: pending
+- `verified_at`: pending — see Execution progress above
+- `verification_artifact`: partial — Tier 1 covered by 9 test files at `api/__tests__/chat/`; full STATUS=complete blocked on T-11..T-28
 
 ## Artifacts
 
