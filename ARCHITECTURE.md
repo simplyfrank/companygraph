@@ -205,11 +205,79 @@ within each resource group.
 
 ---
 
+## 13. Ontology route pattern
+
+**Locations:** `api/src/routes/ontology-node-labels.ts`, `ontology-edge-types.ts`,
+`ontology-schema.ts`, `ontology-audit.ts`, `ontology-import.ts`
+
+Ontology CRUD routes follow this invariant:
+
+1. **Validate input** with the shared Zod schema (`nodeLabelCreateSchema` etc.);
+   throw `ERROR_CODE_THROWERS.invalid_payload(...)` on failure.
+2. **Call the storage helper** (`createNodeLabel`, `patchEdgeType`, …);
+   the helper commits the audit/version/event rows atomically in its transaction.
+3. **Emit `ontologyEvents.emit("ontology.changed", …)`** from the route handler
+   *after* the storage call returns — never inside the transaction.
+4. **Return the response** (`ok(row, 201)` for creates, `ok(row)` for patches,
+   `noContent()` for deletes).
+
+URL `:name` params on GET/PATCH/DELETE routes use `parseRegistryLabel` /
+`parseEdgeTypeName` (async, schema-cache backed) rather than the compile-time
+`parseLabel`. A null result from these helpers returns 404 before the storage
+call, preventing Cypher injection payloads from reaching the storage layer.
+
+**Rule:** Never call `ontologyEvents.emit()` inside a storage transaction.
+Never skip the emit after a successful mutation — cache invalidation depends on it.
+
+---
+
+## 14. Bootstrap is registry-iterating (FR-15)
+
+**Location:** `api/src/neo4j/bootstrap.ts`
+
+`applySchema` runs three sequential idempotent steps:
+
+1. `applyMetaSchema` — creates `_Ontology*` constraints + indexes (`IF NOT EXISTS`).
+2. `seedRegistryFromConstTuples` — gated by `isRegistryEmpty`; runs once per
+   database lifetime. Emits `ontology.changed` after commit to warm caches.
+3. Registry iteration — reads all `_OntologyNodeLabel` and `_OntologyEdgeType`
+   rows and creates per-label data constraints (`node_id_unique_*`, `node_name_*`)
+   and per-type edge constraints (`edge_id_unique_*`).
+
+Step 3 ensures that labels/types added via `POST /api/v1/ontology/node-labels`
+get their data constraints applied on the next server restart.
+
+**Rule:** `api/src/ontology/seed.ts` is the **sole** legal importer of the
+compile-time `NODE_LABELS` / `EDGE_TYPES` const tuples (AC-15). Do not import
+them from any other file.
+
+---
+
+## 15. `listNodeLabels` uses a single-query alignment fetch
+
+**Location:** `api/src/ontology/storage/node-labels.ts → listNodeLabels`
+
+Alignments are fetched inline via `OPTIONAL MATCH … collect(DISTINCT a)` in
+the same query that fetches the label rows — matching the pattern in
+`listEdgeTypes`. This avoids an N+1 pattern (one `listAlignments()` call per
+label row).
+
+**Rule:** Never call `listAlignments()` inside a per-row loop in a list query.
+Instead, use `OPTIONAL MATCH (…)<-[:ALIGNS]-(a:_OntologyAlignment) WITH …
+collect(DISTINCT a) AS alignments` and map the collected nodes in application
+code.
+
+---
+
 ## Open technical debt (not yet fixed)
 
 | Issue | File | Notes |
 |---|---|---|
 | `getDriver()` global singleton | `api/src/neo4j/driver.ts` | Correct fix: inject driver via `route(req, driver)`. Requires updating all storage call sites. |
-| SSE endpoint unimplemented | `api/src/router.ts` | `_OntologyEvent` rows are written but no SSE route exists. Register `GET /api/v1/ontology/events`. |
+| SSE endpoint unimplemented | `api/src/router.ts` | `_OntologyEvent` rows are written but `GET /api/v1/ontology/events` SSE route is not yet registered. Replay via `Last-Event-ID` index on `_OntologyEvent.ts` is ready. |
+| Migration executor unimplemented | `api/src/routes/` | `POST /api/v1/ontology/migrations` route and executor are missing. Without it, `assertDeletePreconditions` will block deletion of any entity that has ever been marked deprecated. |
+| Rollback executor unimplemented | `api/src/routes/` | `POST /api/v1/ontology/rollback` and `rollback_orphans` / `rollback_below_bootstrap` error codes have no implementation. |
+| `assertEndpointLabelsExist` N+1 | `api/src/ontology/storage/edge-types.ts` | Issues one query per distinct label. Fix: `WHERE l.name IN $names` single query. |
+| `new Function` schema size | `api/src/ontology/cache/attribute-zod.ts` | No size limit on `json_schema_doc`. A deeply nested properties tree can generate an unbounded code string. Add a max-depth or max-size check at register time in `jsonSchemaDocSchema`. |
 | `exactOptionalPropertyTypes` violations | `Journey.tsx`, `JourneyGraph.tsx`, `App.tsx` | Pre-existing, widespread. Requires auditing all optional properties across the PWA. |
 | No GET request deduplication | `pwa/src/api.ts` | Rapid tab navigation causes concurrent redundant requests. A simple in-memory cache keyed by URL with TTL = poll interval would prevent this. |
