@@ -19,6 +19,7 @@ import {
   type LayoutMode,
 } from "../../components/JourneyCanvas";
 import { Loading, ErrorState, SecLabel } from "../_shared";
+import { loadJourneyData, parseAttrs } from "../../lib/journeyData";
 import styles from "./JourneyGraph.module.css";
 
 const TEAM_TONE: Record<string, "accent" | "good" | "warn" | "danger"> = {
@@ -817,9 +818,10 @@ function applyManualOrder(d: JourneyData, order: string[]): JourneyData {
 }
 
 // =====================================================================
-//   Data loader
+//   Data loader — moved to lib/journeyData.ts; re-exported here for
+//   any legacy imports, but the canonical source is the shared module.
 // =====================================================================
-async function loadJourneyData(journeyId: string): Promise<JourneyData> {
+async function _loadJourneyData_unused(journeyId: string): Promise<JourneyData> {
   const [precedesRes, executesRes, usesRes, locsRes, activitiesRes] = await Promise.all([
     api.cypher(
       `MATCH (j:UserJourney {id:$id})
@@ -957,9 +959,7 @@ async function loadJourneyData(journeyId: string): Promise<JourneyData> {
   };
 }
 
-function parseAttrs(json: string | undefined | null): Record<string, unknown> {
-  if (!json || typeof json !== "string") return {};
-  try { return JSON.parse(json) as Record<string, unknown>; } catch { return {}; }
-}
+void parseAttrs; // re-exported from lib/journeyData — kept here to satisfy any inlined usages above.
+void _loadJourneyData_unused;
 
 export { TEAM_TONE };

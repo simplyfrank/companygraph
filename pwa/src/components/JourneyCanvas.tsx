@@ -139,11 +139,26 @@ interface EdgeSeg {
   fromX: number; fromY: number; toX: number; toY: number;
   tone?: Tone;
   kind: "precedes" | "executes" | "uses_system" | "at_location";
+  // Endpoint node IDs — required so the canvas can decide whether the
+  // edge touches the current selection. For PRECEDES the endpoints
+  // are activity ids; for binding edges (EXECUTES / USES_SYSTEM /
+  // AT_LOCATION) the endpoints are (activityId, bindingNodeId).
+  fromNodeId: string;
+  toNodeId: string;
+}
+interface ChipSeg {
+  x: number; y: number;
+  tone: Tone;
+  text: string;
+  // Mirrors the edge this chip annotates — chips inherit the edge's
+  // dim/highlight state from the selection.
+  fromNodeId: string;
+  toNodeId: string;
 }
 interface ComputedLayout {
   nodes: NodePos[];
   edges: EdgeSeg[];
-  chips: Array<{ x: number; y: number; tone: Tone; text: string }>;
+  chips: ChipSeg[];
   width: number;
   height: number;
 }
@@ -152,10 +167,11 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
   const n = d.activities.length;
   const width = CHAIN.padX * 2 + Math.max(1, n - 1) * CHAIN.colWidth;
   const colX = (c: number): number => CHAIN.padX + c * CHAIN.colWidth;
+  const idAtCol = (c: number): string => d.activities.find((a) => a.column === c)?.id ?? "";
 
   const nodes: NodePos[] = [];
   const edges: EdgeSeg[] = [];
-  const chips: ComputedLayout["chips"] = [];
+  const chips: ChipSeg[] = [];
 
   for (const a of d.activities) {
     nodes.push({ id: a.id, kind: "activity", x: colX(a.column), y: CHAIN.yActivity, name: a.name, data: a });
@@ -165,13 +181,16 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
     const tone = slaStatus(p.target_ms, p.actual_ms) ?? undefined;
     const fromX = colX(p.from_col) + 60;
     const toX = colX(p.to_col) - 60;
-    edges.push({ fromX, fromY: CHAIN.yActivity, toX, toY: CHAIN.yActivity, tone, kind: "precedes" });
+    const fromNodeId = idAtCol(p.from_col);
+    const toNodeId   = idAtCol(p.to_col);
+    edges.push({ fromX, fromY: CHAIN.yActivity, toX, toY: CHAIN.yActivity, tone, kind: "precedes", fromNodeId, toNodeId });
     if (p.target_ms != null) {
       chips.push({
         x: (fromX + toX) / 2,
         y: CHAIN.yActivity - 24,
         tone: tone ?? "good",
         text: `${formatMs(p.actual_ms ?? p.target_ms)}/${formatMs(p.target_ms)}`,
+        fromNodeId, toNodeId,
       });
     }
   }
@@ -186,6 +205,7 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
           fromX: colX(col), fromY: CHAIN.yActivity - 30,
           toX: x, toY: y + 32,
           kind: "executes",
+          fromNodeId: idAtCol(col), toNodeId: r.id,
         });
       }
     }
@@ -199,10 +219,12 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
       nodes.push({ id: s.id, kind: "system", x, y, name: s.name, data: s });
       for (const u of s.usages) {
         const tone = slaStatus(u.target_ms, u.actual_ms) ?? undefined;
+        const fromNodeId = idAtCol(u.column);
         edges.push({
           fromX: colX(u.column), fromY: CHAIN.yActivity + 30,
           toX: x, toY: y - 22,
           tone, kind: "uses_system",
+          fromNodeId, toNodeId: s.id,
         });
         if (u.target_ms != null) {
           chips.push({
@@ -210,6 +232,7 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
             y: (CHAIN.yActivity + 30 + y - 22) / 2,
             tone: tone ?? "good",
             text: `${formatMs(u.actual_ms ?? u.target_ms)}/${formatMs(u.target_ms)}`,
+            fromNodeId, toNodeId: s.id,
           });
         }
       }
@@ -226,6 +249,7 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
           fromX: colX(col), fromY: CHAIN.yActivity + 30,
           toX: x, toY: y - 18,
           kind: "at_location",
+          fromNodeId: idAtCol(col), toNodeId: l.id,
         });
       }
     }
@@ -242,10 +266,11 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
 
   const angleAt = (col: number): number =>
     n === 0 ? 0 : -Math.PI / 2 + (col / n) * Math.PI * 2;
+  const idAtCol = (c: number): string => d.activities.find((a) => a.column === c)?.id ?? "";
 
   const nodes: NodePos[] = [];
   const edges: EdgeSeg[] = [];
-  const chips: ComputedLayout["chips"] = [];
+  const chips: ChipSeg[] = [];
 
   for (const a of d.activities) {
     const θ = angleAt(a.column);
@@ -261,12 +286,14 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
     const θ1 = angleAt(p.from_col);
     const θ2 = angleAt(p.to_col);
     const tone = slaStatus(p.target_ms, p.actual_ms) ?? undefined;
+    const fromNodeId = idAtCol(p.from_col);
+    const toNodeId   = idAtCol(p.to_col);
     edges.push({
       fromX: cx + (rActivity - 4) * Math.cos(θ1),
       fromY: cy + (rActivity - 4) * Math.sin(θ1),
       toX:   cx + (rActivity - 4) * Math.cos(θ2),
       toY:   cy + (rActivity - 4) * Math.sin(θ2),
-      tone, kind: "precedes",
+      tone, kind: "precedes", fromNodeId, toNodeId,
     });
     if (p.target_ms != null) {
       const midθ = (θ1 + θ2) / 2;
@@ -276,6 +303,7 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
         y: cy + r * Math.sin(midθ),
         tone: tone ?? "good",
         text: `${formatMs(p.actual_ms ?? p.target_ms)}/${formatMs(p.target_ms)}`,
+        fromNodeId, toNodeId,
       });
     }
   }
@@ -294,6 +322,7 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
           toX:   x - 26 * Math.cos(θ),
           toY:   y - 26 * Math.sin(θ),
           kind: "executes",
+          fromNodeId: idAtCol(col), toNodeId: r.id,
         });
       }
     }
@@ -308,13 +337,26 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
       for (const u of s.usages) {
         const θa = angleAt(u.column);
         const tone = slaStatus(u.target_ms, u.actual_ms) ?? undefined;
+        const fromNodeId = idAtCol(u.column);
         edges.push({
           fromX: cx + (rActivity + 6) * Math.cos(θa),
           fromY: cy + (rActivity + 6) * Math.sin(θa),
           toX:   x - 46 * Math.cos(θ),
           toY:   y - 18 * Math.sin(θ),
           tone, kind: "uses_system",
+          fromNodeId, toNodeId: s.id,
         });
+        if (u.target_ms != null) {
+          // Place the chip at the midpoint of the spoke.
+          const mx = (cx + (rActivity + 6) * Math.cos(θa) + (x - 46 * Math.cos(θ))) / 2;
+          const my = (cy + (rActivity + 6) * Math.sin(θa) + (y - 18 * Math.sin(θ))) / 2;
+          chips.push({
+            x: mx, y: my,
+            tone: tone ?? "good",
+            text: `${formatMs(u.actual_ms ?? u.target_ms)}/${formatMs(u.target_ms)}`,
+            fromNodeId, toNodeId: s.id,
+          });
+        }
       }
     }
   }
@@ -333,6 +375,7 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
           toX:   x - 20 * Math.cos(θ),
           toY:   y - 20 * Math.sin(θ),
           kind: "at_location",
+          fromNodeId: idAtCol(col), toNodeId: l.id,
         });
       }
     }
@@ -477,32 +520,65 @@ export function JourneyCanvas({
   // =================================
   //   Selection-aware dimming
   // =================================
+  //
+  // Only nodes 1 hop from the selection get highlighted. Sharing a
+  // column means routing THROUGH an activity, which is 2 hops — those
+  // stay dimmed. For example, selecting a Role highlights the
+  // Activities it EXECUTES, but NOT the Systems used by those
+  // Activities (that's a 2-hop Role→Activity→System path).
   const connectedIds = useMemo<Set<string>>(() => {
     if (!selected) return new Set();
     const set = new Set<string>([selected.id]);
-    const relevantCols = new Set<number>();
+
     if (selected.kind === "activity") {
       const a = data.activities.find((x) => x.id === selected.id);
-      if (a) relevantCols.add(a.column);
+      if (!a) return set;
+      // Roles, systems, locations directly bound to this activity.
+      for (const r of data.roles)     if (r.columns.includes(a.column)) set.add(r.id);
+      for (const s of data.systems)   if (s.usages.some((u) => u.column === a.column)) set.add(s.id);
+      for (const l of data.locations) if (l.columns.includes(a.column)) set.add(l.id);
+      // Adjacent activities via PRECEDES.
+      for (const e of data.precedes) {
+        if (e.from_col === a.column) {
+          const next = data.activities.find((x) => x.column === e.to_col);
+          if (next) set.add(next.id);
+        }
+        if (e.to_col === a.column) {
+          const prev = data.activities.find((x) => x.column === e.from_col);
+          if (prev) set.add(prev.id);
+        }
+      }
     } else if (selected.kind === "role") {
       const r = data.roles.find((x) => x.id === selected.id);
-      r?.columns.forEach((c) => relevantCols.add(c));
+      if (!r) return set;
+      const cols = new Set(r.columns);
+      for (const a of data.activities) if (cols.has(a.column)) set.add(a.id);
     } else if (selected.kind === "system") {
       const s = data.systems.find((x) => x.id === selected.id);
-      s?.usages.forEach((u) => relevantCols.add(u.column));
+      if (!s) return set;
+      const cols = new Set(s.usages.map((u) => u.column));
+      for (const a of data.activities) if (cols.has(a.column)) set.add(a.id);
     } else if (selected.kind === "location") {
       const l = data.locations.find((x) => x.id === selected.id);
-      l?.columns.forEach((c) => relevantCols.add(c));
+      if (!l) return set;
+      const cols = new Set(l.columns);
+      for (const a of data.activities) if (cols.has(a.column)) set.add(a.id);
     }
-    for (const a of data.activities) if (relevantCols.has(a.column)) set.add(a.id);
-    for (const r of data.roles)      if (r.columns.some((c) => relevantCols.has(c))) set.add(r.id);
-    for (const s of data.systems)    if (s.usages.some((u) => relevantCols.has(u.column))) set.add(s.id);
-    for (const l of data.locations)  if (l.columns.some((c) => relevantCols.has(c))) set.add(l.id);
+
     return set;
   }, [selected, data]);
 
   const isDim = (id: string): boolean => selected !== null && !connectedIds.has(id);
   const isConn = (id: string): boolean => selected !== null && connectedIds.has(id) && id !== selected?.id;
+  // An edge is "touched" by the selection iff one of its endpoints is the
+  // selected node. (Endpoints between two adjacent-to-selection nodes are
+  // still dimmed — they're a 2-hop edge.) For PRECEDES edges between two
+  // adjacent activities the selected activity will be an endpoint, so
+  // those light up correctly.
+  const isEdgeHighlighted = (e: EdgeSeg): boolean =>
+    selected !== null && (e.fromNodeId === selected.id || e.toNodeId === selected.id);
+  const isEdgeDim = (e: EdgeSeg): boolean =>
+    selected !== null && !isEdgeHighlighted(e);
 
   return (
     <svg
@@ -548,7 +624,15 @@ export function JourneyCanvas({
           {layout.edges.map((e, i) => {
             const tone = e.tone;
             const kind = e.kind;
-            const cls = [styles.edge, styles[`edge-${kind}`], tone ? styles[`tone-${tone}`] : ""].join(" ");
+            const dim = isEdgeDim(e);
+            const hl  = !dim && isEdgeHighlighted(e);
+            const cls = [
+              styles.edge,
+              styles[`edge-${kind}`],
+              tone ? styles[`tone-${tone}`] : "",
+              dim ? styles.edgeDim : "",
+              hl  ? styles.edgeHighlight : "",
+            ].join(" ");
             return (
               <line key={`e${i}`} x1={e.fromX} y1={e.fromY} x2={e.toX} y2={e.toY}
                     className={cls}
@@ -557,14 +641,23 @@ export function JourneyCanvas({
           })}
         </g>
 
-        {/* g-chips (SLA values inline) */}
+        {/* g-chips (SLA values inline) — chip dimming mirrors its edge */}
         <g className={styles.chips}>
-          {layout.chips.map((c, i) => (
-            <g key={`c${i}`} transform={`translate(${c.x} ${c.y})`} className={`${styles.chip} ${styles[`tone-${c.tone}`]}`}>
-              <rect x={-28} y={-9} width={56} height={18} rx={9} />
-              <text x={0} y={4} textAnchor="middle">{c.text}</text>
-            </g>
-          ))}
+          {layout.chips.map((c, i) => {
+            const edgeLike: EdgeSeg = {
+              fromX: 0, fromY: 0, toX: 0, toY: 0,
+              kind: "precedes",
+              fromNodeId: c.fromNodeId, toNodeId: c.toNodeId,
+            };
+            const dim = isEdgeDim(edgeLike);
+            return (
+              <g key={`c${i}`} transform={`translate(${c.x} ${c.y})`}
+                 className={`${styles.chip} ${styles[`tone-${c.tone}`]} ${dim ? styles.chipDim : ""}`}>
+                <rect x={-28} y={-9} width={56} height={18} rx={9} />
+                <text x={0} y={4} textAnchor="middle">{c.text}</text>
+              </g>
+            );
+          })}
         </g>
 
         {/* g-nodes */}

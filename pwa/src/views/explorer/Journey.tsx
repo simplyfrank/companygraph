@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Route } from "../../route";
-import { api, type DomainRow } from "../../api";
+import { api, type DomainRow, type JourneyDetailRow } from "../../api";
 import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { BoundList } from "../../components/BoundList";
@@ -8,6 +8,15 @@ import { KeyValueList } from "../../components/KeyValueList";
 import { Pill } from "../../components/Pill";
 import { Button } from "../../components/Button";
 import { ViewHeader, Loading, ErrorState, SecLabel } from "../_shared";
+import { SLAchip } from "../../components/SLAchip";
+import { orderJourneyActivities } from "../../lib/journeyOrder";
+import { loadJourneyData } from "../../lib/journeyData";
+import {
+  JourneyCanvas,
+  type LayoutMode,
+  type VisibleLayers,
+  type SelectedRef,
+} from "../../components/JourneyCanvas";
 import styles from "./Journey.module.css";
 
 // Architecture: params come from route.params (parsed centrally in parseHash)
@@ -90,6 +99,8 @@ function JourneyPicker({ domains, domainId }: { domains: DomainRow[]; domainId: 
 interface RoleBinding { id: string; name: string; team_id?: string; team_name?: string; team_color?: string }
 interface ActivityRolesRow { aId: string; roleId: string; roleName: string; roleAttrs: string }
 
+interface PrecedesRow { aId: string; createdAt: string; nextIds: string[] }
+
 function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; activeActivityId: string | null }) {
   const journey = useFetch(() => api.getJourney(journeyId), [journeyId]);
   // Per-activity role assignment with team attributes — drives the tinted role pills.
@@ -102,19 +113,55 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
       ),
     [journeyId],
   );
-  // FR-20: read the journey's full attributes_json so the header can
-  // render the `"Verified by '<role>' on <date>"` line from
-  // `attributes._verification`. getJourney's response shape doesn't
-  // include attributes, so we fan out a tiny one-row cypher.
-  const journeyAttrs = useFetch(
+  // FR-03 / AC-02 — PRECEDES order + createdAt tiebreaker for cycle handling.
+  const precedes = useFetch(
     () =>
       api.cypher(
-        `MATCH (j:UserJourney {id:$id}) RETURN j.attributes_json AS attrs`,
+        `MATCH (j:UserJourney {id:$id})<-[:PART_OF]-(a:Activity)
+         OPTIONAL MATCH (a)-[:PRECEDES]->(b:Activity)-[:PART_OF]->(j)
+         WITH a, collect(b.id) AS nextIds
+         RETURN a.id AS aId, a.createdAt AS createdAt, nextIds`,
         { id: journeyId },
       ),
     [journeyId],
   );
   const neighbors = useFetch(() => api.neighbors(journeyId, 2), [journeyId]);
+
+  // FR-03 / AC-02 — reorder activities by PRECEDES; on cycle, fall
+  // back to createdAt ASC and surface a warning ribbon.
+  //
+  // These memos run on every render (including loading/error states)
+  // to satisfy the rules of hooks. The early returns below come AFTER
+  // every hook has been called.
+  const rawActivities: JourneyDetailRow["activities"] =
+    journey.status === "ok" ? journey.data.rows[0]?.activities ?? [] : [];
+
+  const order = useMemo(() => {
+    if (precedes.status !== "ok") {
+      return { orderedIds: rawActivities.map((a) => a.id), cycle: false };
+    }
+    const orderable = (precedes.data.rows as unknown as PrecedesRow[]).map((r) => ({
+      id: r.aId,
+      createdAt: r.createdAt ?? "",
+    }));
+    const edges = (precedes.data.rows as unknown as PrecedesRow[]).flatMap((r) =>
+      (r.nextIds ?? []).filter(Boolean).map((toId) => ({ fromId: r.aId, toId })),
+    );
+    return orderJourneyActivities(orderable, edges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [precedes.status, precedes.status === "ok" ? precedes.data : null, rawActivities]);
+
+  const activities = useMemo(() => {
+    if (!order.orderedIds.length) return rawActivities;
+    const byId = new Map(rawActivities.map((a) => [a.id, a] as const));
+    const out = order.orderedIds
+      .map((id) => byId.get(id))
+      .filter((a): a is (typeof rawActivities)[number] => Boolean(a));
+    const seen = new Set(out.map((a) => a.id));
+    for (const a of rawActivities) if (!seen.has(a.id)) out.push(a);
+    return out;
+  }, [order, rawActivities]);
+  const hasCycle = order.cycle;
 
   if (journey.status === "loading") return <Loading what="journey" />;
   if (journey.status === "error") {
@@ -129,8 +176,6 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
   }
   const row = journey.data.rows[0];
   if (!row) return <ErrorState message="journey not found" />;
-
-  const activities = row.activities ?? [];
 
   // Build aId → roles[] map with parsed team attributes.
   const rolesByActivity = new Map<string, RoleBinding[]>();
@@ -156,34 +201,43 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
   const locations = bound.filter((n) => n.label === "Location").slice(0, 8);
   const uniqueRoles = uniqueBy([...rolesByActivity.values()].flat(), (r) => r.id);
 
-  // FR-20 / AC-16 — parse _verification from the journey's attributes.
-  let verification: { by: string; at: string } | null = null;
-  if (journeyAttrs.status === "ok") {
-    const attrsStr = (journeyAttrs.data.rows[0] as { attrs?: string } | undefined)?.attrs;
-    if (attrsStr) {
-      try {
-        const parsed = JSON.parse(attrsStr) as { _verification?: { by?: string; at?: string } };
-        if (parsed._verification?.by && parsed._verification.at) {
-          verification = { by: parsed._verification.by, at: parsed._verification.at };
-        }
-      } catch {
-        /* malformed attributes_json — ignore */
-      }
-    }
-  }
+  // verification now comes directly from the getJourney response (no fan-out).
+  const verif = row.verification;
+  const verification: { by: string; at: string } | null =
+    verif?.by && verif.at ? { by: verif.by, at: verif.at } : null;
 
   return (
     <>
       <ViewHeader title={row.name} lede={row.description} />
-      {verification && (
-        <VerificationLine roleId={verification.by} verifiedAt={verification.at} />
-      )}
+      <JourneyKpiBanner row={row} verification={verification} />
+      <ProcessFlowPanel journeyId={journeyId} />
       <div className={styles.titleActions}>
-        <Button tone="primary" href={`#/explorer/journey-graph?journey=${encodeURIComponent(journeyId)}`}>
-          View as graph →
+        <Button tone="ghost" href={`#/explorer/journey-graph?journey=${encodeURIComponent(journeyId)}`}>
+          Open full graph →
         </Button>
         <Button tone="ghost" href="#/explorer/journey-detail">All journeys</Button>
       </div>
+
+      {hasCycle && (
+        <div
+          role="alert"
+          data-testid="cycle-warning"
+          style={{
+            margin: "12px 0",
+            padding: "10px 14px",
+            background: "var(--warn-bg, #fff4d6)",
+            borderLeft: "4px solid var(--warn, #d28a00)",
+            color: "var(--warn-fg, #5a3d00)",
+            fontSize: 13,
+            borderRadius: 4,
+          }}
+        >
+          <strong>Cycle detected in PRECEDES.</strong>{" "}
+          Activities are rendered in <code>createdAt</code> ASC order as a
+          tiebreaker so every step is visible. Inspect the chain and resolve
+          the cycle in the source data.
+        </div>
+      )}
 
       <div className={styles.shell}>
         <Card title="Activity chain">
@@ -202,12 +256,18 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
                     <div className={styles.stepBody}>
                       <div className={styles.stepName}>{a.name}</div>
                       <div className={styles.stepMeta}>
-                        {aRoles.length === 0 && (
+                        {aRoles.length === 0 && a.sla_target_hours == null && (
                           <span className={styles.stepId}>—</span>
                         )}
                         {aRoles.map((r) => (
                           <TeamRolePill key={r.id} role={r} />
                         ))}
+                        {a.sla_target_hours != null && (
+                          <SLAchip tone={slaTone(a.sla_target_hours, a.p95_hours)} label="SLA" value={`${a.sla_target_hours}h`} />
+                        )}
+                        {a.p95_hours != null && (
+                          <SLAchip tone={slaTone(a.sla_target_hours, a.p95_hours)} label="p95" value={`${a.p95_hours}h`} />
+                        )}
                       </div>
                     </div>
                     {active && <Pill tone="accent">selected</Pill>}
@@ -231,6 +291,7 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
               { label: "id",         value: <code className={styles.id}>{row.id}</code> },
               { label: "activities", value: activities.length },
               { label: "roles",      value: uniqueRoles.length },
+              ...(row.owner_team ? [{ label: "owner", value: row.owner_team }] : []),
             ]} />
           </Card>
           <Card title="Teams">
@@ -263,10 +324,125 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
   );
 }
 
-// FR-20 header line — "Verified by '<role-name>' on <date>". The role
-// name is looked up via the `verifyingRoleName` named cypher (T-09c).
-// Loading + role-not-found cases fall back to a graceful pseudo-string
-// rather than blanking the header.
+// =====================================================================
+//   Inline process-flow panel
+// =====================================================================
+function ProcessFlowPanel({ journeyId }: { journeyId: string }) {
+  const [open, setOpen] = useState(true);
+  const [layout, setLayout] = useState<LayoutMode>("chain");
+  const [layers, setLayers] = useState<VisibleLayers>({ roles: true, systems: true, locations: false });
+  const [selected, setSelected] = useState<SelectedRef>(null);
+  const data = useFetch(() => loadJourneyData(journeyId), [journeyId]);
+
+  return (
+    <div className={styles.flowPanel} data-testid="process-flow-panel">
+      <div className={styles.flowHeader}>
+        <button
+          className={styles.flowToggle}
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          <span className={styles.flowToggleIcon}>{open ? "▾" : "▸"}</span>
+          Process flow
+          {data.status === "ok" && (
+            <span className={styles.flowActivityCount}>
+              {data.data.activities.length} step{data.data.activities.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </button>
+        {open && (
+          <div className={styles.flowControls}>
+            <div className={styles.flowSeg}>
+              <button
+                className={`${styles.flowSegBtn} ${layout === "chain" ? styles.flowSegActive : ""}`}
+                onClick={() => setLayout("chain")}
+              >chain</button>
+              <button
+                className={`${styles.flowSegBtn} ${layout === "radial" ? styles.flowSegActive : ""}`}
+                onClick={() => setLayout("radial")}
+              >radial</button>
+            </div>
+            <label className={styles.flowLayerToggle}>
+              <input type="checkbox" checked={layers.roles} onChange={(e) => setLayers((l) => ({ ...l, roles: e.target.checked }))} />
+              Roles
+            </label>
+            <label className={styles.flowLayerToggle}>
+              <input type="checkbox" checked={layers.systems} onChange={(e) => setLayers((l) => ({ ...l, systems: e.target.checked }))} />
+              Systems
+            </label>
+            <label className={styles.flowLayerToggle}>
+              <input type="checkbox" checked={layers.locations} onChange={(e) => setLayers((l) => ({ ...l, locations: e.target.checked }))} />
+              Locations
+            </label>
+          </div>
+        )}
+      </div>
+      {open && (
+        <div className={styles.flowCanvas}>
+          {data.status === "loading" && <Loading what="process flow" />}
+          {data.status === "error" && <ErrorState message={data.error} />}
+          {data.status === "ok" && (
+            <JourneyCanvas
+              data={data.data}
+              layoutMode={layout}
+              visibleLayers={layers}
+              selected={selected}
+              onSelect={setSelected}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// JourneyKpiBanner — the SLA/KPI/verification strip that appears
+// directly below the page title, always visible for SLA-bound journeys.
+function JourneyKpiBanner({
+  row,
+  verification,
+}: {
+  row: JourneyDetailRow;
+  verification: { by: string; at: string } | null;
+}) {
+  const hasSla  = row.sla_target_hours != null;
+  const hasKpi  = row.kpi_score != null;
+  const hasVerif = verification != null;
+  if (!hasSla && !hasKpi && !hasVerif) return null;
+
+  const slaToneVal = slaTone(row.sla_target_hours, row.p95_hours);
+  const kpiToneVal = row.kpi_score != null ? slaScoreTone(row.kpi_score) : "neutral" as const;
+
+  return (
+    <div className={styles.kpiBanner} data-testid="journey-kpi-banner">
+      {hasSla && (
+        <SLAchip
+          tone={slaToneVal}
+          label="SLA target"
+          value={`${row.sla_target_hours}h`}
+        />
+      )}
+      {row.p95_hours != null && (
+        <SLAchip
+          tone={slaToneVal}
+          label="p95 actual"
+          value={`${row.p95_hours}h`}
+        />
+      )}
+      {hasKpi && (
+        <SLAchip
+          tone={kpiToneVal}
+          label="KPI score"
+          value={`${Math.round(row.kpi_score! * 100)}%`}
+        />
+      )}
+      {hasVerif && (
+        <VerificationLine roleId={verification!.by} verifiedAt={verification!.at} />
+      )}
+    </div>
+  );
+}
+
 function VerificationLine({ roleId, verifiedAt }: { roleId: string; verifiedAt: string }) {
   const role = useFetch(
     () =>
@@ -278,13 +454,29 @@ function VerificationLine({ roleId, verifiedAt }: { roleId: string; verifiedAt: 
       ? (role.data.rows[0] as { name?: string } | undefined)?.name ?? roleId
       : roleId;
   return (
-    <p
+    <span
       data-testid="verification-line"
-      style={{ margin: "0 0 8px", fontSize: 12.5, color: "var(--muted)" }}
+      style={{ fontSize: 12, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 4 }}
     >
-      Verified by <strong>&lsquo;{roleName}&rsquo;</strong> on {verifiedAt}
-    </p>
+      Verified by <strong style={{ color: "var(--fg)" }}>&lsquo;{roleName}&rsquo;</strong> on {verifiedAt}
+    </span>
   );
+}
+
+function slaTone(
+  target: number | null | undefined,
+  p95: number | null | undefined,
+): "good" | "warn" | "breach" | "neutral" {
+  if (target == null || p95 == null) return "neutral";
+  if (p95 <= target) return "good";
+  if (p95 <= target * 1.2) return "warn";
+  return "breach";
+}
+
+function slaScoreTone(score: number): "good" | "warn" | "breach" | "neutral" {
+  if (score >= 0.9) return "good";
+  if (score >= 0.7) return "warn";
+  return "breach";
 }
 
 function ActivityDetail({

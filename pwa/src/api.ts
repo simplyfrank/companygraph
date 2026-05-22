@@ -1,4 +1,10 @@
-import type { Health, Stats } from "@companygraph/shared/types";
+import type {
+  Health,
+  Stats,
+  ChatEnvelope,
+  ChatRequest,
+  ProgressSnapshot,
+} from "@companygraph/shared/types";
 
 // Architecture: signal is optional so health-polling callers that manage
 // their own AbortController can still call without one, while useFetch
@@ -45,6 +51,21 @@ export const api = {
 
   exportJson: (signal?: AbortSignal) => json<{ nodes: ExportNode[]; edges: ExportEdge[] }>("/api/v1/export", withSignal(signal)),
   openapi: (signal?: AbortSignal) => json<Record<string, unknown>>("/api/v1/openapi.json", withSignal(signal)),
+
+  // chat-interface (rev 3.1) — agentic chat surface.
+  chat: {
+    send: (req: ChatRequest): Promise<ChatEnvelope> =>
+      json<ChatEnvelope>("/api/v1/chat/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(req),
+      }),
+    progress: (messageId: string, signal?: AbortSignal): Promise<ProgressSnapshot> =>
+      json<ProgressSnapshot>(
+        `/api/v1/chat/messages/${encodeURIComponent(messageId)}/progress`,
+        withSignal(signal),
+      ),
+  },
 };
 
 export interface DomainRow { id: string; name: string; description: string }
@@ -58,7 +79,18 @@ export interface JourneyDetailRow {
   id: string;
   name: string;
   description: string;
-  activities: Array<{ id: string; name: string }>;
+  activities: Array<{
+    id: string;
+    name: string;
+    sla_target_hours?: number | null;
+    p95_hours?: number | null;
+    kpi_score?: number | null;
+  }>;
+  sla_target_hours?: number | null;
+  p95_hours?: number | null;
+  kpi_score?: number | null;
+  owner_team?: string | null;
+  verification?: { by?: string; at?: string } | null;
 }
 export interface ActivityRow { id: string; name: string; description: string }
 export interface NeighborRow { node: { id: string; name: string }; label: string }

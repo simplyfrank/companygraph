@@ -28,6 +28,12 @@ function mockJourneyFixture(opts: {
               name: "Customer checkout",
               description: "End-to-end checkout journey",
               activities: [{ id: "a-1", name: "Scan" }, { id: "a-2", name: "Pay" }],
+              // The real /api/v1/query/getJourney endpoint already returns
+              // `verification` at the row level (pulled from
+              // attributes_json._verification via APOC in query.ts), so the
+              // PWA does NOT fan out an extra cypher call for it. The
+              // fixture mirrors that contract.
+              verification: opts.verification ?? null,
             },
           ],
         }),
@@ -36,14 +42,6 @@ function mockJourneyFixture(opts: {
     }
     if (u.includes("/query/cypher") && init?.method === "POST") {
       const body = JSON.parse(String(init.body)) as { statement: string; params: Record<string, unknown> };
-      // journey attributes_json fetch
-      if (body.statement.includes("RETURN j.attributes_json AS attrs")) {
-        const attrs = opts.verification ? { _verification: opts.verification } : {};
-        return new Response(
-          JSON.stringify({ rows: [{ attrs: JSON.stringify(attrs) }] }),
-          { status: 200 },
-        );
-      }
       // verifyingRoleName lookup
       if (body.statement.includes("RETURN r.name AS name")) {
         return new Response(
@@ -53,7 +51,8 @@ function mockJourneyFixture(opts: {
           { status: 200 },
         );
       }
-      // per-activity role assignment + other cyphers — return empty rows
+      // per-activity role assignment + PRECEDES order + other cyphers
+      // — return empty rows
       return new Response(JSON.stringify({ rows: [] }), { status: 200 });
     }
     if (u.includes("/query/neighbors/")) {
@@ -117,5 +116,88 @@ describe("ExplorerJourney verification header (FR-20 / AC-16)", () => {
     expect(await screen.findByText("Customer checkout")).toBeInTheDocument();
     // The picker would render a "Domain" label — assert it does not.
     expect(screen.queryByText("Domain")).not.toBeInTheDocument();
+  });
+});
+
+describe("ExplorerJourney PRECEDES cycle warning (FR-03 / AC-02)", () => {
+  beforeEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  function mockJourneyWithPrecedes(
+    journeyId: string,
+    activities: Array<{ id: string; name: string }>,
+    precedesRows: Array<{ aId: string; createdAt: string; nextIds: string[] }>,
+  ): void {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+      const u = String(url);
+      if (u.includes("/query/getJourney/")) {
+        return new Response(
+          JSON.stringify({
+            rows: [
+              {
+                id: journeyId,
+                name: "Cycle test",
+                description: "",
+                activities,
+                verification: null,
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+      if (u.includes("/query/cypher") && init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as { statement: string };
+        if (body.statement.includes("nextIds")) {
+          return new Response(JSON.stringify({ rows: precedesRows }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ rows: [] }), { status: 200 });
+      }
+      if (u.includes("/query/neighbors/")) {
+        return new Response(JSON.stringify({ rows: [] }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ rows: [] }), { status: 200 });
+    });
+  }
+
+  test("linear PRECEDES chain renders WITHOUT the cycle ribbon", async () => {
+    mockJourneyWithPrecedes(
+      "j-linear",
+      [
+        { id: "a", name: "Scan" },
+        { id: "b", name: "Pay" },
+      ],
+      [
+        { aId: "a", createdAt: "2026-01-01T00:00:00Z", nextIds: ["b"] },
+        { aId: "b", createdAt: "2026-01-02T00:00:00Z", nextIds: [] },
+      ],
+    );
+    render(<ExplorerJourney route={makeRoute("j-linear")} />);
+    await screen.findByText("Cycle test");
+    await waitFor(() => {
+      expect(screen.queryByTestId("cycle-warning")).not.toBeInTheDocument();
+    });
+  });
+
+  test("cycle in PRECEDES surfaces the yellow warning ribbon", async () => {
+    mockJourneyWithPrecedes(
+      "j-cycle",
+      [
+        { id: "a", name: "Scan" },
+        { id: "b", name: "Pay" },
+        { id: "c", name: "Receipt" },
+      ],
+      [
+        { aId: "a", createdAt: "2026-01-01T00:00:00Z", nextIds: ["b"] },
+        { aId: "b", createdAt: "2026-01-02T00:00:00Z", nextIds: ["c"] },
+        { aId: "c", createdAt: "2026-01-03T00:00:00Z", nextIds: ["a"] }, // closes the cycle
+      ],
+    );
+    render(<ExplorerJourney route={makeRoute("j-cycle")} />);
+    await screen.findByText("Cycle test");
+    const ribbon = await screen.findByTestId("cycle-warning");
+    expect(ribbon.textContent?.toLowerCase()).toContain("cycle");
   });
 });

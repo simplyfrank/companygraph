@@ -64,6 +64,19 @@
 .tone-warn   { stroke: var(--warn); }
 .tone-breach { stroke: var(--danger); stroke-width: 2.2; }
 
+/* Selection-aware edge dimming. When the canvas has a selection, every
+   edge not touching the selected node fades back; the touching edges
+   get a small accent glow so the 1-hop neighbourhood reads at a glance. */
+.edgeDim {
+  opacity: 0.12;
+  transition: opacity var(--dur-base) var(--ease-linear);
+}
+.edgeHighlight {
+  stroke-width: 2.4 !important;
+  filter: drop-shadow(0 1px 4px color-mix(in oklch, var(--fg) 30%, transparent));
+  transition: filter var(--dur-fast) var(--ease-out);
+}
+
 /* ===== SLA chips ===== */
 .chip rect {
   fill: var(--surface);
@@ -82,16 +95,22 @@
 .chip.tone-breach rect { stroke: color-mix(in oklch, var(--danger) 40%, var(--border)); fill: color-mix(in oklch, var(--danger) 14%, var(--surface)); }
 .chip.tone-breach text { fill: var(--danger-text); font-weight: 600; }
 
+.chipDim {
+  opacity: 0.18;
+  transition: opacity var(--dur-base) var(--ease-linear);
+}
+
 /* ===== Nodes ===== */
 .nodeWrap {
   cursor: pointer;
-  transition: opacity 0.12s linear;
+  transition: opacity var(--dur-base) var(--ease-linear);
 }
 .nodeWrap:hover .activityBox,
 .nodeWrap:hover .roleCircle,
 .nodeWrap:hover .systemBox,
 .nodeWrap:hover .locationDiamond {
-  filter: drop-shadow(0 1px 6px color-mix(in oklch, var(--accent) 35%, transparent));
+  filter: drop-shadow(0 1px 6px color-mix(in oklch, var(--fg) 25%, transparent));
+  transition: filter var(--dur-fast) var(--ease-out);
 }
 .nodeWrap.dim {
   opacity: 0.18;
@@ -100,15 +119,15 @@
 .nodeWrap.connected .roleCircle,
 .nodeWrap.connected .systemBox,
 .nodeWrap.connected .locationDiamond {
-  stroke: color-mix(in oklch, var(--accent) 45%, var(--border-strong));
+  stroke-width: 1.8;
 }
 .nodeWrap.selected .activityBox,
 .nodeWrap.selected .roleCircle,
 .nodeWrap.selected .systemBox,
 .nodeWrap.selected .locationDiamond {
-  stroke: var(--accent);
   stroke-width: 2.4;
-  filter: drop-shadow(0 1px 8px color-mix(in oklch, var(--accent) 50%, transparent));
+  filter: drop-shadow(0 1px 8px color-mix(in oklch, var(--fg) 30%, transparent));
+  transition: filter var(--dur-fast) var(--ease-out), stroke-width var(--dur-fast) var(--ease-out);
 }
 .nodeWrap.dragging {
   opacity: 0.7;

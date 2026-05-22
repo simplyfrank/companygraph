@@ -39,7 +39,7 @@
 }
 .breach .dot {
   background: var(--danger);
-  animation: slaPulse 1.6s ease-in-out infinite;
+  animation: slaPulse 1.1s var(--ease-in-out) infinite;
 }
 .breach strong { color: var(--danger-text-strong); }
 

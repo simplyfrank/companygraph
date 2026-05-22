@@ -14,7 +14,7 @@
   stroke: var(--border-strong);
   stroke-width: 1;
   opacity: 0.55;
-  transition: opacity 0.15s linear;
+  transition: opacity var(--dur-base) var(--ease-linear);
 }
 .edge[data-dim="true"] {
   opacity: 0.12;
@@ -22,14 +22,15 @@
 
 .nodeGroup {
   cursor: pointer;
-  transition: opacity 0.15s linear;
+  transition: opacity var(--dur-base) var(--ease-linear);
 }
 .nodeGroup[data-dim="true"] {
   opacity: 0.18;
 }
 .nodeGroup:hover circle {
-  stroke: var(--accent);
   stroke-width: 2.5;
+  filter: drop-shadow(0 1px 5px color-mix(in oklch, var(--fg) 25%, transparent));
+  transition: filter var(--dur-fast) var(--ease-out);
 }
 
 .nodeLabel {

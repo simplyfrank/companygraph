@@ -22,7 +22,10 @@ export const SURFACES: Surface[] = [
   },
   {
     id: "chat", label: "Chat", kbd: "2",
-    tabs: [{ id: "thread", label: "Thread" }],
+    tabs: [
+      { id: "thread", label: "Thread" },
+      { id: "conversations", label: "Conversations" },
+    ],
   },
   {
     id: "ontology", label: "Ontology", kbd: "3",
