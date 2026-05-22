@@ -9,7 +9,7 @@
 | Design Review | pass-1 revise (4B, 12C, 8N) → pass-2 approve (24/24 cleanly absorbed; 2 new minor nits + 4 open-accepted folded into tasks) | spec-review-agent | 2026-05-23 |
 | Tasks | approved (revision 2 — pass-1 findings absorbed; T-18 split into T-18a..d) | frank | 2026-05-23 |
 | Task Review | pass-1 revise (1B, 5C, 3N) → pass-2 approve (8/9 cleanly absorbed, 1 cosmetic partial, 0 regressed; 2 minor open-accepted for execution) | spec-review-agent | 2026-05-23 |
-| Execution | partial (T-00..T-13 of 27 shipped 2026-05-23 — Phase 1 + Phase 2 + Phase 3 done + T-13 of Phase 4; three caches + parseRegistryLabel/parseEdgeTypeName helpers live; 112 tests passing across 11 ontology test files) | frank | 2026-05-23 |
+| Execution | partial (T-00..T-16 of 27 shipped 2026-05-23 — Phase 1..3 + T-13 cache + T-14/T-15 graph-core refactors + T-09a bootstrap re-applied + T-16 migration executor; **129 tests across 14 ontology test files all pass, 0 fail, 531 assertions**). Migration executor exercises all 5 discriminated-union variants (`rename_attribute`, `remap_value`, `remove_attribute`, `merge_labels`, `split_label`) live against Neo4j; no operator-supplied Cypher reaches `executeWrite` (pass-1 C-09 honoured). | frank | 2026-05-23 |
 
 **Review passes**: requirements=2 (cap reached), design=2 (cap reached), tasks=2 (cap reached)
 
