@@ -274,10 +274,5 @@ code.
 | Issue | File | Notes |
 |---|---|---|
 | `getDriver()` global singleton | `api/src/neo4j/driver.ts` | Correct fix: inject driver via `route(req, driver)`. Requires updating all storage call sites. |
-| SSE endpoint unimplemented | `api/src/router.ts` | `_OntologyEvent` rows are written but `GET /api/v1/ontology/events` SSE route is not yet registered. Replay via `Last-Event-ID` index on `_OntologyEvent.ts` is ready. |
-| Migration executor unimplemented | `api/src/routes/` | `POST /api/v1/ontology/migrations` route and executor are missing. Without it, `assertDeletePreconditions` will block deletion of any entity that has ever been marked deprecated. |
-| Rollback executor unimplemented | `api/src/routes/` | `POST /api/v1/ontology/rollback` and `rollback_orphans` / `rollback_below_bootstrap` error codes have no implementation. |
-| `assertEndpointLabelsExist` N+1 | `api/src/ontology/storage/edge-types.ts` | Issues one query per distinct label. Fix: `WHERE l.name IN $names` single query. |
-| `new Function` schema size | `api/src/ontology/cache/attribute-zod.ts` | No size limit on `json_schema_doc`. A deeply nested properties tree can generate an unbounded code string. Add a max-depth or max-size check at register time in `jsonSchemaDocSchema`. |
 | `exactOptionalPropertyTypes` violations | `Journey.tsx`, `JourneyGraph.tsx`, `App.tsx` | Pre-existing, widespread. Requires auditing all optional properties across the PWA. |
 | No GET request deduplication | `pwa/src/api.ts` | Rapid tab navigation causes concurrent redundant requests. A simple in-memory cache keyed by URL with TTL = poll interval would prevent this. |
