@@ -1,0 +1,22 @@
+{
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"sod_register\"}",
+      "tool_calls": [
+        {
+          "id": "toolu_01rolemm",
+          "name": "sod_register",
+          "input": {}
+        }
+      ],
+      "usage": { "input_tokens": 1100, "output_tokens": 60 }
+    },
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "The classifier picked sod_register but the user asked under uj_refund_flow — orchestrator will set the role_mismatch banner.",
+      "usage": { "input_tokens": 1400, "output_tokens": 70 }
+    }
+  ]
+}

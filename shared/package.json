@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./schema/nodes": "./src/schema/nodes.ts",
     "./schema/edges": "./src/schema/edges.ts",
+    "./schema/ontology": "./src/schema/ontology.ts",
     "./types": "./src/types.ts",
     "./seed/retail-mini.json": "./seed/retail-mini.json"
   },

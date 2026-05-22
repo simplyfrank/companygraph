@@ -164,7 +164,7 @@ Conventions:
 | **Deps** | T-02 |
 | **Parallel?** | yes (independent — tools land later) |
 
-## T-11 — Behavioral role registry + system prompts
+## T-11 — Behavioral role registry + system prompts (Tier 1.5 — gates T-12..T-15)
 
 | Field | Value |
 |-------|-------|
@@ -172,15 +172,15 @@ Conventions:
 | **AC** | AC-04, AC-05 (server side), AC-06, FR-R01 invariants |
 | **DD** | DD-05, DD-17, DD-18 |
 | **Verification** | `api/__tests__/chat/role-registry.test.ts` — assert 20 roles, allowed_tools per FR-R01 table, every role's prompt file exists + ≤ 400 words; `api/__tests__/chat/role-autoroute.test.ts` — mock LLM emits prefix → assert role resolution; `shared/__tests__/role-coverage.test.ts` — every `uj_*` in seed maps to a role |
-| **Complexity** | moderate |
-| **Deps** | T-02, T-09 |
-| **Parallel?** | yes (with T-10, T-12..T-15) |
+| **Complexity** | high (20 markdown overlays × ~400 words + classifier parser + CI coverage) |
+| **Deps** | T-09, T-10 |
+| **Parallel?** | no — gates T-12..T-15 (Tier 2 consumers) |
 
 ## T-12 — Tool: list_domains, get_domain, list_nodes_by_label, neighbors, find_path, describe_schema
 
 | Field | Value |
 |-------|-------|
-| **Files** | `api/src/chat/tools/list-domains.ts`, `get-domain.ts`, `list-nodes-by-label.ts`, `neighbors.ts`, `find-path.ts`, `describe-schema.ts`; register each in `registry.ts` |
+| **Files** | `api/src/chat/tools/list-domains.ts`, `get-domain.ts`, `list-nodes-by-label.ts`, `neighbors.ts`, `find-path.ts`, `describe-schema.ts`; each exports a `TOOL_DEF` const; **append 6 lines to `api/src/chat/tools/all.ts` barrel** (auto-discovery; no edits to `registry.ts`) |
 | **AC** | AC-01 (covers `get_journey` follow-up + `get_domain`), AC-30 (describe_schema) |
 | **DD** | DD-04 (Cypher), DD-15 (schema-context), FR-T01,T02,T05,T06,T07,T15 |
 | **Verification** | `api/__tests__/chat/tool-simple-queries.integration.test.ts` — integration against seeded Neo4j; assert each tool returns expected shape; `api/__tests__/chat/describe-schema-tool.integration.test.ts` — live ontology path + compile-time fallback; assert EventEmitter invalidation |
@@ -192,7 +192,7 @@ Conventions:
 
 | Field | Value |
 |-------|-------|
-| **Files** | `api/src/chat/tools/get-journey.ts` (multi-clause Cypher DD-04), `get-activity.ts`, `cypher.ts` (passthrough to `runPassthrough`; only callable from `graph_analyst` role — enforced at dispatch by T-10) |
+| **Files** | `api/src/chat/tools/get-journey.ts` (multi-clause Cypher DD-04), `get-activity.ts`, `cypher.ts` (passthrough to `runPassthrough`; only callable from `graph_analyst` role — enforced at dispatch by T-10); each exports `TOOL_DEF`; append 3 lines to `api/src/chat/tools/all.ts` |
 | **AC** | AC-01, AC-06 (cypher role-gate), AC-21 (write-attempt refusal via cypher) |
 | **DD** | DD-04, FR-T03, FR-T04, FR-T14 |
 | **Verification** | `api/__tests__/chat/tool-journey-activity.integration.test.ts`; `api/__tests__/chat/refusal-write-attempt.integration.test.ts` — mock LLM emits `cypher('CREATE (n:X)')` → assert FR-G03 fixed string and `error.code === 'write_statement_rejected'` from `runPassthrough` |
@@ -204,7 +204,7 @@ Conventions:
 
 | Field | Value |
 |-------|-------|
-| **Files** | `api/src/chat/tools/aggregate.ts` (dispatch only, rejects unknown patterns), `aggregate-patterns.ts` (6 server-owned Cypher templates per DD-16) |
+| **Files** | `api/src/chat/tools/aggregate.ts` (dispatch only, rejects unknown patterns) — exports `TOOL_DEF`; `aggregate-patterns.ts` (6 server-owned Cypher templates per DD-16); append 1 line to `api/src/chat/tools/all.ts` |
 | **AC** | AC-27 (b) pattern enum gate |
 | **DD** | DD-16 |
 | **Verification** | `api/__tests__/chat/aggregate-pattern-enum.test.ts` — assert all 6 patterns dispatchable; assert unknown pattern → `invalid_payload` with allowed_patterns in details; assert params validation rejects malformed input; `api/__tests__/chat/aggregate-integration.integration.test.ts` — round-trip each of 6 patterns against enriched seed |
@@ -216,7 +216,7 @@ Conventions:
 
 | Field | Value |
 |-------|-------|
-| **Files** | `api/src/chat/tools/sla-hotspots.ts`, `handoff-matrix.ts`, `sod-register.ts`, `ai-candidates.ts`, `initiative-impact.ts`; register all in `registry.ts` |
+| **Files** | `api/src/chat/tools/sla-hotspots.ts`, `handoff-matrix.ts`, `sod-register.ts`, `ai-candidates.ts`, `initiative-impact.ts`; each exports `TOOL_DEF`; append 5 lines to `api/src/chat/tools/all.ts` |
 | **AC** | AC-02 (multi-step uses `sla_hotspots`), AC-07 (highlight ids from these tools) |
 | **DD** | DD-04, FR-T09..T13 |
 | **Verification** | `api/__tests__/chat/tool-cross-section.integration.test.ts` — each of the 5 cross-section tools against the enriched seed; assert NULL-safe behaviour (run also against basic seed, assert zero rows but no crash) |
@@ -231,7 +231,7 @@ Conventions:
 | **Files** | `api/src/chat/agent.ts` — exports `runAgentTurn(req: ChatRequest): Promise<ChatEnvelope>` per DD-06; ~250 LoC |
 | **AC** | AC-01, AC-02, AC-03, AC-04, AC-05, AC-07, AC-14, AC-19, AC-20, AC-21, AC-26, AC-27 (a/c), AC-29 |
 | **DD** | DD-06 (control flow), DD-11 (highlight), DD-13 (refusal precedence), DD-22 (context loading) |
-| **Verification** | `api/__tests__/chat/agent-grounded-answer.integration.test.ts` (AC-01); `api/__tests__/chat/agent-react-loop.integration.test.ts` (AC-02); `api/__tests__/chat/tool-budget-cap.test.ts` (AC-03); `api/__tests__/chat/role-autoroute.test.ts` + `role-pinned.test.ts` (AC-04/AC-05); `api/__tests__/chat/highlight-payload.integration.test.ts` (AC-07); `api/__tests__/chat/context-carry.integration.test.ts` (AC-14); `api/__tests__/chat/refusal-{zero-rows,oos,write-attempt}.integration.test.ts` (AC-19/20/21) |
+| **Verification** | `api/__tests__/chat/agent-grounded-answer.integration.test.ts` (AC-01); `api/__tests__/chat/agent-react-loop.integration.test.ts` (AC-02); `api/__tests__/chat/tool-budget-cap.test.ts` (AC-03); `api/__tests__/chat/role-autoroute.test.ts` + `role-pinned.test.ts` (AC-04/AC-05); `api/__tests__/chat/highlight-payload.integration.test.ts` (AC-07); `api/__tests__/chat/context-carry.integration.test.ts` (AC-14); `api/__tests__/chat/refusal-{zero-rows,oos,write-attempt}.integration.test.ts` (AC-19/20/21); `api/__tests__/chat/tool-error-narration.integration.test.ts` — mock LLM + mock tool emits `{ ok: false, error: { code: 'depth_exceeded' } }`; assert orchestrator final answer narrates "depth_exceeded" + tool name (AC-27 a/c) |
 | **Complexity** | high |
 | **Deps** | T-03..T-15 |
 | **Parallel?** | no |
@@ -356,6 +356,18 @@ Conventions:
 | **Deps** | T-21 |
 | **Parallel?** | yes (with T-22, T-23) |
 
+## T-28 — Performance smoke test (NFR-02 latency budget)
+
+| Field | Value |
+|-------|-------|
+| **Files** | `api/__tests__/chat/perf-smoke.integration.test.ts` — measures P50/P99 latency for three flows: (1) single-tool turn, (2) 3-tool ReAct loop, (3) 5-tool budget-exhausted. Uses `MockLLMClient` with realistic per-call delay simulated (configured via fixture); tool exec measured against the live seeded Neo4j. Assertions: single-tool P50 ≤ 4 s, P99 ≤ 10 s; 3-tool P50 ≤ 12 s, P99 ≤ 30 s. **Caveat**: Mock LLM delay is configurable; the *real* Anthropic-API latency surfaces only in production. The test is a structural budget check, not a wall-clock guarantee. |
+| **AC** | NFR-02 invariant |
+| **DD** | DD-06 (loop) + DD-09 (quota inside the loop) — perf-impact paths |
+| **Verification** | the test itself is the verification (asserts measured P50/P99 against thresholds). |
+| **Complexity** | moderate |
+| **Deps** | T-16, T-22 |
+| **Parallel?** | yes (with T-27) |
+
 ## T-27 — Final integration test + verification artifact collection
 
 | Field | Value |
@@ -368,36 +380,33 @@ Conventions:
 | **Deps** | T-01..T-26 |
 | **Parallel?** | no |
 
-## Dependency graph (compressed)
+## Dependency graph (corrected — Tier 1.5 introduced for T-11)
 
 ```
-T-01 ─┬─→ T-02 ─┬─→ T-03 → T-04 ─┐
-      │         │                │
-      │         ├─→ T-05 ──┐     │
-      │         ├─→ T-06 ──┤     │
-      │         ├─→ T-07 ──┤     │
-      │         ├─→ T-08 ──┤     │
-      │         ├─→ T-09 ──┤     │
-      │         ├─→ T-10 ──┤     │
-      │         ├─→ T-11 ──┼─────┴→ T-16 (orchestrator) → T-17 (REST) → T-18,T-19,T-20 → T-21 → T-22,T-23,T-26 → T-24,T-25 → T-27
-      │         ├─→ T-20 ──┤
-      │         │          ├─→ T-12 (tools batch A) ──┐
-      │         │          ├─→ T-13 (tools batch B) ──┤
-      │         │          ├─→ T-14 (aggregate) ──────┤
-      │         │          └─→ T-15 (cross-section) ──┘
-      │         └─→ T-22 (enriched seed) ───────────────────────────┐
-      └────────────────────────────────────────────────────────────┘
+T-01 ─→ T-02 ─┬─→ T-03 → T-04
+              ├─→ T-05 ─┐
+              ├─→ T-06 ─┤
+              ├─→ T-07 ─┤
+              ├─→ T-08 ─┤
+              ├─→ T-09 ─┴─→ T-11 (Tier 1.5: gates Tier 2) ─┐
+              ├─→ T-10 ────────────────────────────────────┤
+              ├─→ T-20 ─┐                                  │
+              └─→ T-22 ─┴───────────────────────────────────┴─→ T-12,T-13,T-14,T-15 (Tier 2 parallel) ─→ T-16 → T-17 ─┬─→ T-18, T-19 (Tier 4 parallel)
+                                                                                                                       ├─→ T-21 ─→ T-23 ─→ T-24, T-25 (Tier 6 parallel)
+                                                                                                                       ├─→ T-26 (Tier 5 parallel with T-21)
+                                                                                                                       └─→ T-27, T-28 (Tier 7 parallel — final perf+E2E)
 ```
 
 Parallel tiers (orchestrator fans out via `Agent` subagents per tier):
 
-- **Tier 1** (parallel): T-05, T-06, T-07, T-08, T-09, T-10, T-20, T-22
-- **Tier 2** (parallel, after T-09 + T-10 + T-11): T-12, T-13, T-14, T-15
-- **Tier 3** (sequential): T-11 (after T-09), T-16 (after Tier 2 + T-11), T-17 (after T-16)
-- **Tier 4** (parallel): T-18, T-19, T-20 (after T-17)
-- **Tier 5** (parallel): T-21, T-22, T-26 (after T-17)
-- **Tier 6** (parallel): T-23 (after T-21), T-24, T-25 (after T-23)
-- **Tier 7** (sequential): T-27 (after everything)
+- **Tier 1** (parallel, 8 tasks): T-03, T-05, T-06, T-07, T-08, T-09, T-10, T-20, T-22 (T-04 sequential after T-03)
+- **Tier 1.5** (sequential, gates Tier 2): T-11 (after T-09 + T-10)
+- **Tier 2** (parallel, 4 tasks): T-12, T-13, T-14, T-15 (all after T-11 + T-22)
+- **Tier 3** (sequential): T-16 (orchestrator), then T-17 (REST)
+- **Tier 4** (parallel, 2 tasks): T-18, T-19 (after T-17)
+- **Tier 5** (parallel, 2 tasks): T-21, T-26 (after T-17)
+- **Tier 6** (parallel, 2 tasks): T-24, T-25 (after T-23, which depends on T-21 + T-25 needs T-23 mounted)
+- **Tier 7** (parallel, 2 tasks): T-27 (final E2E), T-28 (perf smoke)
 
 ## Effort estimate
 
@@ -409,7 +418,7 @@ Parallel tiers (orchestrator fans out via `Agent` subagents per tier):
 | 4-5 | T-18..T-26 | ~2 h | ~5 h |
 | 6 | T-23, T-24, T-25 | ~2 h | ~3 h |
 | 7 | T-27 | ~30 min | ~30 min |
-| **Total** | **27 tasks** | **~9–10 h** | **~22–25 h** |
+| **Total** | **28 tasks** | **~10–11 h** | **~24–27 h** |
 
 Estimate is for one experienced operator-with-agents pair. Parallel
 execution requires the orchestrator to fan out Agent subagents per

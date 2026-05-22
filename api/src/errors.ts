@@ -21,6 +21,15 @@ export const ERROR_CODES = [
   // `attributes` map fails the registered JSON Schema compiled via the
   // attribute-zod cache (api/src/ontology/cache/attribute-zod.ts).
   "attribute_violation",
+  // T-18c — ontology-manager error codes surfaced through this enum so
+  // graph-core's `error(...)` helper accepts them. These mirror the
+  // closed ontology error set in `ontology/errors.ts` and are reachable
+  // from the ontology routes (rollback, migrations, etc.).
+  "rollback_below_bootstrap",
+  "migration_failed",
+  // T-18c — used by /api/v1/ontology/rollback/:version_id stub until the
+  // full rollback executor lands in a follow-on commit.
+  "not_implemented",
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

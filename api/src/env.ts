@@ -6,6 +6,9 @@ export interface Env {
   neo4jUri: string;
   neo4jUser: string;
   neo4jPassword: string;
+  // chat-interface (rev 3.1)
+  anthropicApiKey: string | null; // null → MockLLMClient (FR-B06)
+  chatDbPath: string;
 }
 
 export function loadEnv(): Env {
@@ -14,6 +17,8 @@ export function loadEnv(): Env {
   const neo4jUri = process.env.NEO4J_URI ?? "bolt://127.0.0.1:7687";
   const neo4jUser = process.env.NEO4J_USER ?? "neo4j";
   const neo4jPassword = process.env.NEO4J_PASSWORD ?? "";
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
+  const chatDbPath = process.env.CHAT_DB_PATH ?? "../data/chat.db";
 
   if (!neo4jPassword) {
     throw new Error(
@@ -21,5 +26,5 @@ export function loadEnv(): Env {
     );
   }
 
-  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword };
+  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword, anthropicApiKey, chatDbPath };
 }

@@ -1,0 +1,24 @@
+{
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"graph_analyst\"}",
+      "tool_calls": [
+        {
+          "id": "toolu_01write",
+          "name": "cypher",
+          "input": {
+            "statement": "CREATE (n:X)"
+          }
+        }
+      ],
+      "usage": { "input_tokens": 1100, "output_tokens": 45 }
+    },
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "The cypher tool returned write_statement_rejected — the orchestrator will replace this with FR-G03.",
+      "usage": { "input_tokens": 1300, "output_tokens": 35 }
+    }
+  ]
+}

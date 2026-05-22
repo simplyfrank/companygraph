@@ -1,0 +1,10 @@
+{
+  "turns": [
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"graph_analyst\"} Hello, ask me something.",
+      "usage": { "input_tokens": 120, "output_tokens": 25 }
+    }
+  ]
+}

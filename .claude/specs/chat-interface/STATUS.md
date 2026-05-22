@@ -8,9 +8,9 @@
 | Req Review (rev 3) | pass-1 revise (4B, 9C, 6N) → user-accepted absorption (rev 3.1) without pass-2 per workflow diminishing-returns guidance | spec-review-agent + frank | 2026-05-23 |
 | Design | approved (v2 — 4 blockers + 5 concerns absorbed; C-02 declined; 4C+5N open-accepted) | frank | 2026-05-23 |
 | Design Review | pass-1 revise (4B, 9C, 5N) → user-accepted absorption (v2) without pass-2 per workflow diminishing-returns | spec-review-agent + frank | 2026-05-23 |
-| Tasks | in-progress | — | 2026-05-23 |
-| Task Review | pending (large spec — task review required) | — | — |
-| Execution | pending | — | — |
+| Tasks | approved (v2 — 3 blockers + 3 concerns absorbed; 28 tasks across 7 tiers) | frank | 2026-05-23 |
+| Task Review | pass-1 revise (3B, 6C, 5N) → user-accepted absorption (v2) | spec-review-agent + frank | 2026-05-23 |
+| Execution | in-progress | — | 2026-05-23 |
 
 **Review passes** (per-phase, reset on rev 3 redesign): requirements=1 (cap=2, accepted at 1), design=0, tasks=0
 

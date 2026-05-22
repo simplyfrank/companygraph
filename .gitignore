@@ -21,3 +21,8 @@ bun.lockb.tmp
 
 # ontology-manager — runtime audit-archive dir (FR-13a).
 data/ontology-manager/
+
+# chat-interface (rev 3.1) — SQLite + WAL files.
+data/chat.db
+data/chat.db-shm
+data/chat.db-wal
