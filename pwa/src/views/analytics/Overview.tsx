@@ -1,0 +1,47 @@
+import { api } from "../../api";
+import { useFetch } from "../../useFetch";
+import { Card } from "../../components/Card";
+import { ViewHeader, Loading, ErrorState } from "../_shared";
+import styles from "./Overview.module.css";
+
+export function AnalyticsOverview() {
+  const stats = useFetch(() => api.stats(), []);
+
+  if (stats.status === "loading") return <Loading what="overview" />;
+  if (stats.status === "error") return <ErrorState message={stats.error} />;
+
+  const totalNodes = Object.values(stats.data.nodes).reduce((a, b) => a + b, 0);
+  const totalEdges = Object.values(stats.data.edges).reduce((a, b) => a + b, 0);
+  const density = totalNodes > 0 ? (totalEdges / totalNodes).toFixed(2) : "0";
+  const activities = stats.data.nodes.Activity ?? 0;
+  const journeys = stats.data.nodes.UserJourney ?? 0;
+  const avgActivities = journeys > 0 ? (activities / journeys).toFixed(1) : "0";
+
+  return (
+    <>
+      <ViewHeader
+        title="Analytics overview"
+        lede="Whole-graph KPIs. Deeper metrics (centrality, modularity, redundancy) live in the Complexity tab — those are owned by cto-analytics."
+      />
+      <div className={styles.tiles}>
+        <Tile label="Total nodes" value={totalNodes} />
+        <Tile label="Total edges" value={totalEdges} />
+        <Tile label="Density (E/N)" value={density} />
+        <Tile label="Avg activities / journey" value={avgActivities} />
+        <Tile label="Domains" value={stats.data.nodes.Domain ?? 0} />
+        <Tile label="Systems" value={stats.data.nodes.System ?? 0} />
+      </div>
+    </>
+  );
+}
+
+function Tile({ label, value }: { label: string; value: string | number }) {
+  return (
+    <Card>
+      <div className={styles.tileBody}>
+        <div className={styles.label}>{label}</div>
+        <div className={styles.value}>{value}</div>
+      </div>
+    </Card>
+  );
+}

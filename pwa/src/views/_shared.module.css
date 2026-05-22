@@ -1,0 +1,37 @@
+.head {
+  margin: 0 0 24px;
+}
+
+.h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: -0.022em;
+  margin: 0 0 4px;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: 13.5px;
+  max-width: 64ch;
+  margin: 0;
+}
+
+.secLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.state {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+.error {
+  color: var(--danger);
+}

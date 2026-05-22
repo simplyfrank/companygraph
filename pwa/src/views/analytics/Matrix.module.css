@@ -1,0 +1,35 @@
+.matrix {
+  overflow: auto;
+}
+.matrix table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.matrix th,
+.matrix td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: center;
+}
+.col {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  background: var(--surface-2);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.row {
+  text-align: left;
+  font-weight: 500;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.cell {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

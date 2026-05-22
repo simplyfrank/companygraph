@@ -1,0 +1,238 @@
+.shell {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-w);
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .shell { grid-template-columns: 1fr; }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.domainPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-lg);
+}
+
+.domainBtn {
+  height: 28px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.domainBtn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.activeDomain {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklch, var(--accent) 30%, var(--border));
+  color: var(--accent);
+}
+
+.journeyList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.journeyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--fg);
+  text-decoration: none;
+}
+.journeyRow:first-child { border-top: 0; }
+.journeyRow:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.journeyRow strong { font-weight: 500; }
+
+.chain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.step {
+  border-top: 1px solid var(--border);
+}
+.step:first-child { border-top: 0; }
+.stepLink {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 10px 12px;
+  text-decoration: none;
+  color: var(--fg);
+}
+.stepLink:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.stepActive {
+  background: var(--accent-soft);
+}
+.stepN {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.stepActive .stepN {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.stepName {
+  font-weight: 500;
+  font-size: 13.5px;
+}
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.stepMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.stepId {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* Team-tinted role pill (Journey detail) */
+.rolePill {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11px;
+  overflow: hidden;
+}
+.rolePillStripe {
+  width: 3px;
+  flex: none;
+}
+.rolePillName {
+  color: var(--fg);
+  font-weight: 500;
+  padding: 2px 8px 2px 8px;
+}
+.rolePillTeam {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px 2px 0;
+}
+
+/* Title actions row */
+.titleActions {
+  display: flex;
+  gap: 8px;
+  margin: -8px 0 18px;
+}
+
+/* Team list (right rail) */
+.teamList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.teamRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.teamSwatch {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  flex: none;
+}
+
+/* Picker row: row layout with separate "graph →" link */
+.journeyName {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--fg);
+  text-decoration: none;
+  min-width: 0;
+}
+.journeyName:hover { text-decoration: none; }
+
+.openGraph {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  flex: none;
+}
+.openGraph:hover {
+  background: var(--accent-soft);
+  text-decoration: none;
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+.closeBtn:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+  text-decoration: none;
+}

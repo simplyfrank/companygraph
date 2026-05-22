@@ -1,0 +1,47 @@
+.btn {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 10px 14px;
+  background: oklch(18% 0.012 250);     /* near-black; matches the screenshot's dark pill */
+  color: oklch(98% 0.004 250);
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--fg) 18%, transparent),
+              0 1px 3px color-mix(in oklch, var(--fg) 14%, transparent);
+  transition: transform 0.08s ease-out, box-shadow 0.15s linear;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px color-mix(in oklch, var(--fg) 22%, transparent),
+              0 1px 3px color-mix(in oklch, var(--fg) 14%, transparent);
+}
+.btn:active {
+  transform: translateY(0);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent);
+  flex: none;
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: color-mix(in oklch, oklch(98% 0.004 250) 20%, transparent);
+  color: oklch(98% 0.004 250);
+  border: 1px solid color-mix(in oklch, oklch(98% 0.004 250) 30%, transparent);
+}

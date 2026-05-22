@@ -1,0 +1,17 @@
+.grey {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface-2) 0 8px,
+    var(--surface) 8px 16px
+  );
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-align: center;
+  min-height: 200px;
+  padding: var(--space-xl);
+}

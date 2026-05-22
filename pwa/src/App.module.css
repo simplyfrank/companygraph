@@ -1,0 +1,19 @@
+.app {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  height: 100vh;
+}
+
+.main {
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: var(--subnav-h) 1fr;
+  min-width: 0;
+}
+
+.view {
+  overflow: auto;
+  padding: var(--space-xl) var(--space-2xl) var(--space-3xl);
+  min-width: 0;
+}

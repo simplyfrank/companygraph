@@ -1,0 +1,25 @@
+.kvs {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-sm) var(--space-lg);
+  font-size: 13px;
+  margin: 0;
+}
+
+.row {
+  display: contents;
+}
+
+.kvs dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-top: 1px;
+}
+
+.kvs dd {
+  margin: 0;
+  color: var(--fg);
+}

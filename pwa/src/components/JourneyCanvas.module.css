@@ -1,0 +1,163 @@
+.canvas {
+  width: 100%;
+  min-height: 640px;
+  background: var(--surface);
+  background-image:
+    radial-gradient(var(--border) 1px, transparent 1px),
+    radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px;
+  background-position: 0 0, 12px 12px;
+  background-blend-mode: normal;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Lane labels */
+.laneLabel {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: var(--muted);
+}
+
+/* Role */
+.roleCircle {
+  fill: oklch(98% 0.008 30);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+.roleName {
+  font-family: var(--font-body);
+  font-size: 11px;
+  fill: var(--fg);
+}
+.subtle {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--muted);
+}
+
+/* Activity */
+.activityBox {
+  fill: var(--surface);
+  stroke: var(--fg);
+  stroke-width: 1.25;
+}
+.activityBadge {
+  fill: var(--fg);
+}
+.activityBadgeText {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--surface);
+}
+.activityName {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--fg);
+}
+
+/* System */
+.systemBox {
+  fill: color-mix(in oklch, var(--accent) 6%, var(--surface));
+  stroke: color-mix(in oklch, var(--accent) 50%, var(--border));
+  stroke-width: 1;
+}
+.systemName {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  fill: var(--fg);
+}
+
+/* Location */
+.locationBox {
+  fill: color-mix(in oklch, var(--warn) 8%, var(--surface));
+  stroke: color-mix(in oklch, var(--warn) 55%, var(--border));
+  stroke-width: 1;
+}
+.locationName {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  fill: var(--fg);
+}
+
+/* Edges */
+.precedes {
+  stroke: oklch(36% 0.12 250);
+  stroke-width: 1.5;
+  fill: none;
+}
+.precedes.tone-warn { stroke: var(--warn); }
+.precedes.tone-danger { stroke: var(--danger); }
+
+.executes {
+  stroke: var(--good);
+  stroke-width: 1.2;
+  fill: none;
+}
+
+.usesSystem {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  fill: none;
+}
+.usesSystem.tone-warn { stroke: var(--warn); }
+.usesSystem.tone-danger { stroke: var(--danger); }
+
+.atLocation {
+  stroke: var(--warn);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  fill: none;
+}
+
+.timing {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--muted);
+}
+
+/* SLA chip via foreignObject */
+.chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: center;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.chip-good {
+  background: color-mix(in oklch, var(--good) 8%, var(--surface));
+  border-color: color-mix(in oklch, var(--good) 50%, var(--border));
+  color: var(--good-text);
+}
+.chip-warn {
+  background: color-mix(in oklch, var(--warn) 10%, var(--surface));
+  border-color: color-mix(in oklch, var(--warn) 50%, var(--border));
+  color: var(--warn-text);
+}
+.chip-danger {
+  background: color-mix(in oklch, var(--danger) 10%, var(--surface));
+  border-color: color-mix(in oklch, var(--danger) 50%, var(--border));
+  color: var(--danger-text);
+}
+
+/* Selection / dimming */
+.node {
+  cursor: pointer;
+  transition: opacity 0.15s linear;
+}
+.dim { opacity: 0.32; }
+.focused .activityBox,
+.focused .systemBox,
+.focused .locationBox,
+.focused .roleCircle {
+  stroke: var(--accent);
+  stroke-width: 2;
+}

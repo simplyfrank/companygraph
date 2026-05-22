@@ -1,0 +1,108 @@
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+@media (max-width: 720px) {
+  .summary { grid-template-columns: repeat(2, 1fr); }
+}
+
+.bucket {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.1s linear;
+}
+.bucket:hover {
+  border-color: var(--border-strong);
+}
+.bucketActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.bucketCount {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+  letter-spacing: -0.022em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  margin-top: 6px;
+}
+.tone-good   { color: var(--good-text); }
+.tone-warn   { color: var(--warn-text); }
+.tone-danger { color: var(--danger-text); }
+
+/* Queue */
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 120px 1fr 220px auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.row:last-child { border-bottom: 0; }
+.rowReviewed {
+  opacity: 0.55;
+}
+
+@media (max-width: 900px) {
+  .row { grid-template-columns: 1fr; }
+}
+
+.rowLabel { }
+.rowBody {
+  min-width: 0;
+}
+.rowName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+}
+.rowMeta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.rowDesc {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowParent a {
+  color: var(--accent);
+}
+
+.rowConfidence {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.rowReason {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

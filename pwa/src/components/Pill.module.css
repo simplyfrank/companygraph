@@ -1,0 +1,35 @@
+.pill {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.neutral {}
+
+.accent {
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent) 30%, var(--border));
+  background: var(--accent-soft);
+}
+
+.good {
+  color: var(--good);
+  border-color: color-mix(in oklch, var(--good) 30%, var(--border));
+}
+
+.warn {
+  color: var(--warn);
+  border-color: color-mix(in oklch, var(--warn) 35%, var(--border));
+}
+
+.danger {
+  color: var(--danger);
+  border-color: color-mix(in oklch, var(--danger) 30%, var(--border));
+}
