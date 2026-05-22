@@ -57,30 +57,34 @@ async function clearMetaNamespace(): Promise<void> {
 }
 
 async function dropPerLabelConstraintsAndIndexes(): Promise<void> {
-  // Best-effort drop of the per-label data constraints + indexes that
-  // `applySchema` creates. They may or may not exist from a prior run.
-  // `DROP ... IF EXISTS` makes each statement safe to run unconditionally.
+  // Best-effort drop of EVERY per-label data constraint + index that
+  // matches the bootstrap naming convention. Earlier test suites
+  // (ontology-cache, ontology-edge-types, ontology-node-labels) leave
+  // probe-label artifacts (CacheProduct, TEST_OWNS, etc.) and the
+  // /listConstraintNames("node_id_unique_") assertion below counts the
+  // whole prefix family — not just the 6 NODE_LABELS — so we have to
+  // sweep every name we find.
   const driver = getDriver();
   const session = driver.session();
   try {
-    // Drop for the 6 seed labels.
-    for (const label of NODE_LABELS) {
-      await session.run(
-        `DROP CONSTRAINT node_id_unique_${label} IF EXISTS`,
-      );
-      await session.run(`DROP INDEX node_name_${label} IF EXISTS`);
-    }
-    // Drop for the 6 seed edge types.
-    for (const type of EDGE_TYPES) {
-      await session.run(
-        `DROP CONSTRAINT edge_id_unique_${type} IF EXISTS`,
-      );
-    }
-    // Drop the probe-label artifacts in case a prior failed run left them.
-    await session.run(
-      `DROP CONSTRAINT node_id_unique_${PROBE_LABEL} IF EXISTS`,
+    const constraints = await session.run(
+      `SHOW CONSTRAINTS YIELD name
+       WHERE name STARTS WITH 'node_id_unique_' OR name STARTS WITH 'edge_id_unique_'
+       RETURN name`,
     );
-    await session.run(`DROP INDEX node_name_${PROBE_LABEL} IF EXISTS`);
+    for (const rec of constraints.records) {
+      const name = rec.get("name") as string;
+      await session.run(`DROP CONSTRAINT ${name} IF EXISTS`);
+    }
+    const indexes = await session.run(
+      `SHOW INDEXES YIELD name
+       WHERE name STARTS WITH 'node_name_'
+       RETURN name`,
+    );
+    for (const rec of indexes.records) {
+      const name = rec.get("name") as string;
+      await session.run(`DROP INDEX ${name} IF EXISTS`);
+    }
   } finally {
     await session.close();
   }
