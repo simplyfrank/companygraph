@@ -3,13 +3,86 @@ feature: "process-explorer-ui"
 created: "2026-05-22"
 author: "frank"
 status: "approved"
-revision: 3
+revision: 4
 size: "large"
 depends_on: ["graph-core", "ontology-manager"]
 user_stories_source: "companygraph-user-stories.html v0.1 — personas P2 (Ravi, Process Explorer) and P5 (Priya, Domain SME); epics PE-1..PE-3 (read paths) and SME-1..SME-3 (write paths)"
 reviewing_pass_1_findings: "5 blockers, 7 concerns, 4 nits — all absorbed in revision 2 (see §Pass-1 review resolutions)."
 revision_3_change: "Rename SME routes to match the PWA scaffold tab ids (B-03 of design pass-1 review): #/sme/new-journey → #/sme/add, #/sme/review-queue → #/sme/review, #/sme/review-quarterly → #/sme/quarterly. AC-25 wording updated accordingly. No semantic change — pure rename."
+revision_4_change: "Lock the explorer route names to the live PWA scaffold tab ids (B-01 of design pass-1 review). Requirements rev 3 used plural `#/explorer/journeys/:id` (and shape `#/explorer/path`); the live scaffold (`pwa/src/route.ts:12–22`, `pwa/src/views/index.tsx:48–60`) ships hyphenated compound ids `journey-detail`, `journey-graph`, `path-finder`. This rev adopts the scaffold's shape across every FR + AC (FR-03, FR-04, FR-05, FR-06, FR-07, FR-09, FR-10, FR-11, FR-14, AC-02, AC-06, AC-07, AC-11, AC-24, AC-29, AC-30). No semantic change — pure rename. See ## Revision 4 changes for the full route table."
 ---
+
+## Revision 4 changes
+
+**Lock the explorer route shape to the live PWA scaffold** (B-01 of
+design pass-1 review). Requirements rev 3 carried three contradictory
+shapes for the explorer surface:
+
+1. **Live scaffold** (`pwa/src/route.ts:12–22`, `pwa/src/views/index.tsx:48–60`):
+   hyphenated compound ids — `journey-detail`, `journey-graph`,
+   `path-finder`, `domains`, `systems`.
+2. **Requirements rev 3**: plural REST-style — `journeys`, `path`, `systems`.
+3. **Design rev 1 §3**: singular — `journey`, `path`, `systems`.
+
+AC-11's deep-link test asserts `#/explorer/journeys/<seed-id>` loads —
+but the scaffold's `parseHash` would fall back to the surface's first
+tab (`domains`) on the unknown tab id, failing the test outright.
+
+**Resolution (option a from the review)**: adopt the scaffold's
+hyphenated tab ids verbatim. The scaffold is the live ground truth;
+rewriting `parseHash` to canonicalise plurals would cost code for no
+semantic win, and the SME-route rename in rev 3 already established the
+"scaffold tab-id naming wins" convention. This rev propagates that same
+convention to the explorer surface.
+
+### Canonical explorer route table (locked)
+
+| Purpose | Hash route | Scaffold tab id |
+|---------|------------|------------------|
+| Domain list | `#/explorer/domains` | `domains` |
+| Domain detail | `#/explorer/domains/:domainId` | `domains` |
+| Journey list | `#/explorer/journey-detail` | `journey-detail` |
+| Journey detail | `#/explorer/journey-detail/:journeyId` | `journey-detail` |
+| Journey canvas | `#/explorer/journey-graph/:journeyId` | `journey-graph` |
+| System list | `#/explorer/systems` | `systems` |
+| System detail | `#/explorer/systems/:systemId` | `systems` |
+| Path finder | `#/explorer/path-finder` | `path-finder` |
+| Activity list (multi-filter) | `#/explorer/activities[?system=&role=&location=]` | `activities` (virtual) |
+| Activity detail | `#/explorer/activities/:activityId` | `activities` (virtual) |
+| Role detail | `#/explorer/roles/:roleId` | `roles` (virtual) |
+| Location detail | `#/explorer/locations/:locationId` | `locations` (virtual) |
+
+"Virtual" tabs (`activities`, `roles`, `locations`) are not in
+`SURFACES` (no SubNav entry) but are accepted by `parseHash` via
+the existing `EXPLORER_VIRTUAL_TABS` allowlist in
+`pwa/src/route.ts:112` — no scaffold change required.
+
+**Journey canvas is now a sibling tab**, not a sub-mode of
+`journey-detail`. Rev 3's design split-canvas-from-detail used a
+`/:id/canvas` mode segment under one tab file; the live scaffold
+already exposes `journey-graph` as a discrete tab, so we route to
+the sibling tab instead. This avoids the `mode` segment for the
+canvas view entirely. Other entity-detail sub-routes still use the
+`:entityId` 3rd-segment pattern.
+
+### FR / AC sweep (rev 4 line-level changes)
+
+Every reference to the old shapes is rewritten:
+
+| Old (rev 3) | New (rev 4) | Sites |
+|-------------|-------------|-------|
+| `#/explorer/journeys/:id` | `#/explorer/journey-detail/:id` | FR-03, FR-14, AC-02, AC-11, AC-29, AC-30 |
+| `#/explorer/journeys/:id/canvas` | `#/explorer/journey-graph/:id` | FR-11, FR-14, AC-10, AC-24 |
+| `#/explorer/path` | `#/explorer/path-finder` | FR-10 |
+| `#/explorer/activities` (and `?…` form) | unchanged (`activities` is the virtual tab id) | FR-09, AC-06 |
+| `#/explorer/activities/:id` | unchanged | FR-04, AC-11 |
+| `#/explorer/systems/:id` | unchanged | FR-05, FR-14, AC-04, AC-11 |
+| `#/explorer/roles/:id` | unchanged | FR-06, FR-14, AC-11 |
+| `#/explorer/locations/:id` | unchanged | FR-07, FR-14, AC-11 |
+| `#/explorer/domains/:id` | unchanged | FR-14 |
+
+`#/sme/{add,review,quarterly}` (rev 3 rename) is untouched — those
+already match the scaffold.
 
 ## Pass-1 review resolutions (revision 2)
 
@@ -93,7 +166,7 @@ Native Conflicts section). This spec populates that table.
 |----|-------------|----------|-------|
 | FR-01 | **Domain index** — route `#/explorer/domains` lists every domain (4+ from `graph-core/FR-08` seed; more from `ontology-manager`). Each card shows name, description, member-journey count, last-updated time (`max(updatedAt)` across journeys). | must | PE-1.1 |
 | FR-02 | **Soft navigation** — clicking a domain card opens the journey list within 200 ms; no full page reload. The PWA is a single-page client-side-routed app. | must | PE-1.1 |
-| FR-03 | **Journey detail** — route `#/explorer/journeys/:id` shows a journey's metadata + its activities **ordered by `PRECEDES`**, with arrow indicators between consecutive steps. Cycles in `PRECEDES` are flagged with a warning ribbon and rendered in **`createdAt` ASC order** (tiebreaker) — never enter an infinite loop. Deep-link survives reload. | must | PE-1.2 |
+| FR-03 | **Journey detail** — route `#/explorer/journey-detail/:id` shows a journey's metadata + its activities **ordered by `PRECEDES`**, with arrow indicators between consecutive steps. Cycles in `PRECEDES` are flagged with a warning ribbon and rendered in **`createdAt` ASC order** (tiebreaker) — never enter an infinite loop. Deep-link survives reload. | must | PE-1.2 |
 | FR-04 | **Activity detail** — route `#/explorer/activities/:id` shows four bound lists: roles (`EXECUTES`), systems (`USES_SYSTEM`), locations (`AT_LOCATION`), and adjacent activities (`PRECEDES` in both directions). Each list item routes to its entity detail. Back navigation preserves scroll position. | must | PE-1.3 |
 | FR-05 | **System-centric view** — route `#/explorer/systems/:id` lists every activity that uses this system (via `USES_SYSTEM`), grouped by parent journey + domain. A toggle reveals downstream `INTEGRATES_WITH` systems with one-hop neighbours visualised. | must | PE-1.4 |
 | FR-06 | **Role-centric view** — route `#/explorer/roles/:id` lists every activity bound to this role (via `EXECUTES`), grouped by parent journey + domain. Parallel to system-centric view. Acknowledged as "(implied)" from PE-1.3 — not directly named in a user story; priority lowered to `should` so a bundle-budget cut can drop this without contradicting the spec. | should | PE-1.3 (implied — out of 18-story commitment) |
@@ -105,16 +178,16 @@ Native Conflicts section). This spec populates that table.
 |----|-------------|----------|-------|
 | FR-08 | **Full-text search across node names** — search field on every route; results within 500 ms on `retail-mini` (~60 nodes). Results grouped by node label. Keyboard contract: `/` focuses search; arrow up/down moves selection; enter opens; escape closes. | must | PE-2.1 |
 | FR-09 | **Multi-filter on activities** — route `#/explorer/activities?system=:id&role=:id&location=:id` AND-filters. Empty filter returns all activities. URL shareable + survives reload. Filter widgets render the active filters as chips with a clear control per chip. | must | PE-2.2 |
-| FR-10 | **Shortest-path trace** — UI calls `graph-core /api/v1/query/findPath?fromId&toId&maxDepth=:n` (FR-07 of graph-core). Renders each hop with the edge-type label inline (e.g. `Activity → USES_SYSTEM → System`). Per `graph-core/design.md` §5.4, `findPath` uses single-shortest-path semantics and returns zero or one row. **UI states**: (a) one row → render the path. (b) zero rows → render `"No path within depth N — try increasing depth, or use the Cypher passthrough for all-paths search"` with a depth-selector hint. (c) `400 depth_exceeded` → render the friendly banner; depth-selector range is 1..8 (`graph-core/NFR-09`); selecting > 8 disabled in UI. (d) `400 query_timeout` → render `"Search timed out after 5 s — the graph is denser than the algorithm can handle within budget; try a smaller depth or use the Cypher passthrough"`. (e) `400 result_truncated` → render `"More than 1000 paths matched — narrow the search by setting a smaller depth"` (note: rare under shortestPath semantics, but included for completeness). | must | PE-2.3 |
+| FR-10 | **Shortest-path trace** — route `#/explorer/path-finder`. UI calls `graph-core /api/v1/query/findPath?fromId&toId&maxDepth=:n` (FR-07 of graph-core). Renders each hop with the edge-type label inline (e.g. `Activity → USES_SYSTEM → System`). Per `graph-core/design.md` §5.4, `findPath` uses single-shortest-path semantics and returns zero or one row. **UI states**: (a) one row → render the path. (b) zero rows → render `"No path within depth N — try increasing depth, or use the Cypher passthrough for all-paths search"` with a depth-selector hint. (c) `400 depth_exceeded` → render the friendly banner; depth-selector range is 1..8 (`graph-core/NFR-09`); selecting > 8 disabled in UI. (d) `400 query_timeout` → render `"Search timed out after 5 s — the graph is denser than the algorithm can handle within budget; try a smaller depth or use the Cypher passthrough"`. (e) `400 result_truncated` → render `"More than 1000 paths matched — narrow the search by setting a smaller depth"` (note: rare under shortestPath semantics, but included for completeness). | must | PE-2.3 |
 
 ### Visualise & export (PE-3)
 
 | ID | Requirement | Priority | Story |
 |----|-------------|----------|-------|
-| FR-11 | **Interactive canvas for one journey** — `#/explorer/journeys/:id/canvas` renders the journey's activities + bound entities as a force-directed graph. Targets ≤ 200 nodes at 60 fps on a 2021 MacBook Air baseline. Selecting a node opens its detail in a side panel without losing canvas state (pan/zoom preserved). **Canvas library locked at design phase** (see Dependencies row + Risks #1) — resolves `graph-core/Risks #1`. | must | PE-3.1 |
+| FR-11 | **Interactive canvas for one journey** — `#/explorer/journey-graph/:id` renders the journey's activities + bound entities as a force-directed graph. Targets ≤ 200 nodes at 60 fps on a 2021 MacBook Air baseline. Selecting a node opens its detail in a side panel without losing canvas state (pan/zoom preserved). **Canvas library locked at design phase** (see Dependencies row + Risks #1) — resolves `graph-core/Risks #1`. The canvas is a sibling tab to `journey-detail` (not a `/:id/canvas` mode segment under it) — see scaffold tab id `journey-graph` at `pwa/src/route.ts:18`. | must | PE-3.1 |
 | FR-12 | **Touch / trackpad gesture support on canvas** — pinch-zoom is captured by the canvas (not the page); two-finger pan; single-finger drag = pan on touch, single-finger tap = select. macOS trackpad: pinch = zoom; two-finger drag = pan; click = select. macOS mouse: scroll wheel = zoom; click+drag empty space = pan. Browser back-gesture (two-finger swipe from edge on Safari) is allowed through (does NOT pan the canvas at edge of viewport). | must | PE-3.1 |
 | FR-13 | **PNG + SVG export of the current canvas view** — buttons in the canvas toolbar. PNG emits 1× and 2× variants (high-DPI displays). Filename embeds journey slug + ISO date (`<journey-slug>-<YYYY-MM-DD>.png`). Vector SVG preserves text + colours. | must | PE-3.2 |
-| FR-14 | **Deep-link URLs for every entity** — `#/explorer/journeys/:id`, `#/explorer/activities/:id`, `#/explorer/systems/:id`, `#/explorer/roles/:id`, `#/explorer/locations/:id`, `#/explorer/domains/:id`. Cold-load on each hydrates the correct detail panel from the API. Invalid id renders a 404 panel with a back-to-domain link, NOT a blank screen. | must | PE-3.3 |
+| FR-14 | **Deep-link URLs for every entity** — `#/explorer/journey-detail/:id`, `#/explorer/journey-graph/:id`, `#/explorer/activities/:id`, `#/explorer/systems/:id`, `#/explorer/roles/:id`, `#/explorer/locations/:id`, `#/explorer/domains/:id`. Cold-load on each hydrates the correct detail panel from the API. Invalid id renders a 404 panel with a back-to-domain link, NOT a blank screen. | must | PE-3.3 |
 
 ### SME write paths (SME-1, SME-2, SME-3)
 
@@ -179,7 +252,7 @@ Native Conflicts section). This spec populates that table.
 | ID | Criterion | Platforms | Verification |
 |----|-----------|-----------|--------------|
 | AC-01 | Domain index renders all seed domains; click→journey list ≤ 200 ms (FR-01, FR-02) | iPhone Safari (touch), iPad Safari (touch), macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) | `pwa/__tests__/domain-index.test.tsx` + manual: load `#/explorer/domains` on each platform — expect 4+ cards, click each — expect detail loads within 200 ms with no full reload |
-| AC-02 | Journey detail orders activities by `PRECEDES`; cycle warning ribbon shown when present; cycles render in `createdAt` ASC order (FR-03) | all four | `pwa/__tests__/journey-detail.test.tsx` (snapshot tests on (a) the linear-chain seed journey and (b) the cycle-fixture journey) + manual on macOS Chrome (mouse+kb): load `#/explorer/journeys/<linear-seed-id>` — expect activities in declared `PRECEDES` order; load `#/explorer/journeys/<cycle-fixture-id>` — expect a yellow warning ribbon at the top with text containing `"cycle"` and activities rendered in `createdAt` ASC order (verify via inspecting `data-test-id="activity-row"` rendered children) |
+| AC-02 | Journey detail orders activities by `PRECEDES`; cycle warning ribbon shown when present; cycles render in `createdAt` ASC order (FR-03) | all four | `pwa/__tests__/journey-detail.test.tsx` (snapshot tests on (a) the linear-chain seed journey and (b) the cycle-fixture journey) + manual on macOS Chrome (mouse+kb): load `#/explorer/journey-detail/<linear-seed-id>` — expect activities in declared `PRECEDES` order; load `#/explorer/journey-detail/<cycle-fixture-id>` — expect a yellow warning ribbon at the top with text containing `"cycle"` and activities rendered in `createdAt` ASC order (verify via inspecting `data-test-id="activity-row"` rendered children) |
 | AC-03 | Activity detail shows four bound lists; back nav preserves scroll (FR-04) | all four | `pwa/__tests__/activity-detail.test.tsx` + manual: scroll mid-list, navigate into a role, hit back — expect same scroll position |
 | AC-04 | System-centric view lists activities; INTEGRATES_WITH toggle reveals neighbours (FR-05) | all four | `pwa/__tests__/system-view.test.tsx` (DOM coverage) + manual on iPad Safari (touch): load `#/explorer/systems/<seed-pos-id>`, tap the `INTEGRATES_WITH` toggle, expect at least one neighbour card appears below the activity list with the system name visible |
 | AC-05 | Full-text search returns within 500 ms; grouped by label; `/` focuses, arrows move, enter opens, escape closes (FR-08) | all four | `pwa/__tests__/search.test.tsx` + manual on each platform: type `/`, expect focus; type fragment, expect results in <500 ms; arrow + enter, expect navigation |
@@ -187,8 +260,8 @@ Native Conflicts section). This spec populates that table.
 | AC-07 | findPath UI handles every API response shape (FR-10): success path, no-path-found, depth_exceeded, query_timeout, result_truncated | all four | `pwa/__tests__/find-path.test.tsx` covering each response (mocked); plus manual on macOS Chrome (mouse+kb): (a) pick two connected nodes, depth=4 — expect path renders with hop labels; (b) pick two disconnected nodes, depth=4 — expect `"No path within depth 4"` message rendered; (c) set depth to 9 via direct query-string — expect depth selector clamps to 8 with inline hint `"Max depth is 8"`, no API call fires; (d) trigger a slow query (test fixture sleeps 6 s) — expect `"Search timed out after 5 s"` banner. |
 | AC-08 | Interactive canvas renders ≤ 200 nodes at 60 fps; selection opens side panel without losing pan/zoom (FR-11) | iPad Safari (touch), macOS Safari (trackpad), macOS Chrome (mouse+kb); explicitly NOT iPhone (canvas usable but not perf-targeted) | `pwa/__tests__/canvas-render.test.tsx` (jsdom rendering coverage) + manual perf: open journey canvas on the baseline machine, drag-pan + pinch-zoom, expect frame-time logs ≤ 16 ms |
 | AC-09 | Pinch-zoom on iPad Safari is captured by the canvas (does NOT zoom the page); two-finger pan captured (does NOT scroll the page); single-finger tap selects; browser back-gesture passes through at canvas edge (FR-12) | iPad Safari (touch), iPhone Safari (touch) | manual: on iPad Safari, pinch on canvas — expect canvas zooms but page does not; two-finger drag — expect canvas pans, page does not scroll; tap — expect node selected; swipe from left edge — expect browser back works |
-| AC-10 | PNG + SVG export buttons work; filenames embed slug + ISO date (FR-13) | all four | `pwa/__tests__/canvas-export.test.tsx` (blob shape) + manual on macOS Safari (trackpad+kb): open `#/explorer/journeys/<seed-id>/canvas`, click "Export PNG" — expect a download with filename matching `<journey-slug>-YYYY-MM-DD.png`; open the file, verify the rendered canvas matches the screen contents; click "Export SVG" — expect a download with `.svg` extension that opens as vector with text legible |
-| AC-11 | Every entity type has a deep-link; cold-load renders correct detail panel; invalid id renders 404 panel with back-to-domain link, NOT a blank screen (FR-14) | all four | `pwa/__tests__/deep-link.test.tsx` for the URL→panel mapping (covers all 6 entity-type routes) + manual on iPad Safari (touch): paste `#/explorer/journeys/<seed-id>` into a fresh tab — expect journey detail loads; paste `#/explorer/journeys/00000000-0000-7000-8000-000000000000` (valid-shaped but non-existent UUIDv7) — expect "404 — journey not found" panel with a tappable "Back to Domains" link |
+| AC-10 | PNG + SVG export buttons work; filenames embed slug + ISO date (FR-13) | all four | `pwa/__tests__/canvas-export.test.tsx` (blob shape) + manual on macOS Safari (trackpad+kb): open `#/explorer/journey-graph/<seed-id>`, click "Export PNG" — expect a download with filename matching `<journey-slug>-YYYY-MM-DD.png`; open the file, verify the rendered canvas matches the screen contents; click "Export SVG" — expect a download with `.svg` extension that opens as vector with text legible |
+| AC-11 | Every entity type has a deep-link; cold-load renders correct detail panel; invalid id renders 404 panel with back-to-domain link, NOT a blank screen (FR-14) | all four | `pwa/__tests__/deep-link.test.tsx` for the URL→panel mapping (covers all 7 entity-type routes including `journey-graph`) + manual on iPad Safari (touch): paste `#/explorer/journey-detail/<seed-id>` into a fresh tab — expect journey detail loads; paste `#/explorer/journey-detail/00000000-0000-7000-8000-000000000000` (valid-shaped but non-existent UUIDv7) — expect "404 — journey not found" panel with a tappable "Back to Domains" link |
 | AC-12 | New-journey form creates journey + at-least-one activity in one batch (FR-15) | macOS Safari (trackpad+kb), macOS Chrome (mouse+kb); degraded but functional on iPad/iPhone | `pwa/__tests__/new-journey.test.tsx` + integration: assert one POST to `/import` not multiple; manual on macOS Chrome: fill form (name="Test Journey", description="test", parent="Store Operations", activity_stub="Receive"), submit — expect single network request to `/api/v1/import`, expect redirect to the new journey's detail with the activity visible; manual on iPhone Safari: open the form route, expect a vertically-stacked layout (`form` element with `display:grid grid-template-columns:1fr` or equivalent) usable in portrait |
 | AC-13 | Bulk-paste activities — each line creates an activity + `PART_OF`; ordering becomes `PRECEDES`; re-paste is idempotent (FR-16) | macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) — paste is desktop-primary | `pwa/__tests__/bulk-paste.test.tsx` + integration: paste 4 lines, assert 4 activities + 3 `PRECEDES` edges + 4 `PART_OF` edges; re-paste, assert counts unchanged |
 | AC-14 | Typeahead returns top 20 within 200 ms; "Create new" inline binds in one click (FR-17) | all four | `pwa/__tests__/typeahead.test.tsx` + integration round-trip |
@@ -201,13 +274,13 @@ Native Conflicts section). This spec populates that table.
 | AC-21 | `ontology.changed` SSE event invalidates schema cache; new labels appear in nav within ≤ 60 s (FR-28) | all four | `pwa/__tests__/schema-subscription.test.tsx` — mock `EventSource`, fire an `ontology.changed` event, assert the schema cache invalidates; integration on macOS Chrome: add a label via `ontology-manager`-REST, observe the PWA's nav within 60 s — expect the new label visible in the schema picker |
 | AC-22 | Bundle ≤ 300 KB gzipped (NFR-02) | n/a (build) | CI step `bun run bundle-check` — fails if main chunk > 300 KB gzipped (assertion via `gzipSync(readFileSync('dist/main.js')).length`) |
 | AC-23 | Time-to-interactive ≤ 2 s on a clean cache (NFR-03) | macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) | automated: `lighthouse http://127.0.0.1:5173/ --form-factor=desktop --throttling.cpuSlowdownMultiplier=1 --only-categories=performance --output=json` — assert `audits["interactive"].numericValue < 2000` (ms); test fixture controls the Vite dev server with the `retail-mini` seed loaded |
-| AC-24 | Canvas hits 60 fps at ≤ 200 nodes (NFR-04) | iPad Safari (touch), macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) | manual on macOS Chrome (trackpad — covers gesture + frame budget): open `#/explorer/journeys/<200-node-fixture-id>/canvas`, open DevTools → Performance, start recording, two-finger trackpad-pan the canvas for 5 s, stop recording — assert median frame time ≤ 16 ms (60 fps) via the "Frames" track in Performance |
+| AC-24 | Canvas hits 60 fps at ≤ 200 nodes (NFR-04) | iPad Safari (touch), macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) | manual on macOS Chrome (trackpad — covers gesture + frame budget): open `#/explorer/journey-graph/<200-node-fixture-id>`, open DevTools → Performance, start recording, two-finger trackpad-pan the canvas for 5 s, stop recording — assert median frame time ≤ 16 ms (60 fps) via the "Frames" track in Performance |
 | AC-25 | Keyboard nav: Tab cycles through visible focusables in DOM order; no focus trap on any route; `Escape` closes any open modal/popover and returns focus to the trigger (NFR-05) | macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) | manual on macOS Chrome (keyboard only): from `#/explorer/domains`, press Tab repeatedly until focus returns to the address bar (browser chrome) — expect every interactive element on the page was visited in visible order with no element trapping focus; open `#/sme/add`, Tab into the form, press `Escape` — expect form closes (or focus returns to the trigger), no modal remains visible |
 | AC-26 | Touch hit targets ≥ 44×44 px (NFR-06) | iPhone Safari (touch), iPad Safari (touch) | `pwa/__tests__/touch-targets.test.tsx` — for every element matching `[data-tap]`, assert `getBoundingClientRect()` width ≥ 44 AND height ≥ 44 |
 | AC-27 | No auth code paths in pwa/src — extends `graph-core/AC-22` grep | n/a (codebase) | `pwa/__tests__/no-auth-grep.test.ts` — reuses the `graph-core` curated pattern (`graph-core/design.md` §6.4): `verify(Jwt|Token)`, `currentUser\b`, `req\.user`, `req\.auth`, `req\.session`. Assert zero hits in `pwa/src/` |
 | AC-28 | One new search helper `/api/v1/query/search?label=:L&q=:q&limit=:n` exists in `graph-core/api` (the only `graph-core` API surface extension allowed by NFR-07) | n/a (server) | `api/__tests__/search-helper.test.ts` — POST a new label via `ontology-manager`, seed three nodes with names containing `"fooba"`, fetch `/api/v1/query/search?label=Product&q=fooba&limit=20` — expect 3 rows, latency < 200 ms |
-| AC-29 | Connectivity banner inherited from `graph-core/AC-14` surfaces on every route in this spec; killing the API flips the banner to disconnected within 30 s on `#/explorer/journeys/<seed-id>` (FR-25, FR-26 — pass-1 C-07) | macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) | manual on macOS Chrome: start the dev stack, load `#/explorer/journeys/<seed-id>`, observe green-dot "Connected" banner with node-count summary; stop the API (`bun run stop`), wait ≤ 30 s — expect banner flips to red-dot "Disconnected" without a page reload |
-| AC-30 | Deterministic hydration (NFR-09) — given a fixed `/api/v1/changes?since=` cursor + the same browser, rendered DOM is byte-identical across runs | n/a (snapshot test) | `pwa/__tests__/deterministic-hydration.test.tsx` — render `#/explorer/journeys/<seed-id>` twice from a fresh in-memory cache with the same fixture data; `outerHTML` deep-equal both renders (after stripping any `Date.now()`-derived test-only timestamp regions) |
+| AC-29 | Connectivity banner inherited from `graph-core/AC-14` surfaces on every route in this spec; killing the API flips the banner to disconnected within 30 s on `#/explorer/journey-detail/<seed-id>` (FR-25, FR-26 — pass-1 C-07) | macOS Safari (trackpad+kb), macOS Chrome (mouse+kb) | manual on macOS Chrome: start the dev stack, load `#/explorer/journey-detail/<seed-id>`, observe green-dot "Connected" banner with node-count summary; stop the API (`bun run stop`), wait ≤ 30 s — expect banner flips to red-dot "Disconnected" without a page reload |
+| AC-30 | Deterministic hydration (NFR-09) — given a fixed `/api/v1/changes?since=` cursor + the same browser, rendered DOM is byte-identical across runs | n/a (snapshot test) | `pwa/__tests__/deterministic-hydration.test.tsx` — render `#/explorer/journey-detail/<seed-id>` twice from a fresh in-memory cache with the same fixture data; `outerHTML` deep-equal both renders (after stripping any `Date.now()`-derived test-only timestamp regions) |
 
 ## Platforms & Input Modes
 

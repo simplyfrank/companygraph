@@ -105,6 +105,9 @@ export function clearCache(): void {
   inflight.clear();
 }
 
+// Namespace export for convenience imports (`import { reads } from ...`)
+export const reads = { read, cypherDedup, clearCache };
+
 async function asError(res: Response): Promise<Error> {
   let detail = "";
   try {

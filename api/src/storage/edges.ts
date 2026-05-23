@@ -153,15 +153,17 @@ export async function createEdge(
   }
 }
 
-// /api/v1/import phase 2 — idempotent MERGE-on-id.
+// /api/v1/import phase 2 — idempotent MERGE-on-id. Accepts optional
+// `createdAt` so an export → import round-trip preserves the original
+// timestamp (AC-25). When absent (seed-loader path), defaults to `now`.
 export async function upsertEdge(
   driver: Driver,
-  input: EdgeCreateInput,
+  input: EdgeCreateInput & { createdAt?: string },
   phase: 1 | 2 = 2,
 ): Promise<Edge> {
   await validateEdge(driver, input, { phase });
   const id = input.id ?? generateId();
-  const now = new Date().toISOString();
+  const createdAt = input.createdAt ?? new Date().toISOString();
   const attrs = JSON.stringify(input.attributes ?? {});
   const session = driver.session();
   try {
@@ -169,10 +171,10 @@ export async function upsertEdge(
       tx.run(
         `MATCH (a {id: $fromId}), (b {id: $toId})
          MERGE (a)-[r:\`${input.type}\` {id: $id}]->(b)
-         ON CREATE SET r.createdAt = $now, r.attributes_json = $attrs
+         ON CREATE SET r.createdAt = $createdAt, r.attributes_json = $attrs
          ON MATCH  SET r.attributes_json = $attrs
          RETURN r, a.id AS fromId, b.id AS toId`,
-        { id, fromId: input.fromId, toId: input.toId, now, attrs },
+        { id, fromId: input.fromId, toId: input.toId, createdAt, attrs },
       ),
     );
     return deserializeEdge(input.type, result.records[0]!);

@@ -19,22 +19,22 @@ export const activityFilterAnd = `
   LIMIT 1001
 `;
 
-// FR-19 — review queue scoped to the operator's home domain. C-09 fix:
-// PART_OF*1..8 covers the full graph-core maxDepth ceiling so deeply
+// FR-19 — review queue scoped to the operator's home domain. B-02 sweep-2
+// fix: the needs_review predicate is pushed INTO the Cypher (regex against
+// attributes_json), so the LIMIT 1001 truncates the actual needs-review set,
+// not a broader set that the client-side filter would post-trim.
+// C-09 fix: PART_OF*1..8 covers the full graph-core maxDepth ceiling so deeply
 // nested Location→Location→…→Domain chains aren't silently excluded.
-// The client filters by `_review.status === "needs_review"` after
-// parsing each row's `attributes_json` (the cypher cannot evaluate the
-// JSON sub-key reliably without Neo4j's APOC).
 export const reviewQueueForDomain = `
   MATCH (n)
-  WHERE n.attributes_json CONTAINS '"_review"'
+  WHERE n.attributes_json =~ '.*"_review"\\\\s*:\\\\s*\\\\{[^}]*"status"\\\\s*:\\\\s*"needs_review".*'
     AND (
       $homeDomainId IS NULL
       OR EXISTS {
         MATCH (n)-[:PART_OF*1..8]->(:Domain {id: $homeDomainId})
       }
     )
-  RETURN n.id AS id, n.name AS name, labels(n) AS label, n.attributes_json AS attrs, n.updatedAt AS updatedAt
+  RETURN n.id AS id, n.name AS name, labels(n)[0] AS label, n.attributes_json AS attrs, n.updatedAt AS updatedAt
   ORDER BY n.updatedAt DESC
   LIMIT 1001
 `;

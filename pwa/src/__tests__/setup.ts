@@ -2,6 +2,16 @@
 // jsdom polyfills here as tests get written.
 
 import "@testing-library/jest-dom/vitest";
+import { vi } from "vitest";
+import React from "react";
+
+// focus-trap-react activates DOM focus trapping on componentDidMount, which
+// crashes in jsdom because there are no tabbable nodes. Replace it globally
+// with a passthrough fragment so Modal tests work without a real browser.
+vi.mock("focus-trap-react", () => ({
+  FocusTrap: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+}));
 
 // localStorage polyfill — jsdom under vitest+bun sometimes exposes a
 // stripped object that lacks setItem/getItem/clear. Replace with a

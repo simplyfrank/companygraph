@@ -22,8 +22,21 @@ const importPayloadSchema = z.object({
 // (not_found → 400 attribute_violation) and by the upsertNode Cypher
 // (unknown label → empty MERGE result or Neo4j error). The frozen
 // NODE_LABELS enum was the bug identified in the data-loading analysis.
+// AC-25 round-trip preservation — the import shape allows the
+// timestamps that `/api/v1/export` emits. upsertNode passes them
+// through to the Cypher props so re-importing an export yields the
+// exact same `createdAt` / `updatedAt` values.
 const nodeWithLabelSchema = nodeCreateSchema.and(
-  z.object({ label: z.string().min(1) }),
+  z.object({
+    label: z.string().min(1),
+    createdAt: z.string().datetime().optional(),
+    updatedAt: z.string().datetime().optional(),
+  }),
+);
+
+// Same logic for edges — `createdAt` is round-tripped from the export.
+const edgeImportSchema = edgeCreateSchema.and(
+  z.object({ createdAt: z.string().datetime().optional() }),
 );
 
 interface RowError {
@@ -84,7 +97,7 @@ function dryRunPasses(
     }
   }
   for (let i = 0; i < data.edges.length; i++) {
-    const r = edgeCreateSchema.safeParse(data.edges[i]);
+    const r = edgeImportSchema.safeParse(data.edges[i]);
     if (!r.success) {
       errors.push({
         section: "edges", index: i, code: "invalid_payload",
@@ -156,7 +169,7 @@ async function realImport(
   // the DB (the edge_endpoint_missing means the endpoint never existed,
   // not "was in payload but failed").
   for (let i = 0; i < data.edges.length; i++) {
-    const parsed = edgeCreateSchema.safeParse(data.edges[i]);
+    const parsed = edgeImportSchema.safeParse(data.edges[i]);
     if (!parsed.success) {
       errors.push({
         section: "edges", index: i, code: "invalid_payload",

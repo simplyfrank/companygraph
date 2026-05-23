@@ -53,6 +53,12 @@ describe("integration: AC-25 export → import → export round-trip", () => {
   });
 
   afterAll(async () => {
+    // Restore the seed so subsequent test files always find a populated DB,
+    // regardless of whether the roundtrip assertion passed or failed.
+    // wipeGraph() preserves _Ontology* nodes so the server schema cache
+    // remains valid — no cache bust needed.
+    await wipeGraph();
+    await seedRetailMini();
     await closeDriver();
     _resetDriver();
   });
@@ -166,7 +172,8 @@ async function ensureRegistrySeeded(): Promise<void> {
   await applyMetaSchema(driver);
   if (await isRegistryEmpty(driver)) {
     await seedRegistryFromConstTuples(driver);
-    // Bust the live server's caches via a round-trip mutation.
+    // Warm the server cache via a throwaway label create+delete so the
+    // live server's getSchema() reloads from the freshly-seeded registry.
     await fetch(`${BASE_URL}/api/v1/ontology/node-labels`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -180,6 +187,8 @@ async function ensureRegistrySeeded(): Promise<void> {
     await fetch(`${BASE_URL}/api/v1/ontology/node-labels/RoundtripCacheBust`, {
       method: "DELETE",
     });
+    // Prime the reloaded cache.
+    await fetch(`${BASE_URL}/api/v1/schema`);
   }
 }
 

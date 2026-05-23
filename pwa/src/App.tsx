@@ -3,6 +3,9 @@ import { TopBar } from "./components/TopBar";
 import { SubNav } from "./components/SubNav";
 import { Button } from "./components/Button";
 import { AskTheGraph } from "./components/AskTheGraph";
+import { SidePanel } from "./components/SidePanel";
+import { ConnectivityBanner } from "./components/ConnectivityBanner";
+import { useSchemaStore } from "./store/schemaStore";
 import { api } from "./api";
 import { useFetch } from "./useFetch";
 import {
@@ -26,6 +29,10 @@ const ONTOLOGY_VERSION = (import.meta.env.VITE_ONTOLOGY_VERSION as string | unde
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
+
+  // T-17: Non-blocking schema hydration (triggers fetch, doesn't block render).
+  const schemaRefresh = useSchemaStore((s) => s.refresh);
+  useEffect(() => { void schemaRefresh(); }, [schemaRefresh]);
 
   // Hash-driven routing.
   useEffect(() => {
@@ -119,6 +126,7 @@ export function App() {
         ontologyVersion={ONTOLOGY_VERSION}
         user={{ name: "Operator", initials: "OP" }}
       />
+      {!health.ok && <ConnectivityBanner />}
       <main className={styles.main}>
         <SubNav
           crumbs={[{ label: surface.label }]}
@@ -129,10 +137,11 @@ export function App() {
           searchInputRef={searchInputRef}
           actions={<Button tone="ghost" onClick={() => location.reload()}>Reload</Button>}
         />
-        <section className={styles.view}>
+        <section className={styles.view} data-testid="stat-counts" data-nodes={totalNodes} data-edges={totalEdges}>
           {renderView(route)}
         </section>
       </main>
+      <SidePanel />
       {/* Surface-aware: don't show inside the Chat surface itself. */}
       {surface.id !== "chat" && (
         <AskTheGraph currentRouteHash={window.location.hash} />

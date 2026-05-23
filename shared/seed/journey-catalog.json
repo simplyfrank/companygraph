@@ -1,0 +1,30 @@
+{
+  "_comment": "Source-of-truth fixture for FR-R01's role-coverage CI test. The 14 uj_* ids here mirror the wireframe ids in companygraph-journeys.html. The CI test (shared/__tests__/role-coverage.test.ts) asserts every entry appears in api/src/chat/roles/registry.ts OR in the documented exclusion list. NOT loaded by the seed importer — this is a wireframe-mirror fixture, separate from retail-mini.json's UUIDv7 graph data.",
+  "_source": "companygraph-journeys.html v0.1 (2026-05-22) — uj_* ids extracted line-by-line",
+  "_regenerate": "Design phase: pnpm run sync:journey-catalog (parses the wireframe, emits this file)",
+  "journey_ids": [
+    "uj_web_browse_buy",
+    "uj_in_store_buy",
+    "uj_loyalty_signup",
+    "uj_order_fulfillment",
+    "uj_click_collect",
+    "uj_returns_intake",
+    "uj_same_day",
+    "uj_inbound_receiving",
+    "uj_replenishment",
+    "uj_promo_planning",
+    "uj_refund_flow",
+    "uj_email_triage",
+    "uj_phone_support",
+    "uj_instore_complaint"
+  ],
+  "cross_section_view_ids": [
+    "sla_hotspots",
+    "handoff_matrix",
+    "sod_register",
+    "ai_candidates",
+    "initiative_impact"
+  ],
+  "default_role_id": "graph_analyst",
+  "exclusion_list": []
+}

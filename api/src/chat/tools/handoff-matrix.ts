@@ -88,11 +88,22 @@ RETURN a1.id AS from_id,
     const cells = new Map<string, { from_team: string; to_team: string; count: number; journeys: Set<string> }>();
 
     for (const r of rows) {
-      // Prefer Role.team if any role exposes one; fall back to Activity.team.
+      // Resolve team per endpoint: prefer Role.team when a role is present;
+      // fall back to Activity.team. When both roles resolve to the same team
+      // but the activity-level teams differ (e.g. one domain-wide role covers
+      // activities in two functional teams), use the activity-level signal so
+      // cross-team hand-offs are not masked by shared role assignment.
       const r1List = Array.isArray(r.r1_attrs_list) ? r.r1_attrs_list : [];
       const r2List = Array.isArray(r.r2_attrs_list) ? r.r2_attrs_list : [];
-      const from = r1List.map(team).find((t): t is string => !!t) ?? team(r.a1_attrs);
-      const to = r2List.map(team).find((t): t is string => !!t) ?? team(r.a2_attrs);
+      const roleFrom = r1List.map(team).find((t): t is string => !!t);
+      const roleTo = r2List.map(team).find((t): t is string => !!t);
+      const actFrom = team(r.a1_attrs);
+      const actTo = team(r.a2_attrs);
+      // Use role-level when roles are present AND they differ; otherwise fall
+      // back to activity-level (which captures functional-team hand-offs even
+      // when a single cross-functional role executes both endpoints).
+      const from = (roleFrom && roleTo && roleFrom !== roleTo) ? roleFrom : (actFrom ?? roleFrom);
+      const to   = (roleFrom && roleTo && roleFrom !== roleTo) ? roleTo   : (actTo   ?? roleTo);
       if (!from || !to) continue;
       if (from === to) continue;
       if (args.from_team !== undefined && from !== args.from_team) continue;

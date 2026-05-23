@@ -40,6 +40,20 @@ export const api = {
   findPath: (fromId: string, toId: string, maxDepth = 4, signal?: AbortSignal) =>
     json<{ rows: PathRow[] }>(`/api/v1/query/findPath?fromId=${encodeURIComponent(fromId)}&toId=${encodeURIComponent(toId)}&maxDepth=${maxDepth}`, withSignal(signal)),
 
+  // T-31 (graph-core amendment from process-explorer-ui/FR-17 + AC-28):
+  // per-label fulltext substring search backing FR-08 (palette) and
+  // FR-17 (typeahead binding). The handler clamps `limit` to 1..100.
+  search: (
+    label: string,
+    q: string,
+    limit = 20,
+    signal?: AbortSignal,
+  ) =>
+    json<{ rows: SearchHit[] }>(
+      `/api/v1/query/search?label=${encodeURIComponent(label)}&q=${encodeURIComponent(q)}&limit=${limit}`,
+      withSignal(signal),
+    ),
+
   // POST mutations do not accept a signal — they are user-initiated writes
   // that must not be silently cancelled mid-flight.
   cypher: (statement: string, params: Record<string, unknown> = {}) =>
@@ -95,6 +109,7 @@ export interface JourneyDetailRow {
 export interface ActivityRow { id: string; name: string; description: string }
 export interface NeighborRow { node: { id: string; name: string }; label: string }
 export interface PathRow { length: number; nodes: string[]; edges: string[] }
+export interface SearchHit { id: string; name: string; label: string }
 export interface ExportNode {
   id: string;
   label: string;

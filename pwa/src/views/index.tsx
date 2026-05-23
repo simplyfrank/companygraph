@@ -23,6 +23,7 @@ import { OntologyAudit } from "./ontology/Audit";
 import { SmeReview } from "./sme/Review";
 import { SmeAdd } from "./sme/Add";
 import { SmeQuarterly } from "./sme/Quarterly";
+import { SmeHome } from "./sme/Home";
 
 import { AnalyticsOverview } from "./analytics/Overview";
 import { AnalyticsMatrix } from "./analytics/Matrix";
@@ -73,6 +74,7 @@ const VIEWS: ViewMap = {
     review:    () => <SmeReview />,
     add:       () => <SmeAdd />,
     quarterly: () => <SmeQuarterly />,
+    home:      () => <SmeHome />,
   },
   analytics: {
     overview:   () => <AnalyticsOverview />,

@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, vi } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { ExplorerJourney } from "../views/explorer/Journey";
+import { VerifyJourneyButton } from "../components/VerifyJourneyButton";
 import type { Route } from "../route";
 
 // AC-16 — Verification metadata visible on the journey-detail header.
@@ -199,5 +200,74 @@ describe("ExplorerJourney PRECEDES cycle warning (FR-03 / AC-02)", () => {
     await screen.findByText("Cycle test");
     const ribbon = await screen.findByTestId("cycle-warning");
     expect(ribbon.textContent?.toLowerCase()).toContain("cycle");
+  });
+});
+
+describe("VerifyJourneyButton RMW preservation (T-16a / AC-16)", () => {
+  beforeEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  test("mergeAttributes preserves prior _review when writing _verification", async () => {
+    const onVerified = vi.fn();
+    const calls: Array<{ url: string; method?: string; body?: unknown }> = [];
+
+    global.fetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+      calls.push({ url, method: init?.method, body: init?.body ? JSON.parse(init.body as string) : undefined });
+      if (!init?.method || init.method === "GET") {
+        // GET response with existing _review attribute
+        return new Response(
+          JSON.stringify({
+            rows: [{
+              id: "j-1",
+              name: "Journey",
+              description: "",
+              attributes: {
+                _review: { status: "needs_review", set_by: "sme", set_at: "2026-05-01T00:00:00Z" },
+              },
+            }],
+          }),
+          { status: 200 },
+        );
+      }
+      // PATCH response
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }) as typeof fetch;
+
+    render(
+      <VerifyJourneyButton
+        journeyId="j-1"
+        isVerified={false}
+        roleId="role-ops"
+        onVerified={onVerified}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: /verify journey/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(onVerified).toHaveBeenCalledTimes(1);
+    });
+
+    // The PATCH call (second fetch) should have both _review AND _verification
+    const patchCall = calls.find((c) => c.method === "PATCH");
+    expect(patchCall).toBeDefined();
+    expect(patchCall!.body.attributes._review).toEqual({
+      status: "needs_review",
+      set_by: "sme",
+      set_at: "2026-05-01T00:00:00Z",
+    });
+    expect(patchCall!.body.attributes._verification).toBeDefined();
+    expect(patchCall!.body.attributes._verification.by).toBe("role-ops");
+  });
+
+  test("renders 'Verified' (disabled) when already verified", () => {
+    render(
+      <VerifyJourneyButton journeyId="j-1" isVerified={true} />,
+    );
+    const button = screen.getByRole("button", { name: /verified/i });
+    expect(button).toBeDisabled();
   });
 });

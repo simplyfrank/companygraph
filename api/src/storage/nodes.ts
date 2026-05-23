@@ -197,10 +197,13 @@ export async function patchNode(
 }
 
 // POST /api/v1/import (and seed loader only) — idempotent MERGE-on-id.
+// Accepts optional `createdAt` / `updatedAt` so an export → import
+// round-trip preserves timestamps byte-for-byte (AC-25). When absent
+// (e.g. seed-loader path) both default to `now`.
 export async function upsertNode(
   driver: Driver,
   label: string,
-  input: NodeCreateInput,
+  input: NodeCreateInput & { createdAt?: string; updatedAt?: string },
 ): Promise<Node> {
   // FR-04 — per-label attribute schema enforcement on the import path.
   // ValidationErrors surface in the import response's `errors[]` array
@@ -213,8 +216,8 @@ export async function upsertNode(
     id,
     name: input.name,
     description: input.description ?? "",
-    createdAt: now,
-    updatedAt: now,
+    createdAt: input.createdAt ?? now,
+    updatedAt: input.updatedAt ?? now,
     attributes_json: JSON.stringify(input.attributes ?? {}),
   };
   const session = driver.session();

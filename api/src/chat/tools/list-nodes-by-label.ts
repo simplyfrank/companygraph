@@ -63,7 +63,7 @@ export const TOOL_DEF: ToolDef<Args, Data> = {
     }
 
     const wheres: string[] = [];
-    const params: Record<string, unknown> = { limit: args.limit };
+    const params: Record<string, unknown> = {};
 
     if (args.filter?.name_contains) {
       wheres.push("toLower(n.name) CONTAINS toLower($name_contains)");
@@ -85,7 +85,7 @@ RETURN n.id AS id,
        n.description AS description,
        n.attributes_json AS attributes
 ORDER BY n.name
-LIMIT $limit`;
+LIMIT ${args.limit}`;
 
     const { rows } = await runPassthrough(ctx.driver, stmt, params);
     return rows.map((r) => {

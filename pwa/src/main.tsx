@@ -10,3 +10,13 @@ createRoot(root).render(
     <App />
   </StrictMode>,
 );
+
+// T-18: Service worker registration (FR-27 / AC-20).
+// Graceful failure: Safari private mode, quota exhaustion, and user
+// denial all cause register() to reject — the app proceeds without
+// offline support. AC-20 verifies degradation.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch((err) => {
+    console.warn("[pwa] SW registration failed:", err);
+  });
+}

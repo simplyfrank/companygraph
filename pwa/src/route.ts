@@ -44,6 +44,7 @@ export const SURFACES: Surface[] = [
       { id: "review",    label: "Review" },
       { id: "add",       label: "Add" },
       { id: "quarterly", label: "Quarterly" },
+      { id: "home",      label: "Home" },
     ],
   },
   {

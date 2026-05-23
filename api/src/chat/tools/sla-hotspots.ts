@@ -67,7 +67,7 @@ export const TOOL_DEF: ToolDef<Args, Data> = {
     const wheres: string[] = [
       "r.attributes_json IS NOT NULL",
     ];
-    const params: Record<string, unknown> = { limit: args.limit };
+    const params: Record<string, unknown> = {};
 
     if (args.journey !== undefined) {
       wheres.push("EXISTS { MATCH (a1)-[:PART_OF]->(:UserJourney {id: $journey}) }");
@@ -91,7 +91,7 @@ RETURN r.id AS edge_id,
        a2.id AS to_activity,
        r.attributes_json AS attrs_json,
        collect(DISTINCT j.id) AS journey_ids
-LIMIT $limit`;
+LIMIT ${args.limit}`;
 
     const { rows } = await runPassthrough(ctx.driver, stmt, params);
 
