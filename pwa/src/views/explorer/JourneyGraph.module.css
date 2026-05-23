@@ -173,6 +173,9 @@
   border-radius: var(--radius-lg);
   background: var(--surface-2);
 }
+.canvasWrap.boardMode {
+  overflow-y: auto;
+}
 
 .rail {
   display: flex;
@@ -684,8 +687,49 @@
 }
 
 .jpEmpty {
-  padding: 12px 10px;
-  font-size: 12px;
-  color: var(--muted-2);
+  grid-column: 1 / -1;
+  padding: 20px 0;
   text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Board-specific styles */
+.badge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.badgeBreach {
+  background: color-mix(in oklch, var(--danger) 10%, var(--surface));
+  border-color: color-mix(in oklch, var(--danger) 30%, var(--border));
+  color: var(--danger-text);
+}
+.badgeWarn {
+  background: color-mix(in oklch, var(--warn) 10%, var(--surface));
+  border-color: color-mix(in oklch, var(--warn) 30%, var(--border));
+  color: var(--warn-text);
+}
+.badgeSod {
+  background: color-mix(in oklch, var(--accent) 8%, var(--surface));
+  border-color: color-mix(in oklch, var(--accent) 25%, var(--border));
+  color: var(--accent);
+}
+.actionBtn {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklch, var(--accent) 25%, var(--border));
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.actionBtn:hover {
+  background: color-mix(in oklch, var(--accent) 12%, var(--accent-soft));
 }

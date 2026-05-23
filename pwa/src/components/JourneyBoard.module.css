@@ -1,0 +1,143 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  padding: var(--space-lg);
+  align-content: start;
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.card:hover {
+  border-color: var(--border-strong);
+}
+.card:hover .cardTitle {
+  color: var(--accent);
+}
+.card[data-selected="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 15%, transparent);
+}
+
+/* Header */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.domainDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.cardMeta {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 8px 0 14px;
+  line-height: 1.4;
+}
+
+/* Stats rows (wireframe pattern) */
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+}
+.statRow strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+.statRow a {
+  color: var(--accent);
+}
+
+/* Badges */
+.badge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.badgeBreach {
+  background: color-mix(in oklch, var(--danger) 10%, var(--surface));
+  border-color: color-mix(in oklch, var(--danger) 30%, var(--border));
+  color: var(--danger-text);
+}
+.badgeWarn {
+  background: color-mix(in oklch, var(--warn) 10%, var(--surface));
+  border-color: color-mix(in oklch, var(--warn) 30%, var(--border));
+  color: var(--warn-text);
+}
+.badgeSod {
+  background: color-mix(in oklch, var(--accent) 8%, var(--surface));
+  border-color: color-mix(in oklch, var(--accent) 25%, var(--border));
+  color: var(--accent);
+}
+.actionBtn {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklch, var(--accent) 25%, var(--border));
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.actionBtn:hover {
+  background: color-mix(in oklch, var(--accent) 12%, var(--accent-soft));
+}
+
+/* Cross-journey connections (simplified) */
+.crossSection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.crossChip {
+  font-size: 11px;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+.crossType {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-left: 3px;
+}

@@ -20,6 +20,8 @@ import {
 } from "../../components/JourneyCanvas";
 import { Loading, ErrorState, SecLabel } from "../_shared";
 import { loadJourneyData, parseAttrs } from "../../lib/journeyData";
+import { loadJourneyPortfolio, type JourneyPortfolio } from "../../lib/journeyPortfolio";
+import { JourneyBoard } from "../../components/JourneyBoard";
 import styles from "./JourneyGraph.module.css";
 
 const TEAM_TONE: Record<string, "accent" | "good" | "warn" | "danger"> = {
@@ -64,7 +66,7 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
   const explicitJourney = route.params["journey"] ?? null;
   const domainFilter    = route.params["domain"] ?? null;
   const subdomainFilter = route.params["subdomain"] ?? null;
-  const layoutMode: LayoutMode = route.params["layout"] === "radial" ? "radial" : "chain";
+  const layoutMode: LayoutMode = route.params["layout"] === "radial" ? "radial" : route.params["layout"] === "board" ? "board" : "chain";
   const visibleLayers: VisibleLayers = {
     roles:     route.params["roles"]     !== "0",
     systems:   route.params["systems"]   !== "0",
@@ -208,9 +210,18 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
   const [zoomCmd, setZoomCmd] = useState<{ action: "in" | "out" | "reset" | "fit"; nonce: number } | null>(null);
   const [zoomPct, setZoomPct] = useState(100);
 
+  // Board mode - selected journey for right rail
+  const [boardSelectedJourney, setBoardSelectedJourney] = useState<string | null>(null);
+  useEffect(() => { setBoardSelectedJourney(null); }, [layoutMode]);
+
   const journeyData = useFetch(
-    async () => activeJourney ? loadJourneyData(activeJourney.id) : null,
-    [activeJourney?.id],
+    async () => activeJourney && layoutMode !== "board" ? loadJourneyData(activeJourney.id) : null,
+    [activeJourney?.id, layoutMode],
+  );
+
+  const portfolioData = useFetch(
+    async () => layoutMode === "board" ? loadJourneyPortfolio(domainFilter) : null,
+    [layoutMode, domainFilter],
   );
 
   // Apply manual order on top of the loaded data
@@ -263,46 +274,80 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
         onResetOrder={() => setManualOrder(null)}
       />
 
-      <div className={styles.layout}>
-        <div className={styles.canvasWrap}>
-          {journeyData.status === "loading" && <Loading what="journey graph" />}
-          {journeyData.status === "error" && <ErrorState message={journeyData.error} />}
-          {journeyData.status === "ok" && renderedData && (
-            <>
-              <JourneyCanvas
-                data={renderedData}
-                layoutMode={layoutMode}
-                visibleLayers={visibleLayers}
-                selected={selected}
-                onSelect={setSelected}
-                onReorder={setManualOrder}
-                zoomCommand={zoomCmd}
-                onZoomChange={setZoomPct}
+      {layoutMode === "board" ? (
+        <div className={styles.layout}>
+          <div className={`${styles.canvasWrap} ${styles.boardMode}`}>
+            {portfolioData.status === "loading" && <Loading what="journey portfolio" />}
+            {portfolioData.status === "error" && <ErrorState message={portfolioData.error} />}
+            {portfolioData.status === "ok" && portfolioData.data && (
+              <JourneyBoard
+                portfolio={portfolioData.data}
+                badgeMap={badgeMap}
+                onOpenJourney={(jid) => {
+                  updateHash((p) => {
+                    p.set("journey", jid);
+                    p.delete("layout");
+                  });
+                }}
+                onJourneySelect={setBoardSelectedJourney}
               />
-              {initiative && <InitiativeBanner i={initiative} />}
-              <Legend visibleLayers={visibleLayers} data={renderedData} />
-              <HintCard />
-              <CrossLink journeyId={activeJourney?.id ?? ""} />
-            </>
-          )}
-          {journeyData.status === "ok" && !renderedData && (
-            <p style={{ color: "var(--muted)", padding: 24 }}>Pick a journey above.</p>
-          )}
+            )}
+          </div>
+
+          <aside className={styles.rail}>
+            {boardSelectedJourney && portfolioData.status === "ok" && portfolioData.data && (
+              <BoardRailContent
+                journey={portfolioData.data.journeys.find((j) => j.id === boardSelectedJourney)}
+                badges={badgeMap[boardSelectedJourney]}
+              />
+            )}
+          </aside>
         </div>
+      ) : (
+        <div className={styles.layout}>
+          <div className={styles.canvasWrap}>
+            {journeyData.status === "loading" && <Loading what="journey graph" />}
+            {journeyData.status === "error" && <ErrorState message={journeyData.error} />}
+            {journeyData.status === "ok" && renderedData && (
+              <>
+                <JourneyCanvas
+                  data={renderedData}
+                  layoutMode={layoutMode}
+                  visibleLayers={visibleLayers}
+                  selected={selected}
+                  onSelect={setSelected}
+                  onReorder={setManualOrder}
+                  zoomCommand={zoomCmd}
+                  onZoomChange={setZoomPct}
+                />
+                {initiative && <InitiativeBanner i={initiative} />}
+                <Legend visibleLayers={visibleLayers} data={renderedData} />
+                <HintCard />
+                <CrossLink journeyId={activeJourney?.id ?? ""} />
+              </>
+            )}
+            {journeyData.status === "ok" && !renderedData && (
+              <p style={{ color: "var(--muted)", padding: 24 }}>Pick a journey above.</p>
+            )}
+          </div>
 
-        <aside className={styles.rail}>
-          {activeJourney && renderedData && (
-            <RailContent
-              journey={activeJourney}
-              data={renderedData}
-              selected={selected}
-              onClearSelected={() => setSelected(null)}
-            />
-          )}
-        </aside>
-      </div>
+          <aside className={styles.rail}>
+            {activeJourney && renderedData && (
+              <RailContent
+                journey={activeJourney}
+                data={renderedData}
+                selected={selected}
+                onClearSelected={() => setSelected(null)}
+              />
+            )}
+          </aside>
+        </div>
+      )}
 
-      {renderedData && activeJourney && (
+      {layoutMode === "board" && portfolioData.status === "ok" && portfolioData.data && (
+        <BoardStatusBar portfolio={portfolioData.data} />
+      )}
+      {renderedData && activeJourney && layoutMode !== "board" && (
         <StatusBar journey={activeJourney} data={renderedData} selected={selected} zoomPct={zoomPct} {...(renderMs != null ? { renderMs } : {})} />
       )}
     </div>
@@ -341,6 +386,7 @@ function Toolbar({
     if (subdomainFilter)         params.set("subdomain", subdomainFilter);
     if (activeJourneyId)         params.set("journey", activeJourneyId);
     if (layoutMode === "radial") params.set("layout", "radial");
+    if (layoutMode === "board")  params.set("layout", "board");
     if (!visibleLayers.roles)     params.set("roles", "0");
     if (!visibleLayers.systems)   params.set("systems", "0");
     if (!visibleLayers.locations) params.set("locations", "0");
@@ -356,7 +402,7 @@ function Toolbar({
         <a href="#/explorer/journey-graph" className={styles.crumbLink}>journeys</a>
         <span className={styles.crumbSep}>·</span>
         <strong className={styles.crumbActive}>
-          {activeJourneyId ? journeys.find((j) => j.id === activeJourneyId)?.name : "—"}
+          {layoutMode === "board" ? "All journeys" : (activeJourneyId ? journeys.find((j) => j.id === activeJourneyId)?.name : "—")}
         </strong>
       </div>
 
@@ -411,22 +457,33 @@ function Toolbar({
       <div className={styles.toolbarSep} />
 
       {/* Journey picker */}
-      <JourneyPicker
-        journeys={journeys}
-        activeJourneyId={activeJourneyId}
-        domainFilter={domainFilter}
-        subdomainFilter={subdomainFilter}
-        badgeMap={badgeMap}
-        onSelect={(jid) => updateHash((p) => {
-          if (jid) p.set("journey", jid);
-          else     p.delete("journey");
-        })}
-      />
-
-      <div className={styles.toolbarSep} />
+      {layoutMode !== "board" && (
+        <>
+          <JourneyPicker
+            journeys={journeys}
+            activeJourneyId={activeJourneyId}
+            domainFilter={domainFilter}
+            subdomainFilter={subdomainFilter}
+            badgeMap={badgeMap}
+            onSelect={(jid) => updateHash((p) => {
+              if (jid) p.set("journey", jid);
+              else     p.delete("journey");
+            })}
+          />
+          <div className={styles.toolbarSep} />
+        </>
+      )}
 
       {/* Layout toggle */}
       <div className={styles.segGroup} role="tablist" aria-label="Layout">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={layoutMode === "board"}
+          className={`${styles.segBtn} ${layoutMode === "board" ? styles.segActive : ""}`}
+          onClick={() => updateHash((p) => p.set("layout", "board"))}
+          title="Board — all journeys as compact cards with cross-journey links"
+        >Board</button>
         <button
           type="button"
           role="tab"
@@ -445,7 +502,9 @@ function Toolbar({
         >Radial</button>
       </div>
 
-      <div className={styles.toolbarSep} />
+      {layoutMode !== "board" && (
+        <>
+          <div className={styles.toolbarSep} />
 
       {/* Bind-type toggles */}
       <div className={styles.segGroup} role="group" aria-label="Show bind types">
@@ -466,6 +525,8 @@ function Toolbar({
           );
         })}
       </div>
+        </>
+      )}
 
       <div className={styles.spacer} />
 
@@ -1455,7 +1516,125 @@ async function _loadJourneyData_unused(journeyId: string): Promise<JourneyData> 
     systems: [...sysMap.values()],
     locations: [...locMap.values()],
     precedes,
+    integrations,
   };
+}
+
+// =====================================================================
+//   Board rail content (right rail for board mode)
+// =====================================================================
+function BoardRailContent({
+  journey,
+  badges,
+}: {
+  journey?: { id: string; name: string; domainName: string; activityCount: number; startActivity?: { name: string }; endActivity?: { name: string } };
+  badges?: { slaBreach: number; slaWarn: number; handoffs: number; sod: number };
+}) {
+  if (!journey) {
+    return (
+      <div style={{ padding: 24, color: "var(--muted)", textAlign: "center" }}>
+        Select a journey to view details
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Card title="Selected journey">
+        <SecLabel>JOURNEY</SecLabel>
+        <div className={styles.bigTitle}>{journey.name}</div>
+        <code className={styles.id}>{journey.id}</code>
+        <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
+          {journey.domainName} · {journey.activityCount} activities
+        </div>
+      </Card>
+
+      <Card title="Endpoints">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <SecLabel>STARTS WITH</SecLabel>
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>
+              {journey.startActivity?.name ?? "—"}
+            </div>
+          </div>
+          <div>
+            <SecLabel>ENDS WITH</SecLabel>
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--fg)" }}>
+              {journey.endActivity?.name ?? "—"}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {badges && (badges.slaBreach > 0 || badges.slaWarn > 0 || badges.handoffs > 0 || badges.sod > 0) && (
+        <Card title="Badges">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {badges.slaBreach > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={`${styles.badge} ${styles.badgeBreach}`}>{badges.slaBreach} breach</span>
+              </div>
+            )}
+            {badges.slaWarn > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={`${styles.badge} ${styles.badgeWarn}`}>{badges.slaWarn} warn</span>
+              </div>
+            )}
+            {badges.handoffs > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={styles.badge}>{badges.handoffs} hand-off{badges.handoffs === 1 ? "" : "s"}</span>
+              </div>
+            )}
+            {badges.sod > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className={`${styles.badge} ${styles.badgeSod}`}>{badges.sod} SoD</span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      <Card title="Actions">
+        <button
+          type="button"
+          className={styles.actionBtn}
+          onClick={() => {
+            window.location.hash = `#/explorer/journey-graph?journey=${journey.id}`;
+          }}
+        >
+          Open in graph view →
+        </button>
+      </Card>
+    </>
+  );
+}
+
+// =====================================================================
+//   Board status bar
+// =====================================================================
+function BoardStatusBar({ portfolio }: { portfolio: JourneyPortfolio }) {
+  const totalJourneys = portfolio.journeys.length;
+  const totalActivities = portfolio.journeys.reduce((sum, j) => sum + j.activityCount, 0);
+  const totalCrossEdges = portfolio.crossEdges.length;
+
+  return (
+    <div className={styles.statusbar}>
+      <span><strong>{totalJourneys}</strong> journeys</span>
+      <span>·</span>
+      <span><strong>{totalActivities}</strong> activities</span>
+      <span>·</span>
+      {totalCrossEdges > 0 && (
+        <>
+          <span><strong>{totalCrossEdges}</strong> cross-journey links</span>
+          <span>·</span>
+        </>
+      )}
+      <span>read-only ✓</span>
+      <span className={styles.statusSpacer} />
+      <span className={styles.statusRender}>
+        /api/v1/journeys?domain={portfolio.domainFilter || "all"}
+      </span>
+    </div>
+  );
 }
 
 void parseAttrs; // re-exported from lib/journeyData — kept here to satisfy any inlined usages above.
