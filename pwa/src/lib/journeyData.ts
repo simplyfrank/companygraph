@@ -16,12 +16,25 @@ export function parseAttrs(json: string | undefined | null): Record<string, unkn
 }
 
 export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
-  const [precedesRes, executesRes, usesRes, locsRes, activitiesRes] = await Promise.all([
+  const [precedesRes, crossPrecedesRes, executesRes, usesRes, locsRes, integrationsRes, activitiesRes] = await Promise.all([
     api.cypher(
       `MATCH (j:UserJourney {id:$id})
        MATCH (a:Activity)-[:PART_OF]->(j)
        MATCH (a)-[p:PRECEDES]->(b:Activity)-[:PART_OF]->(j)
        RETURN a.id AS fromId, b.id AS toId, p.attributes_json AS attrs`,
+      { id: journeyId },
+    ),
+    api.cypher(
+      `MATCH (j:UserJourney {id:$id})
+       MATCH (a:Activity)-[:PART_OF]->(j)
+       OPTIONAL MATCH (a)-[p_out:PRECEDES]->(b:Activity)-[:PART_OF]->(other:UserJourney)
+       WHERE other <> j
+       OPTIONAL MATCH (c:Activity)-[:PART_OF]->(j)<-[:PART_OF]-(prev:UserJourney)
+       OPTIONAL MATCH (c)-[p_in:PRECEDES]->(a)
+       WHERE prev <> j
+       RETURN a.id AS actId,
+              b.id AS outId, other.id AS outJourneyId, other.name AS outJourneyName, p_out.attributes_json AS outAttrs,
+              c.id AS inId, prev.id AS inJourneyId, prev.name AS inJourneyName, p_in.attributes_json AS inAttrs`,
       { id: journeyId },
     ),
     api.cypher(
@@ -45,6 +58,14 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
        MATCH (a:Activity)-[:PART_OF]->(j)
        MATCH (a)-[:AT_LOCATION]->(l:Location)
        RETURN a.id AS aId, l.id AS locId, l.name AS locName`,
+      { id: journeyId },
+    ),
+    api.cypher(
+      `MATCH (j:UserJourney {id:$id})
+       MATCH (a:Activity)-[:PART_OF]->(j)
+       MATCH (a)-[:USES_SYSTEM]->(s:System)
+       OPTIONAL MATCH (s)-[i:INTEGRATES_WITH]-(t:System)
+       RETURN s.id AS sysId, t.id AS targetId, t.name AS targetName`,
       { id: journeyId },
     ),
     api.getJourney(journeyId),
@@ -95,6 +116,44 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     };
   });
 
+  // Cross-journey PRECEDES: edges where one end is in this journey and the other is not.
+  const crossRows = crossPrecedesRes.rows as unknown as Array<{
+    actId: string;
+    outId: string | null; outJourneyId: string | null; outJourneyName: string | null; outAttrs: string | null;
+    inId: string | null; inJourneyId: string | null; inJourneyName: string | null; inAttrs: string | null;
+  }>;
+  const seenCross = new Set<string>();
+  for (const row of crossRows) {
+    const col = colOf.get(row.actId);
+    if (col === undefined) continue;
+    if (row.outId && row.outJourneyId) {
+      const key = `${row.actId}->${row.outId}`;
+      if (seenCross.has(key)) continue;
+      seenCross.add(key);
+      const attrs = parseAttrs(row.outAttrs);
+      precedes.push({
+        from_col: col,
+        to_col: -1, // sentinel: target is outside this journey
+        target_ms: attrs.target_ms as number | undefined,
+        actual_ms: attrs.actual_ms as number | undefined,
+        cross_journey: { journeyId: row.outJourneyId, journeyName: row.outJourneyName ?? "other", direction: "outbound" },
+      });
+    }
+    if (row.inId && row.inJourneyId) {
+      const key = `${row.inId}->${row.actId}`;
+      if (seenCross.has(key)) continue;
+      seenCross.add(key);
+      const attrs = parseAttrs(row.inAttrs);
+      precedes.push({
+        from_col: -1, // sentinel: source is outside this journey
+        to_col: col,
+        target_ms: attrs.target_ms as number | undefined,
+        actual_ms: attrs.actual_ms as number | undefined,
+        cross_journey: { journeyId: row.inJourneyId, journeyName: row.inJourneyName ?? "other", direction: "inbound" },
+      });
+    }
+  }
+
   const roleMap = new Map<string, RoleNode>();
   for (const r of executesRes.rows as unknown as Array<{ roleId: string; roleName: string; roleAttrs: string; aId: string; attrs: string }>) {
     const col = colOf.get(r.aId);
@@ -140,6 +199,25 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     });
   }
 
+  // INTEGRATES_WITH edges for systems in this journey.
+  const integrations: import("../components/JourneyCanvas").IntegratesWithEdge[] = [];
+  const sysIdx = new Map<string, number>();
+  [...sysMap.keys()].forEach((id, i) => sysIdx.set(id, i));
+  const integRows = integrationsRes.rows as unknown as Array<{ sysId: string; targetId: string | null; targetName: string | null }>;
+  const seenInteg = new Set<string>();
+  for (const row of integRows) {
+    if (!row.targetId) continue;
+    const fromIdx = sysIdx.get(row.sysId);
+    if (fromIdx === undefined) continue;
+    const toIdx = sysIdx.get(row.targetId);
+    // Only draw integration when target is also used in this journey
+    if (toIdx === undefined) continue;
+    const pairKey = [fromIdx, toIdx].sort((a, b) => a - b).join("-");
+    if (seenInteg.has(pairKey)) continue;
+    seenInteg.add(pairKey);
+    integrations.push({ from_sys: fromIdx, to_sys: toIdx, to_sys_name: row.targetName ?? undefined });
+  }
+
   const locMap = new Map<string, LocationNode>();
   for (const l of locsRes.rows as unknown as Array<{ aId: string; locId: string; locName: string }>) {
     const col = colOf.get(l.aId);
@@ -158,5 +236,6 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     systems:   [...sysMap.values()],
     locations: [...locMap.values()],
     precedes,
+    integrations,
   };
 }
