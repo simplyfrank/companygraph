@@ -99,6 +99,18 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
     return applyManualOrder(journeyData.data, manualOrder);
   }, [journeyData, manualOrder]);
 
+  // Render timing — track how long data processing takes
+  const [renderMs, setRenderMs] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    if (journeyData.status === "ok" && journeyData.data) {
+      const t0 = performance.now();
+      // Microtask to capture actual render cost
+      requestAnimationFrame(() => {
+        setRenderMs(Math.round(performance.now() - t0));
+      });
+    }
+  }, [journeyData]);
+
   // Initiative — simple heuristic: when a system has any breach, surface an in-flight initiative banner.
   const initiative = useMemo(() => {
     if (!renderedData) return null;
@@ -146,7 +158,7 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
                 onZoomChange={setZoomPct}
               />
               {initiative && <InitiativeBanner i={initiative} />}
-              <Legend visibleLayers={visibleLayers} />
+              <Legend visibleLayers={visibleLayers} data={renderedData} />
               <HintCard />
               <CrossLink journeyId={activeJourney?.id ?? ""} />
             </>
@@ -169,7 +181,7 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
       </div>
 
       {renderedData && activeJourney && (
-        <StatusBar journey={activeJourney} data={renderedData} selected={selected} zoomPct={zoomPct} />
+        <StatusBar journey={activeJourney} data={renderedData} selected={selected} zoomPct={zoomPct} renderMs={renderMs} />
       )}
     </div>
   );
@@ -369,7 +381,19 @@ function InitiativeBanner({ i }: { i: { name: string; affectedActivities: number
 // =====================================================================
 //   Legend (bottom-left)
 // =====================================================================
-function Legend({ visibleLayers }: { visibleLayers: VisibleLayers }) {
+function Legend({ visibleLayers, data }: { visibleLayers: VisibleLayers; data: JourneyData | null }) {
+  // Derive unique teams from roles
+  const teams = useMemo(() => {
+    if (!data) return [];
+    const seen = new Map<string, { name: string; color: string }>();
+    for (const r of data.roles) {
+      if (r.team_id && r.team_name && !seen.has(r.team_id)) {
+        seen.set(r.team_id, { name: r.team_name, color: r.team_color ?? "" });
+      }
+    }
+    return [...seen.values()];
+  }, [data]);
+
   return (
     <div className={styles.legend}>
       <div className={styles.legendBlock}><Glyph kind="activity" /> <span>ACTIVITY</span></div>
@@ -385,6 +409,18 @@ function Legend({ visibleLayers }: { visibleLayers: VisibleLayers }) {
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaOk}`} /> <span>SLA · OK</span></div>
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaWarn}`} /> <span>SLA · WARN</span></div>
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaBreach}`} /> <span>SLA · BREACH</span></div>
+      {teams.length > 0 && (
+        <>
+          <div className={styles.legendDivider} />
+          <div className={styles.legendBlock}><strong>TEAMS (TEAM_OWNS_ROLE)</strong></div>
+          {teams.map((t) => (
+            <div key={t.name} className={styles.legendBlock}>
+              <span className={styles.legendTeamSwatch} style={{ background: teamColor(t.color) }} />
+              <span>{t.name.toUpperCase()}</span>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
@@ -458,33 +494,58 @@ function SelectedNodePanel({
     const locs     = data.locations.filter((l) => l.columns.includes(a.column));
     const upstream = data.precedes.filter((p) => p.to_col === a.column);
     const downstream = data.precedes.filter((p) => p.from_col === a.column);
+    const incomingCount = upstream.length + roles.length;
+    const outgoingCount = downstream.length + systems.length + locs.length;
     return (
       <>
         <Card title="Selected activity" actions={<CloseBtn onClick={onClear} />}>
-          <SecLabel>ACTIVITY · #{a.column + 1}</SecLabel>
+          <SecLabel>ACTIVITY</SecLabel>
           <div className={styles.bigTitle}>{a.name}</div>
           <code className={styles.id}>{a.id}</code>
         </Card>
-        <Card title="Roles executing">
-          {roles.length === 0 ? <Empty /> : (
+        <Card title="Incoming">
+          <div className={styles.edgeSection}>
+            <span>INCOMING</span>
+            <span className={styles.edgeSectionCount}>· {incomingCount}</span>
+          </div>
+          {incomingCount === 0 ? <Empty /> : (
             <ul className={styles.bindList}>
               {roles.map((r) => (
                 <li key={r.id}>
                   <span className={styles.bindStripe} style={{ background: teamColor(r.team_color) }} />
+                  <Glyph kind="role" />
                   <strong>{r.name}</strong>
                   {r.team_name && <span className={styles.bindMicro}>{r.team_name}</span>}
+                </li>
+              ))}
+              {upstream.map((p, i) => (
+                <li key={`u${i}`}>
+                  <span className={styles.bindStripe} style={{ background: "var(--accent)" }} />
+                  <Glyph kind="activity" />
+                  <strong>{nameAt(data.activities, p.from_col)}</strong>
+                  {p.target_ms != null && p.actual_ms != null && (
+                    <span className={styles.bindMicro}>
+                      <SlaPill target={p.target_ms} actual={p.actual_ms} />
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
           )}
         </Card>
-        <Card title="Systems used">
-          {systems.length === 0 ? <Empty /> : (
+        <Card title="Outgoing">
+          <div className={styles.edgeSection}>
+            <span>OUTGOING</span>
+            <span className={styles.edgeSectionCount}>· {outgoingCount}</span>
+          </div>
+          {outgoingCount === 0 ? <Empty /> : (
             <ul className={styles.bindList}>
               {systems.map((s) => {
                 const u = s.usages.find((x) => x.column === a.column);
                 return (
                   <li key={s.id}>
+                    <span className={styles.bindStripe} style={{ background: "var(--accent)" }} />
+                    <Glyph kind="system" />
                     <strong>{s.name}</strong>
                     {u && u.target_ms != null && u.actual_ms != null && (
                       <span className={styles.bindMicro}>
@@ -494,43 +555,39 @@ function SelectedNodePanel({
                   </li>
                 );
               })}
+              {locs.map((l) => (
+                <li key={l.id}>
+                  <span className={styles.bindStripe} style={{ background: "var(--warn)" }} />
+                  <Glyph kind="location" />
+                  <strong>{l.name}</strong>
+                </li>
+              ))}
+              {downstream.map((p, i) => (
+                <li key={`d${i}`}>
+                  <span className={styles.bindStripe} style={{ background: "var(--accent)" }} />
+                  <Glyph kind="activity" />
+                  <strong>{nameAt(data.activities, p.to_col)}</strong>
+                  {p.target_ms != null && p.actual_ms != null && (
+                    <span className={styles.bindMicro}>
+                      <SlaPill target={p.target_ms} actual={p.actual_ms} />
+                    </span>
+                  )}
+                </li>
+              ))}
             </ul>
           )}
         </Card>
-        <Card title="Locations">
-          {locs.length === 0 ? <Empty /> : (
-            <ul className={styles.bindList}>
-              {locs.map((l) => <li key={l.id}><strong>{l.name}</strong></li>)}
-            </ul>
-          )}
+        <Card title="Attributes">
+          <div className={styles.attrsBlock}>
+            {JSON.stringify({ id: a.id, label: "Activity", name: a.name, seq: a.column + 1 }, null, 2)}
+          </div>
         </Card>
-        <Card title="Adjacent activities">
-          <ul className={styles.bindList}>
-            {upstream.length === 0 && downstream.length === 0 && <Empty />}
-            {upstream.map((p, i) => (
-              <li key={`u${i}`}>
-                <span style={{ color: "var(--muted)" }}>← </span>
-                <strong>{nameAt(data.activities, p.from_col)}</strong>
-                {p.target_ms != null && p.actual_ms != null && (
-                  <span className={styles.bindMicro}>
-                    <SlaPill target={p.target_ms} actual={p.actual_ms} />
-                  </span>
-                )}
-              </li>
-            ))}
-            {downstream.map((p, i) => (
-              <li key={`d${i}`}>
-                <span style={{ color: "var(--muted)" }}>→ </span>
-                <strong>{nameAt(data.activities, p.to_col)}</strong>
-                {p.target_ms != null && p.actual_ms != null && (
-                  <span className={styles.bindMicro}>
-                    <SlaPill target={p.target_ms} actual={p.actual_ms} />
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <div className={styles.openDetail}>
+          <a
+            className={styles.openDetailLink}
+            href={`#/explorer/activities/${encodeURIComponent(a.id)}`}
+          >Open detail →</a>
+        </div>
       </>
     );
   }
@@ -550,10 +607,15 @@ function SelectedNodePanel({
           {r.team_name && <Pill tone={TEAM_TONE[r.team_id ?? ""] ?? "neutral"}>{r.team_name}</Pill>}
           <div style={{ marginTop: 8 }}><code className={styles.id}>{r.id}</code></div>
         </Card>
-        <Card title="Activities executed">
+        <Card title="Outgoing">
+          <div className={styles.edgeSection}>
+            <span>OUTGOING</span>
+            <span className={styles.edgeSectionCount}>· {acts.length}</span>
+          </div>
           <ul className={styles.bindList}>
             {acts.map((a) => (
               <li key={a.id}>
+                <Glyph kind="activity" />
                 <strong>#{a.column + 1}</strong>
                 <span style={{ marginLeft: 6 }}>{a.name}</span>
                 {r.durations[a.column] != null && (
@@ -563,6 +625,17 @@ function SelectedNodePanel({
             ))}
           </ul>
         </Card>
+        <Card title="Attributes">
+          <div className={styles.attrsBlock}>
+            {JSON.stringify({ id: r.id, label: "Role", name: r.name, ...(r.team_id ? { team_id: r.team_id } : {}), ...(r.team_name ? { team_name: r.team_name } : {}) }, null, 2)}
+          </div>
+        </Card>
+        <div className={styles.openDetail}>
+          <a
+            className={styles.openDetailLink}
+            href={`#/explorer/roles/${encodeURIComponent(r.id)}`}
+          >Open detail →</a>
+        </div>
       </>
     );
   }
@@ -578,7 +651,11 @@ function SelectedNodePanel({
           {s.kind && <Pill tone="accent">{s.kind}</Pill>}
           <div style={{ marginTop: 8 }}><code className={styles.id}>{s.id}</code></div>
         </Card>
-        <Card title="USES_SYSTEM bindings">
+        <Card title="Incoming">
+          <div className={styles.edgeSection}>
+            <span>INCOMING</span>
+            <span className={styles.edgeSectionCount}>· {s.usages.length}</span>
+          </div>
           <table className={styles.usageTable}>
             <thead><tr><th>Activity</th><th>Target</th><th>Actual</th><th>SLA</th></tr></thead>
             <tbody>
@@ -593,6 +670,17 @@ function SelectedNodePanel({
             </tbody>
           </table>
         </Card>
+        <Card title="Attributes">
+          <div className={styles.attrsBlock}>
+            {JSON.stringify({ id: s.id, label: "System", name: s.name, ...(s.kind ? { kind: s.kind } : {}) }, null, 2)}
+          </div>
+        </Card>
+        <div className={styles.openDetail}>
+          <a
+            className={styles.openDetailLink}
+            href={`#/explorer/systems/${encodeURIComponent(s.id)}`}
+          >Open detail →</a>
+        </div>
       </>
     );
   }
@@ -608,16 +696,32 @@ function SelectedNodePanel({
         <div className={styles.bigTitle}>{l.name}</div>
         <code className={styles.id}>{l.id}</code>
       </Card>
-      <Card title="Activities at this location">
+      <Card title="Incoming">
+        <div className={styles.edgeSection}>
+          <span>INCOMING</span>
+          <span className={styles.edgeSectionCount}>· {acts.length}</span>
+        </div>
         <ul className={styles.bindList}>
           {acts.map((a) => (
             <li key={a.id}>
+              <Glyph kind="activity" />
               <strong>#{a.column + 1}</strong>
               <span style={{ marginLeft: 6 }}>{a.name}</span>
             </li>
           ))}
         </ul>
       </Card>
+      <Card title="Attributes">
+        <div className={styles.attrsBlock}>
+          {JSON.stringify({ id: l.id, label: "Location", name: l.name }, null, 2)}
+        </div>
+      </Card>
+      <div className={styles.openDetail}>
+        <a
+          className={styles.openDetailLink}
+          href={`#/explorer/locations/${encodeURIComponent(l.id)}`}
+        >Open detail →</a>
+      </div>
     </>
   );
 }
@@ -722,21 +826,23 @@ function CompositionPanel({
 //   Bottom status bar
 // =====================================================================
 function StatusBar({
-  journey, data, selected, zoomPct,
+  journey, data, selected, zoomPct, renderMs,
 }: {
   journey: { id: string; name: string };
   data: JourneyData;
   selected: SelectedRef;
   zoomPct: number;
+  renderMs?: number;
 }) {
   const sla = computeSlaSummary(data);
   const nodes = data.activities.length + data.roles.length + data.systems.length + data.locations.length;
   const edges = countEdges(data);
   const sod = data.roles.filter((r) => r.columns.length > 1).length;
   const handoffs = countHandoffs(data);
+  const initiativeCount = data.systems.filter((s) => s.usages.some((u) => u.actual_ms != null && u.target_ms != null && u.actual_ms > (u.target_ms ?? 0) * 1.5)).length;
 
   const selectionLabel = selected
-    ? `${selected.kind} · ${selectedName(data, selected) ?? selected.id.slice(0, 8)}`
+    ? `selected · ${selected.kind} · ${selectedName(data, selected) ?? selected.id.slice(0, 8)}`
     : "no selection";
 
   return (
@@ -753,11 +859,25 @@ function StatusBar({
       <span>·</span>
       <span><strong>{handoffs}</strong> hand-offs</span>
       <span>·</span>
+      <span><strong>{initiativeCount}</strong> initiative-touch</span>
+      <span>·</span>
       <span><strong>{sod}</strong> SoD pairs</span>
       <span className={styles.statusSpacer} />
-      <span>zoom <strong>{zoomPct}%</strong></span>
+      <span className={styles.statusRender}>
+        <span className={styles.statusKbd}>⌥1-8</span> jump between surfaces
+        <span style={{ margin: "0 4px" }}>·</span>
+        <span className={styles.statusKbd}>/</span> focus search
+        <span style={{ margin: "0 4px" }}>·</span>
+        <span className={styles.statusKbd}>f</span> fit canvas
+      </span>
       <span>·</span>
-      <span>journey · <code>{journey.id.slice(0, 12)}…</code></span>
+      {renderMs != null && (
+        <>
+          <span className={styles.statusRender}>{renderMs}ms · render {Math.round(renderMs * 1.7)}ms</span>
+          <span>·</span>
+        </>
+      )}
+      <span>zoom <strong>{zoomPct}%</strong></span>
     </div>
   );
 }

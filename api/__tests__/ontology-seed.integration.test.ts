@@ -83,8 +83,14 @@ describe("integration: seedRegistryFromConstTuples (T-08 / AC-15)", () => {
   });
 
   afterAll(async () => {
-    // Leave the meta-namespace clean for the next test run.
+    // Clear, then re-seed so subsequent test files in the same suite run
+    // see a valid schema. Leaving the namespace empty breaks any test that
+    // calls PATCH /api/v1/nodes/:label/:id (parseRegistryLabel returns null
+    // when the schema cache reloads an empty registry).
     await clearMetaNamespace();
+    const driver = getDriver();
+    await applyMetaSchema(driver);
+    await seedRegistryFromConstTuples(driver);
     await closeDriver();
     _resetDriver();
   });
