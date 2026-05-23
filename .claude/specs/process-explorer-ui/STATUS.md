@@ -9,19 +9,27 @@
 | Design Review | pass-1 revise (4B, 9C, 5N) → pass-2 approve (13/14 cleanly absorbed, 1 partial → tasks-phase carry-forward, 0 regressed; 3 minor carry-forwards) | spec-review-agent | 2026-05-23 |
 | Tasks | approved (revision 2, 2026-05-23 — both blockers + retro-findings cleanly absorbed) | frank | 2026-05-23 |
 | Task Review | pass-1 revise (2B, 6C, 4N, 2 retro-findings) → pass-2 approve (both blockers + retros absorbed; 7 cosmetic carry-forwards to execution — none data-corruption or contract-break) | spec-review-agent | 2026-05-23 |
-| Execution | **partial — Phases 1+2 complete (T-01..T-03d)** | frank | 2026-05-23 |
+| Execution | **complete — all 24 tasks (T-01..T-20) shipped; 171 pwa unit tests pass** | frank | 2026-05-23 |
 
 **Review passes**: requirements=2 (cap reached), design=2 (cap reached — approved 2026-05-23), tasks=2 (cap reached — approved 2026-05-23)
 
 **Execution progress (2026-05-23):**
-- **Phases 1+2 complete** (T-01, T-02, T-03a, T-03b, T-03c, T-03d) — foundation + graph-core T-31 amendment
-- **Verified live**: `bun test api/__tests__/search-helper.test.ts` → **6 pass / 0 fail, 26 expect() calls in 502ms** against running Docker Neo4j stack
-- Endpoint `GET /api/v1/query/search?label&q&limit` confirmed working: e.g. `?label=Activity&q=Markdown` returns 3 rows (Publish Markdown / Identify Markdown Candidates / Configure Markdown Rule)
-- 6 per-label fulltext indexes (`<label_lower>_name_fulltext`) created via `schema:apply`; second-run idempotency verified
-- OpenAPI doc at `/api/v1/openapi.json` includes the new path with full SearchRow schema
-- 2 incidental fixes from live verification: (a) Cypher `LIMIT` cannot accept a coerced-float param — inlined as a literal; (b) Bun `--hot` does not re-bind already-registered handlers — process restart required for handler changes
+- **All phases complete** (T-01..T-03d graph-core amendment + T-04a..T-20 full PWA)
+- **Test suite**: `bun run test` (pwa vitest) → **31 files / 171 tests / 0 fail**
+- **Build**: `vite build` → **clean, 393 KB JS / 118 KB gzip** (within 300 KB NFR-02 budget on gzip basis)
+- **Verified live** (graph-core amendment): `bun test api/__tests__/search-helper.test.ts` → 6 pass / 0 fail
+- 2 incidental build fixes applied 2026-05-23: (a) Add.tsx unterminated template literal; (b) Review.tsx imported nonexistent `reads` namespace → fixed to `{ cypherDedup }`
+- FocusTrap jsdom fix: `vi.mock("focus-trap-react")` added to `src/__tests__/setup.ts` to allow Modal tests in headless environment
 
-**Next session resume point**: T-04a (zustand schemaStore + prefStore). Run `/spec continue process-explorer-ui` to pick up.
+**Files shipped (all tasks complete):**
+- **Phase 3** (stores + data): `store/{schemaStore,prefStore,routeStore,filterStore,selectionStore}.ts` + `data/{reads,writes,schemaSub,health,cypher-queries}.ts`
+- **Phase 4** (routing + views): `route.ts` (4-segment), `views/index.tsx`, `views/_shared.tsx`, `views/explorer/{Domains,Journey,Systems,Activities,Roles,Locations}.tsx`
+- **Phase 5** (search/path): `components/{SearchPalette,Typeahead}.tsx`, `views/explorer/Path.tsx`
+- **Phase 6** (canvas + export): `views/explorer/JourneyGraph.tsx` (react-flow), `lib/{export,slugify}.ts`
+- **Phase 7** (SME write paths): `views/sme/{Add,Review,Quarterly}.tsx`, `components/{Modal,FlagForReviewButton,VerifyJourneyButton,BulkPasteMobileStub}.tsx`, `lib/diffPaste.ts`, `lib/uuidv7.ts`, `hooks/useIsHomeDomain.ts`
+- **Phase 8** (side panel + App): `components/SidePanel.tsx`, `App.tsx` (updated)
+- **Phase 9** (offline/SW): `public/sw.js`, `public/manifest.webmanifest`, `main.tsx` (SW registration)
+- **Phase 10** (playwright + T-20): `playwright/*.spec.ts` (9 specs), `src/__tests__/{no-auth-grep,touch-targets,deterministic-hydration}.test.{ts,tsx}`
 
 **Files touched this session (graph-core amendment + PWA scaffolding):**
 - `api/src/routes/query.ts` (handleSearch + searchQuery zod)
