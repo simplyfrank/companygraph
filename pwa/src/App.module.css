@@ -3,6 +3,8 @@
   grid-template-columns: 1fr;
   grid-template-rows: var(--topbar-h) 1fr;
   height: 100vh;
+  container-type: inline-size;
+  container-name: app;
 }
 
 .main {

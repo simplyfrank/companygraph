@@ -1,4 +1,5 @@
 /* T-17: Responsive side panel layout via container queries */
+/* Container context lives on .app (App.module.css) so panel queries the viewport */
 
 .panel {
   position: fixed;
@@ -84,7 +85,7 @@
 }
 
 /* Tablet: bottom sheet */
-@media (max-width: 1023px) and (min-width: 768px) {
+@container app (max-width: 1023px) and (min-width: 768px) {
   .panel {
     top: auto;
     bottom: 0;
@@ -98,7 +99,7 @@
 }
 
 /* Phone: full-screen modal */
-@media (max-width: 767px) {
+@container app (max-width: 767px) {
   .panel {
     top: 0;
     left: 0;

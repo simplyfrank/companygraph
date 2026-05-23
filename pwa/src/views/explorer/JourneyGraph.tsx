@@ -724,6 +724,7 @@ function Legend({ visibleLayers, data }: { visibleLayers: VisibleLayers; data: J
       {visibleLayers.roles      && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineExecutes}`} /> <strong>EXECUTES</strong></div>}
       {visibleLayers.systems    && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineUsesSystem}`} /> <strong>USES_SYSTEM</strong></div>}
       {visibleLayers.locations  && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineAtLocation}`} /> <strong>AT_LOCATION</strong></div>}
+      {visibleLayers.systems    && data && data.integrations.length > 0 && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineIntegrates}`} /> <strong>INTEGRATES_WITH</strong></div>}
       <div className={styles.legendDivider} />
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaOk}`} /> <strong>SLA · ok</strong></div>
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaWarn}`} /> <strong>SLA · warn</strong></div>
@@ -811,10 +812,13 @@ function SelectedNodePanel({
     const roles    = data.roles.filter((r) => r.columns.includes(a.column));
     const systems  = data.systems.filter((s) => s.usages.some((u) => u.column === a.column));
     const locs     = data.locations.filter((l) => l.columns.includes(a.column));
-    const upstream = data.precedes.filter((p) => p.to_col === a.column);
-    const downstream = data.precedes.filter((p) => p.from_col === a.column);
+    const upstream = data.precedes.filter((p) => p.to_col === a.column && p.from_col >= 0);
+    const downstream = data.precedes.filter((p) => p.from_col === a.column && p.to_col >= 0);
+    const crossInbound = data.precedes.filter((p) => p.to_col === a.column && p.from_col === -1 && p.cross_journey);
+    const crossOutbound = data.precedes.filter((p) => p.from_col === a.column && p.to_col === -1 && p.cross_journey);
     const incomingCount = upstream.length + roles.length;
     const outgoingCount = downstream.length + systems.length + locs.length;
+    const crossCount = crossInbound.length + crossOutbound.length;
     return (
       <>
         <Card title="Selected activity" actions={<CloseBtn onClick={onClear} />}>
@@ -896,6 +900,40 @@ function SelectedNodePanel({
             </ul>
           )}
         </Card>
+        {crossCount > 0 && (
+          <Card title="Cross-journey hand-offs">
+            <div className={styles.edgeSection}>
+              <span>CROSS-JOURNEY</span>
+              <span className={styles.edgeSectionCount}>· {crossCount}</span>
+            </div>
+            <ul className={styles.bindList}>
+              {crossInbound.map((p, i) => (
+                <li key={`ci${i}`}>
+                  <span className={styles.bindStripe} style={{ background: "var(--good)" }} />
+                  <span style={{ color: "var(--muted)" }}>← from </span>
+                  <strong>{p.cross_journey!.journeyName}</strong>
+                  {p.target_ms != null && p.actual_ms != null && (
+                    <span className={styles.bindMicro}>
+                      <SlaPill target={p.target_ms} actual={p.actual_ms} />
+                    </span>
+                  )}
+                </li>
+              ))}
+              {crossOutbound.map((p, i) => (
+                <li key={`co${i}`}>
+                  <span className={styles.bindStripe} style={{ background: "var(--accent)" }} />
+                  <span style={{ color: "var(--muted)" }}>→ to </span>
+                  <strong>{p.cross_journey!.journeyName}</strong>
+                  {p.target_ms != null && p.actual_ms != null && (
+                    <span className={styles.bindMicro}>
+                      <SlaPill target={p.target_ms} actual={p.actual_ms} />
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
         <Card title="Attributes">
           <div className={styles.attrsBlock}>
             {JSON.stringify({ id: a.id, label: "Activity", name: a.name, seq: a.column + 1 }, null, 2)}
@@ -962,6 +1000,8 @@ function SelectedNodePanel({
   if (selected.kind === "system") {
     const s = data.systems.find((x) => x.id === selected.id);
     if (!s) return null;
+    const sysIdx = data.systems.findIndex((x) => x.id === s.id);
+    const integrations = data.integrations.filter((i) => i.from_sys === sysIdx || i.to_sys === sysIdx);
     return (
       <>
         <Card title="Selected system" actions={<CloseBtn onClick={onClear} />}>
@@ -989,6 +1029,26 @@ function SelectedNodePanel({
             </tbody>
           </table>
         </Card>
+        {integrations.length > 0 && (
+          <Card title="Integrations">
+            <div className={styles.edgeSection}>
+              <span>INTEGRATES_WITH</span>
+              <span className={styles.edgeSectionCount}>· {integrations.length}</span>
+            </div>
+            <ul className={styles.bindList}>
+              {integrations.map((integ, i) => {
+                const other = data.systems[integ.from_sys === sysIdx ? integ.to_sys : integ.from_sys];
+                if (!other) return null;
+                return (
+                  <li key={i}>
+                    <Glyph kind="system" />
+                    <strong>{other.name}</strong>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        )}
         <Card title="Attributes">
           <div className={styles.attrsBlock}>
             {JSON.stringify({ id: s.id, label: "System", name: s.name, ...(s.kind ? { kind: s.kind } : {}) }, null, 2)}
@@ -1090,6 +1150,7 @@ function CompositionPanel({
   const cost = 8.5;
   const runs = 12_400;
   const handoffs = countHandoffs(data);
+  const crossJourney = data.precedes.filter((p) => p.cross_journey).length;
   return (
     <>
       <Card title="Journey">
@@ -1105,6 +1166,8 @@ function CompositionPanel({
           { label: "locations",     value: data.locations.length },
           { label: "edges",         value: countEdges(data) },
           { label: "hand-offs",     value: handoffs },
+          { label: "cross-journey", value: crossJourney },
+          { label: "integrations",  value: data.integrations.length },
           { label: "critical path", value: `${Math.round(data.precedes.reduce((s, e) => s + (e.target_ms ?? 0), 0) / 1000)}s` },
         ]} />
       </Card>
@@ -1156,6 +1219,7 @@ function StatusBar({
   const sla = computeSlaSummary(data);
   const nodes = data.activities.length + data.roles.length + data.systems.length + data.locations.length;
   const edges = countEdges(data);
+  const crossJourney = data.precedes.filter((p) => p.cross_journey).length;
 
   const selectionLabel = selected
     ? `${selected.kind} · ${selectedName(data, selected) ?? selected.id.slice(0, 8)}`
@@ -1167,6 +1231,18 @@ function StatusBar({
       <span>·</span>
       <span><strong>{edges}</strong> edges</span>
       <span>·</span>
+      {crossJourney > 0 && (
+        <>
+          <span><strong>{crossJourney}</strong> cross-journey</span>
+          <span>·</span>
+        </>
+      )}
+      {data.integrations.length > 0 && (
+        <>
+          <span><strong>{data.integrations.length}</strong> integrations</span>
+          <span>·</span>
+        </>
+      )}
       <span><strong>{sla.total}</strong> SLA-bearing (<span style={{ color: "var(--good)" }}>{sla.ok} ok</span> · <span style={{ color: "var(--warn)" }}>{sla.warn} warn</span> · <span style={{ color: "var(--danger)" }}>{sla.breach} breach</span>)</span>
       <span>·</span>
       <span>read-only ✓</span>
@@ -1200,6 +1276,7 @@ function countEdges(d: JourneyData): number {
 function countHandoffs(d: JourneyData): number {
   let n = 0;
   for (const p of d.precedes) {
+    if (p.cross_journey) continue; // cross-journey edges are not in-journey handoffs
     const fromRoles = d.roles.filter((r) => r.columns.includes(p.from_col)).map((r) => r.id).sort().join(",");
     const toRoles   = d.roles.filter((r) => r.columns.includes(p.to_col)).map((r) => r.id).sort().join(",");
     if (fromRoles !== toRoles) n++;
@@ -1234,7 +1311,8 @@ function applyManualOrder(d: JourneyData, order: string[]): JourneyData {
       usages: s.usages.map((u) => ({ ...u, column: mapCol(u.column) })),
     })),
     locations: d.locations.map((l) => ({ ...l, columns: l.columns.map(mapCol) })),
-    precedes: d.precedes.map((p) => ({ ...p, from_col: mapCol(p.from_col), to_col: mapCol(p.to_col) })),
+    precedes: d.precedes.map((p) => ({ ...p, from_col: p.from_col >= 0 ? mapCol(p.from_col) : -1, to_col: p.to_col >= 0 ? mapCol(p.to_col) : -1 })),
+    integrations: d.integrations,
   };
 }
 

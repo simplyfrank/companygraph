@@ -2,6 +2,7 @@ import type { Route } from "../../route";
 import { api } from "../../api";
 import { useFetch } from "../../useFetch";
 import { DomainCard } from "../../components/DomainCard";
+import { useSelectionStore } from "../../store/selectionStore";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
 import styles from "./Domains.module.css";
 
@@ -14,6 +15,8 @@ interface DomainStatRow {
 }
 
 export function ExplorerDomains(_props: { route: Route }) {
+  const select = useSelectionStore((s) => s.select);
+
   // Pull domains with their journey + activity counts in one shot.
   const domains = useFetch(
     () =>
@@ -43,6 +46,7 @@ export function ExplorerDomains(_props: { route: Route }) {
               key={d.id}
               domain={d}
               href={`#/explorer/journey-graph?domain=${encodeURIComponent(d.id)}`}
+              onSelect={(id) => select(id, "Domain")}
               counts={[
                 { label: "journeys",   value: d.journeys },
                 { label: "activities", value: d.activities },

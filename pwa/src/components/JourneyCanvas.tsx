@@ -469,6 +469,11 @@ export function JourneyCanvas({
   const handleMouseUp = (): void => { dragRef.current = null; setPanning(false); };
 
   // =================================
+  //   Hover state for tooltips
+  // =================================
+  const [hovered, setHovered] = useState<{ type: 'node' | 'edge'; data: NodePos | EdgeSeg; x: number; y: number } | null>(null);
+
+  // =================================
   //   Activity reorder (chain only)
   // =================================
   const reorderRef = useRef<{ id: string; startX: number; startCol: number } | null>(null);
@@ -636,7 +641,18 @@ export function JourneyCanvas({
             return (
               <line key={`e${i}`} x1={e.fromX} y1={e.fromY} x2={e.toX} y2={e.toY}
                     className={cls}
-                    markerEnd={kind === "precedes" ? "url(#jc-arrow)" : undefined} />
+                    markerEnd={kind === "precedes" ? "url(#jc-arrow)" : undefined}
+                    onMouseEnter={(ev) => {
+                      const rect = svgRef.current?.getBoundingClientRect();
+                      if (rect) {
+                        const mx = (e.fromX + e.toX) / 2;
+                        const my = (e.fromY + e.toY) / 2;
+                        const screenX = (mx + view.x) * view.scale + rect.left;
+                        const screenY = (my + view.y) * view.scale + rect.top;
+                        setHovered({ type: 'edge', data: e, x: screenX, y: screenY });
+                      }
+                    }}
+                    onMouseLeave={() => setHovered(null)} />
             );
           })}
         </g>
@@ -686,13 +702,31 @@ export function JourneyCanvas({
             return (
               <g key={node.id} className={wrapCls} data-node={node.kind}
                  transform={`translate(${x} ${y})`}
-                 onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : ref); }}>
+                 onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : ref); }}
+                 onMouseEnter={(ev) => {
+                   const rect = svgRef.current?.getBoundingClientRect();
+                   if (rect) {
+                     const screenX = (x + view.x) * view.scale + rect.left;
+                     const screenY = (y + view.y) * view.scale + rect.top;
+                     setHovered({ type: 'node', data: node, x: screenX, y: screenY });
+                   }
+                 }}
+                 onMouseLeave={() => setHovered(null)}>
                 {renderNode(node, layoutMode, onReorder !== undefined, startReorder)}
               </g>
             );
           })}
         </g>
       </g>
+
+      {/* Tooltip overlay using foreignObject */}
+      {hovered && (
+        <foreignObject x={0} y={0} width={layout.width} height={layout.height}>
+          <div className={styles.tooltip} style={{ position: 'absolute', left: hovered.x + 12, top: hovered.y - 8 }}>
+            {hovered.type === 'node' ? renderNodeTooltip(hovered.data as NodePos, data) : renderEdgeTooltip(hovered.data as EdgeSeg, data)}
+          </div>
+        </foreignObject>
+      )}
     </svg>
   );
 }
@@ -752,6 +786,75 @@ function renderNode(
     <>
       <rect className={styles.locationDiamond} x={-16} y={-16} width={32} height={32} transform="rotate(45)" />
       <text className={styles.locationName} x={0} y={32} textAnchor="middle">{shortName(l.name, 16)}</text>
+    </>
+  );
+}
+
+// =====================================================================
+//   Tooltip renderers
+// =====================================================================
+function renderNodeTooltip(node: NodePos, data: JourneyData): React.JSX.Element {
+  if (node.kind === "activity") {
+    const a = node.data as ActivityNode;
+    return (
+      <>
+        <div className={styles.tooltipTitle}>Activity</div>
+        <div className={styles.tooltipName}>{a.name}</div>
+        <div className={styles.tooltipMeta}>Sequence: {a.column + 1}</div>
+      </>
+    );
+  }
+  if (node.kind === "role") {
+    const r = node.data as RoleNode;
+    return (
+      <>
+        <div className={styles.tooltipTitle}>Role</div>
+        <div className={styles.tooltipName}>{r.name}</div>
+        {r.team_color && <div className={styles.tooltipMeta}>Team: {r.team_color}</div>}
+      </>
+    );
+  }
+  if (node.kind === "system") {
+    const s = node.data as SystemNode;
+    return (
+      <>
+        <div className={styles.tooltipTitle}>System</div>
+        <div className={styles.tooltipName}>{s.name}</div>
+        {s.kind && <div className={styles.tooltipMeta}>Type: {s.kind}</div>}
+      </>
+    );
+  }
+  const l = node.data as LocationNode;
+  return (
+    <>
+      <div className={styles.tooltipTitle}>Location</div>
+      <div className={styles.tooltipName}>{l.name}</div>
+    </>
+  );
+}
+
+function renderEdgeTooltip(edge: EdgeSeg, data: JourneyData): React.JSX.Element {
+  const fromNode = data.activities.find(a => a.id === edge.fromNodeId) ||
+                   data.roles.find(r => r.id === edge.fromNodeId) ||
+                   data.systems.find(s => s.id === edge.fromNodeId) ||
+                   data.locations.find(l => l.id === edge.fromNodeId);
+  const toNode = data.activities.find(a => a.id === edge.toNodeId) ||
+                 data.roles.find(r => r.id === edge.toNodeId) ||
+                 data.systems.find(s => s.id === edge.toNodeId) ||
+                 data.locations.find(l => l.id === edge.toNodeId);
+
+  const edgeLabel = edge.kind === "precedes" ? "PRECEDES" :
+                    edge.kind === "executes" ? "EXECUTES" :
+                    edge.kind === "uses_system" ? "USES SYSTEM" :
+                    edge.kind === "at_location" ? "AT LOCATION" :
+                    edge.kind === "integrates_with" ? "INTEGRATES WITH" : edge.kind;
+
+  return (
+    <>
+      <div className={styles.tooltipTitle}>{edgeLabel}</div>
+      {fromNode && <div className={styles.tooltipMeta}>From: {fromNode.name}</div>}
+      {toNode && <div className={styles.tooltipMeta}>To: {toNode.name}</div>}
+      {edge.tone && <div className={styles.tooltipMeta}>Status: {edge.tone}</div>}
     </>
   );
 }
