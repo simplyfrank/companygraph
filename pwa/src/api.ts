@@ -80,6 +80,12 @@ export const api = {
         withSignal(signal),
       ),
   },
+
+  // ontology-manager — runtime-mutable label / edge-type registry
+  ontology: {
+    listLabels: (signal?: AbortSignal) =>
+      json<{ rows: OntologyLabelRow[] }>("/api/v1/ontology/node-labels", withSignal(signal)),
+  },
 };
 
 export interface DomainRow { id: string; name: string; description: string }
@@ -126,4 +132,16 @@ export interface ExportEdge {
   toId: string;
   createdAt: string;
   attributes: Record<string, unknown>;
+}
+
+// ontology-manager — node label registry rows
+export interface OntologyLabelRow {
+  name: string;
+  description: string;
+  usage_example: string;
+  json_schema_doc: Record<string, unknown>;
+  external_alignment: Array<{ source: string; id: string }>;
+  deprecated_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
