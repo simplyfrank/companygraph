@@ -500,3 +500,155 @@
 .statusbar strong { color: var(--fg); }
 .statusbar code { color: var(--accent); }
 .statusSpacer { flex: 1; }
+
+/* ===== Journey picker (custom dropdown replaces native <select>) ===== */
+.journeyPicker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.journeyPickerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12.5px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  min-width: 220px;
+  justify-content: space-between;
+}
+.journeyPickerBtn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.jpBtnLbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 2px;
+  flex: none;
+}
+
+.jpBtnNm {
+  color: var(--fg);
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jpBtnCaret {
+  color: var(--muted);
+  font-size: 10px;
+  flex: none;
+}
+
+.journeyPickerMenu {
+  position: fixed;
+  min-width: 360px;
+  max-height: 480px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px -8px oklch(20% 0.02 250 / 0.18);
+  z-index: 1000;
+  padding: 4px 0;
+}
+
+.jpGrp {
+  padding: 6px 12px 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.jpOpt {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  align-items: baseline;
+}
+.jpOpt:hover {
+  background: var(--surface-2);
+}
+.jpOptActive {
+  background: var(--accent-soft);
+}
+
+.jpOptNm {
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.jpOptId {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  grid-column: 1 / -1;
+  margin-top: 1px;
+}
+
+.jpPills {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.jpPill {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.jpPillBreach {
+  color: var(--danger);
+  border-color: color-mix(in oklch, var(--danger) 30%, var(--border));
+}
+
+.jpPillWarn {
+  color: var(--warn);
+  border-color: color-mix(in oklch, var(--warn) 30%, var(--border));
+}
+
+.jpPillSod {
+  color: oklch(58% 0.22 25);
+  border-color: color-mix(in oklch, oklch(58% 0.22 25) 30%, var(--border));
+}
+
+.jpOptDim {
+  opacity: 0.42;
+}
+.jpOptDim .jpPill {
+  opacity: 0.7;
+}
+
+.jpEmpty {
+  padding: 14px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+}

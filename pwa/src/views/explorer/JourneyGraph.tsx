@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "../../route";
 import { api, type DomainRow } from "../../api";
 import { useFetch } from "../../useFetch";
@@ -28,6 +28,33 @@ const TEAM_TONE: Record<string, "accent" | "good" | "warn" | "danger"> = {
   dc_operations:    "good",
   last_mile:        "warn",
 };
+
+// Static subdomain labels per journey id (mirrors the wireframe catalog).
+// These are presentation-only hints; no model change required.
+const SUBDOMAIN_OF: Record<string, string> = {
+  uj_web_browse_buy:    "Web",
+  uj_in_store_buy:      "In-store",
+  uj_loyalty_signup:    "Loyalty",
+  uj_order_fulfillment: "Outbound",
+  uj_click_collect:     "Click & collect",
+  uj_returns_intake:    "Returns",
+  uj_same_day:          "Same-day",
+  uj_inbound_receiving: "Receiving",
+  uj_replenishment:     "Planning",
+  uj_promo_planning:    "Planning",
+  uj_refund_flow:       "Refunds",
+  uj_email_triage:      "Inbound",
+  uj_phone_support:     "Inbound",
+  uj_instore_complaint: "Resolution",
+};
+
+interface JourneyBadges {
+  slaBreach: number;
+  slaWarn:   number;
+  handoffs:  number;
+  sod:       number;
+}
+type BadgeMap = Record<string, JourneyBadges>;
 
 // =====================================================================
 //   Top-level view
@@ -65,10 +92,104 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
     [],
   );
 
-  const journeyList = journeys.status === "ok"
+  // Full un-filtered journey list (needed for the picker to show all domains).
+  const allJourneys = journeys.status === "ok"
     ? (journeys.data.rows as unknown as Array<{ id: string; name: string; domainId: string; domainName: string }>)
-        .filter((j) => !domainFilter || j.domainId === domainFilter)
     : [];
+
+  const journeyList = allJourneys
+    .filter((j) => !domainFilter || j.domainId === domainFilter);
+
+  // Per-journey SLA breach/warn counts — fetched once globally, not per-journey.
+  // Falls back gracefully to empty on seeds without SLA attributes.
+  const slaBadges = useFetch(
+    () =>
+      api.cypher(
+        `MATCH (a1:Activity)-[r:PRECEDES]->(a2:Activity)
+         WHERE r.attributes_json IS NOT NULL
+           AND r.attributes_json <> '{}'
+         OPTIONAL MATCH (a1)-[:PART_OF]->(j:UserJourney)
+         WITH j, r.attributes_json AS attrs
+         WHERE j IS NOT NULL
+         WITH j.id AS journeyId,
+              attrs,
+              apoc.convert.fromJsonMap(attrs) AS a
+         WITH journeyId,
+              a['target_p99_ms'] AS target,
+              a['observed_p99_ms'] AS observed
+         WHERE target IS NOT NULL AND observed IS NOT NULL AND toFloat(target) > 0
+         WITH journeyId,
+              CASE WHEN toFloat(observed) > toFloat(target) THEN 1 ELSE 0 END AS isBreach,
+              CASE WHEN toFloat(observed) <= toFloat(target)
+                    AND toFloat(observed) > toFloat(target) * 0.9 THEN 1 ELSE 0 END AS isWarn
+         RETURN journeyId,
+                sum(isBreach) AS breach,
+                sum(isWarn)   AS warn`,
+      ),
+    [],
+  );
+
+  // Per-journey handoff counts (cross-team PRECEDES transitions).
+  const handoffBadges = useFetch(
+    () =>
+      api.cypher(
+        `MATCH (a1:Activity)-[:PRECEDES]->(a2:Activity)
+         OPTIONAL MATCH (a1)-[:PART_OF]->(j:UserJourney)
+         OPTIONAL MATCH (r1:Role)-[:EXECUTES]->(a1)
+         OPTIONAL MATCH (r2:Role)-[:EXECUTES]->(a2)
+         WITH j, a1, a2,
+              coalesce(
+                apoc.convert.fromJsonMap(coalesce(r1.attributes_json,'{}'))['team_id'],
+                apoc.convert.fromJsonMap(coalesce(a1.attributes_json,'{}'))['team']
+              ) AS t1,
+              coalesce(
+                apoc.convert.fromJsonMap(coalesce(r2.attributes_json,'{}'))['team_id'],
+                apoc.convert.fromJsonMap(coalesce(a2.attributes_json,'{}'))['team']
+              ) AS t2
+         WHERE j IS NOT NULL AND t1 IS NOT NULL AND t2 IS NOT NULL AND t1 <> t2
+         RETURN j.id AS journeyId, count(*) AS handoffs`,
+      ),
+    [],
+  );
+
+  // Per-journey SoD violation counts (activities with sod_severity attribute).
+  const sodBadges = useFetch(
+    () =>
+      api.cypher(
+        `MATCH (a1:Activity)-[:PRECEDES]->(a2:Activity)
+         WHERE a1.attributes_json CONTAINS '"sod_severity"'
+            OR a2.attributes_json CONTAINS '"sod_severity"'
+         OPTIONAL MATCH (a1)-[:PART_OF]->(j:UserJourney)
+         WHERE j IS NOT NULL
+         RETURN j.id AS journeyId, count(*) AS sod`,
+      ),
+    [],
+  );
+
+  // Merge badge data into a single map keyed by journey id.
+  const badgeMap = useMemo((): BadgeMap => {
+    const map: BadgeMap = {};
+    if (slaBadges.status === "ok") {
+      for (const r of slaBadges.data.rows as Array<{ journeyId: string; breach: number; warn: number }>) {
+        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0 };
+        map[r.journeyId].slaBreach = Number(r.breach) || 0;
+        map[r.journeyId].slaWarn   = Number(r.warn)   || 0;
+      }
+    }
+    if (handoffBadges.status === "ok") {
+      for (const r of handoffBadges.data.rows as Array<{ journeyId: string; handoffs: number }>) {
+        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0 };
+        map[r.journeyId].handoffs = Number(r.handoffs) || 0;
+      }
+    }
+    if (sodBadges.status === "ok") {
+      for (const r of sodBadges.data.rows as Array<{ journeyId: string; sod: number }>) {
+        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0 };
+        map[r.journeyId].sod = Number(r.sod) || 0;
+      }
+    }
+    return map;
+  }, [slaBadges.status, handoffBadges.status, sodBadges.status]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const orderFulfillment = journeyList.find((j) => j.name === "Order fulfillment");
   const activeJourney = explicitJourney
@@ -131,8 +252,9 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
         domainFilter={domainFilter}
         subdomains={subdomains}
         subdomainFilter={subdomainFilter}
-        journeys={journeyList}
+        journeys={allJourneys}
         activeJourneyId={activeJourney?.id ?? null}
+        badgeMap={badgeMap}
         layoutMode={layoutMode}
         visibleLayers={visibleLayers}
         zoomPct={zoomPct}
@@ -181,7 +303,7 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
       </div>
 
       {renderedData && activeJourney && (
-        <StatusBar journey={activeJourney} data={renderedData} selected={selected} zoomPct={zoomPct} renderMs={renderMs} />
+        <StatusBar journey={activeJourney} data={renderedData} selected={selected} zoomPct={zoomPct} {...(renderMs != null ? { renderMs } : {})} />
       )}
     </div>
   );
@@ -203,6 +325,7 @@ function Toolbar({
   subdomainFilter: string | null;
   journeys: Array<{ id: string; name: string; domainId: string; domainName: string }>;
   activeJourneyId: string | null;
+  badgeMap: BadgeMap;
   layoutMode: LayoutMode;
   visibleLayers: VisibleLayers;
   zoomPct: number;
@@ -210,7 +333,7 @@ function Toolbar({
   hasManualOrder: boolean;
   onResetOrder: () => void;
 }) {
-  const hasAnyFilter = Boolean(domainFilter || subdomainFilter || activeJourneyId);
+  const hasAnyFilter = Boolean(domainFilter || subdomainFilter);
 
   const updateHash = (mut: (p: URLSearchParams) => void): void => {
     const params = new URLSearchParams();
@@ -239,7 +362,7 @@ function Toolbar({
 
       <div className={styles.toolbarSep} />
 
-      {/* Filter cascade */}
+      {/* Filter cascade — domain + subdomain */}
       <div className={styles.filterGroup}>
         <label className={styles.filter}>
           <span className={styles.filterLabel}>DOMAIN</span>
@@ -274,29 +397,31 @@ function Toolbar({
             {subdomains.map((sd) => <option key={sd} value={sd}>{sd}</option>)}
           </select>
         </label>
-        <label className={styles.filter}>
-          <span className={styles.filterLabel}>JOURNEY</span>
-          <select
-            value={activeJourneyId ?? ""}
-            onChange={(e) => updateHash((p) => {
-              p.delete("journey");
-              if (e.currentTarget.value) p.set("journey", e.currentTarget.value);
-            })}
-          >
-            <option value="" disabled>pick a journey</option>
-            {journeys.map((j) => <option key={j.id} value={j.id}>{j.name}</option>)}
-          </select>
-        </label>
         {hasAnyFilter && (
           <button
             type="button"
             className={styles.filterReset}
-            title="Clear all filters"
-            aria-label="Clear all filters"
+            title="Clear domain/subdomain filters"
+            aria-label="Clear domain/subdomain filters"
             onClick={() => { window.location.hash = "#/explorer/journey-graph"; }}
           >×</button>
         )}
       </div>
+
+      <div className={styles.toolbarSep} />
+
+      {/* Journey picker */}
+      <JourneyPicker
+        journeys={journeys}
+        activeJourneyId={activeJourneyId}
+        domainFilter={domainFilter}
+        subdomainFilter={subdomainFilter}
+        badgeMap={badgeMap}
+        onSelect={(jid) => updateHash((p) => {
+          if (jid) p.set("journey", jid);
+          else     p.delete("journey");
+        })}
+      />
 
       <div className={styles.toolbarSep} />
 
@@ -357,6 +482,200 @@ function Toolbar({
         <button type="button" className={styles.segBtn} onClick={() => onZoom("in")}   title="Zoom in">+</button>
         <button type="button" className={styles.segBtn} onClick={() => onZoom("fit")}  title="Fit to canvas">⤢</button>
       </div>
+    </div>
+  );
+}
+
+// =====================================================================
+//   Journey picker — custom dropdown replacing the native <select>
+// =====================================================================
+type JourneyRow = { id: string; name: string; domainId: string; domainName: string };
+
+function JourneyPicker({
+  journeys,
+  activeJourneyId,
+  domainFilter,
+  subdomainFilter,
+  badgeMap,
+  onSelect,
+}: {
+  journeys: JourneyRow[];
+  activeJourneyId: string | null;
+  domainFilter: string | null;
+  subdomainFilter: string | null;
+  badgeMap: BadgeMap;
+  onSelect: (journeyId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+
+  const activeJourney = journeys.find((j) => j.id === activeJourneyId);
+
+  const openMenu = useCallback(() => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuStyle({
+        top:      r.bottom + 4,
+        left:     r.left,
+        minWidth: Math.max(360, r.width),
+      });
+    }
+    setOpen(true);
+  }, []);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        !btnRef.current?.contains(e.target as Node) &&
+        !menuRef.current?.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open]);
+
+  // Reposition on scroll / resize while open
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      if (btnRef.current) {
+        const r = btnRef.current.getBoundingClientRect();
+        setMenuStyle({ top: r.bottom + 4, left: r.left, minWidth: Math.max(360, r.width) });
+      }
+    };
+    window.addEventListener("resize",  reposition);
+    window.addEventListener("scroll",  reposition, true);
+    return () => {
+      window.removeEventListener("resize",  reposition);
+      window.removeEventListener("scroll",  reposition, true);
+    };
+  }, [open]);
+
+  // Group journeys by domain.
+  // When domain/subdomain filters are active, dim non-matching rows instead
+  // of hiding them so the full catalog remains discoverable.
+  const byDomain = useMemo(() => {
+    const map = new Map<string, { domainName: string; rows: JourneyRow[] }>();
+    for (const j of journeys) {
+      if (!map.has(j.domainId)) map.set(j.domainId, { domainName: j.domainName, rows: [] });
+      map.get(j.domainId)!.rows.push(j);
+    }
+    return map;
+  }, [journeys]);
+
+  const passesFilter = (j: JourneyRow) => {
+    if (domainFilter && j.domainId !== domainFilter) return false;
+    if (subdomainFilter) {
+      const sd = SUBDOMAIN_OF[j.id];
+      if (sd !== subdomainFilter) return false;
+    }
+    return true;
+  };
+
+  return (
+    <div className={styles.journeyPicker}>
+      <button
+        ref={btnRef}
+        type="button"
+        className={styles.journeyPickerBtn}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => open ? setOpen(false) : openMenu()}
+      >
+        <span className={styles.jpBtnLbl}>journey</span>
+        <span className={styles.jpBtnNm}>{activeJourney?.name ?? "—"}</span>
+        <span className={styles.jpBtnCaret}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          className={styles.journeyPickerMenu}
+          role="listbox"
+          aria-label="Pick a journey"
+          style={menuStyle}
+        >
+          {byDomain.size === 0 && (
+            <div className={styles.jpEmpty}>No journeys loaded.</div>
+          )}
+          {[...byDomain.entries()].map(([domainId, { domainName, rows }]) => {
+            // When a filter is active hide groups where nothing passes
+            const hasVisible = !domainFilter && !subdomainFilter
+              ? true
+              : rows.some(passesFilter);
+            if (!hasVisible) return null;
+
+            return (
+              <div key={domainId}>
+                <div className={styles.jpGrp}>{domainName}</div>
+                {rows.map((j) => {
+                  const dim = (domainFilter || subdomainFilter) && !passesFilter(j);
+                  const badges = badgeMap[j.id];
+                  const subdomain = SUBDOMAIN_OF[j.id];
+                  return (
+                    <div
+                      key={j.id}
+                      role="option"
+                      aria-selected={j.id === activeJourneyId}
+                      className={[
+                        styles.jpOpt,
+                        j.id === activeJourneyId ? styles.jpOptActive : "",
+                        dim ? styles.jpOptDim : "",
+                      ].filter(Boolean).join(" ")}
+                      onClick={() => {
+                        setOpen(false);
+                        onSelect(j.id);
+                      }}
+                    >
+                      <span className={styles.jpOptNm}>{j.name}</span>
+                      <span className={styles.jpPills}>
+                        {subdomain && (
+                          <span className={styles.jpPill}>{subdomain}</span>
+                        )}
+                        {badges?.slaBreach > 0 && (
+                          <span className={`${styles.jpPill} ${styles.jpPillBreach}`}>
+                            {badges.slaBreach} breach
+                          </span>
+                        )}
+                        {badges?.slaWarn > 0 && (
+                          <span className={`${styles.jpPill} ${styles.jpPillWarn}`}>
+                            {badges.slaWarn} warn
+                          </span>
+                        )}
+                        {badges?.handoffs > 0 && (
+                          <span className={styles.jpPill}>
+                            {badges.handoffs} hand-off{badges.handoffs === 1 ? "" : "s"}
+                          </span>
+                        )}
+                        {badges?.sod > 0 && (
+                          <span className={`${styles.jpPill} ${styles.jpPillSod}`}>
+                            {badges.sod} SoD
+                          </span>
+                        )}
+                      </span>
+                      <span className={styles.jpOptId}>{j.id}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
