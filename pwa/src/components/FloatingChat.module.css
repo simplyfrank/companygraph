@@ -1,0 +1,384 @@
+/*
+ * FloatingChat — pill → floating panel → docked side panel.
+ *
+ * Three states driven by data-state on the root wrapper:
+ *   collapsed   → show pill only
+ *   float       → fixed bottom-right panel (≤ 380px wide, ≤ 480px tall)
+ *   docked      → full-height right drawer (340px wide)
+ */
+
+/* ── Root wrapper ─────────────────────────────────────────────── */
+
+.wrap {
+  z-index: 40;
+  font-family: var(--font-body);
+}
+
+/* Float mode: fixed position, bottom-right */
+.wrap[data-state="float"],
+.wrap[data-state="collapsed"] {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+}
+
+/* Docked mode: fixed right rail, full height below topbar */
+.wrap[data-state="docked"] {
+  position: fixed;
+  top: var(--topbar-h, 52px);
+  right: 0;
+  bottom: 0;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: -4px 0 24px color-mix(in oklch, var(--fg) 8%, transparent);
+}
+
+/* ── Pill trigger (collapsed state) ──────────────────────────── */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 12px;
+  background: oklch(18% 0.012 250);
+  color: oklch(98% 0.004 250);
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--fg) 18%, transparent),
+              0 1px 3px  color-mix(in oklch, var(--fg) 12%, transparent);
+  transition: transform var(--dur-fast) var(--ease-out),
+              box-shadow  var(--dur-fast) var(--ease-out);
+}
+.pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px color-mix(in oklch, var(--fg) 22%, transparent),
+              0 1px 3px  color-mix(in oklch, var(--fg) 12%, transparent);
+}
+.pill:active { transform: translateY(0); }
+
+.pillDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2.5px color-mix(in oklch, var(--accent) 28%, transparent);
+  flex: none;
+}
+.pillKbd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in oklch, oklch(98% 0.004 250) 18%, transparent);
+  color: oklch(98% 0.004 250);
+  border: 1px solid color-mix(in oklch, oklch(98% 0.004 250) 28%, transparent);
+}
+
+/* ── Panel shared layout ──────────────────────────────────────── */
+
+/* Float panel */
+.panel {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  overflow: hidden;
+}
+
+.wrap[data-state="float"] .panel {
+  width: min(380px, calc(100vw - 48px));
+  height: min(480px, calc(100vh - 120px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 36px color-mix(in oklch, var(--fg) 14%, transparent);
+}
+
+.wrap[data-state="docked"] .panel {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+
+.head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  flex: none;
+}
+
+.headMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headLbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.headTitle {
+  margin: 0;
+  font-family: var(--font-display, var(--font-body));
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headSp { flex: 1; }
+
+.ctxPill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 1.5px 7px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.ctxPillHas {
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent) 30%, var(--border));
+  background: var(--accent-soft);
+}
+
+/* Icon-buttons row in header */
+.headBtns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.iconBtn {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  line-height: 1;
+  font-family: var(--font-mono);
+}
+.iconBtn:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+/* ── Scroll body ──────────────────────────────────────────────── */
+
+.body {
+  overflow-y: auto;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* Welcome / empty-state */
+.welcome {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/* User message bubble */
+.msgUser {
+  align-self: flex-end;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklch, var(--accent) 25%, var(--border));
+  padding: 6px 10px;
+  border-radius: 10px 10px 2px 10px;
+  font-size: 12.5px;
+  max-width: 92%;
+}
+
+/* Assistant message */
+.msgAssistant {
+  align-self: flex-start;
+  max-width: 98%;
+}
+.msgWho {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+.msgAns {
+  line-height: 1.5;
+  color: var(--fg);
+  font-size: 12.5px;
+}
+.msgAns code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+.msgCites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.msgCite {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  border: 1px solid color-mix(in oklch, var(--accent) 28%, var(--border));
+  background: var(--accent-soft);
+  padding: 1.5px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.msgCite:hover {
+  background: color-mix(in oklch, var(--accent) 15%, var(--surface));
+}
+.msgFoot {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+  display: flex;
+  gap: 10px;
+}
+
+/* Thinking indicator */
+.thinking {
+  align-self: flex-start;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ── Suggested prompts row ────────────────────────────────────── */
+
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 12px 10px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  flex: none;
+}
+
+.suggestBtn {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--fg);
+  background: var(--surface);
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.suggestBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Input row ────────────────────────────────────────────────── */
+
+.input {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: var(--surface);
+  flex: none;
+}
+
+.inputField {
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--fg);
+  outline: none;
+}
+.inputField:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.inputField::placeholder { color: var(--muted); }
+
+.sendBtn {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sendBtn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.sendBtn:not(:disabled):hover {
+  background: color-mix(in oklch, var(--accent) 85%, black);
+}
+
+/* ── Error banner ─────────────────────────────────────────────── */
+
+.errBanner {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--danger-text, var(--danger));
+  background: color-mix(in oklch, var(--danger) 8%, var(--surface));
+  border: 1px solid color-mix(in oklch, var(--danger) 28%, var(--border));
+  border-radius: var(--radius-sm, 4px);
+  padding: 6px 10px;
+  flex: none;
+}
+
+/* ── Docked-mode overlay backdrop (optional, very subtle) ─────── */
+
+.wrap[data-state="docked"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { TopBar } from "./components/TopBar";
 import { SubNav } from "./components/SubNav";
 import { Button } from "./components/Button";
-import { AskTheGraph } from "./components/AskTheGraph";
+import { FloatingChat } from "./components/FloatingChat";
 import { SidePanel } from "./components/SidePanel";
 import { ConnectivityBanner } from "./components/ConnectivityBanner";
 import { useSchemaStore } from "./store/schemaStore";
@@ -144,7 +144,7 @@ export function App() {
       <SidePanel />
       {/* Surface-aware: don't show inside the Chat surface itself. */}
       {surface.id !== "chat" && (
-        <AskTheGraph currentRouteHash={window.location.hash} />
+        <FloatingChat />
       )}
     </div>
   );

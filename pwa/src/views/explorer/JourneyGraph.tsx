@@ -314,7 +314,7 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
 // =====================================================================
 function Toolbar({
   domains, domainFilter, subdomains, subdomainFilter,
-  journeys, activeJourneyId,
+  journeys, activeJourneyId, badgeMap,
   layoutMode, visibleLayers,
   zoomPct, onZoom,
   hasManualOrder, onResetOrder,
@@ -646,22 +646,22 @@ function JourneyPicker({
                         {subdomain && (
                           <span className={styles.jpPill}>{subdomain}</span>
                         )}
-                        {badges?.slaBreach > 0 && (
+                        {badges && badges.slaBreach > 0 && (
                           <span className={`${styles.jpPill} ${styles.jpPillBreach}`}>
                             {badges.slaBreach} breach
                           </span>
                         )}
-                        {badges?.slaWarn > 0 && (
+                        {badges && badges.slaWarn > 0 && (
                           <span className={`${styles.jpPill} ${styles.jpPillWarn}`}>
                             {badges.slaWarn} warn
                           </span>
                         )}
-                        {badges?.handoffs > 0 && (
+                        {badges && badges.handoffs > 0 && (
                           <span className={styles.jpPill}>
                             {badges.handoffs} hand-off{badges.handoffs === 1 ? "" : "s"}
                           </span>
                         )}
-                        {badges?.sod > 0 && (
+                        {badges && badges.sod > 0 && (
                           <span className={`${styles.jpPill} ${styles.jpPillSod}`}>
                             {badges.sod} SoD
                           </span>
