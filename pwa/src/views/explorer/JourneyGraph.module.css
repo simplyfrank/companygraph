@@ -161,6 +161,9 @@
   min-height: 660px;
   min-width: 0;
   overflow: hidden;
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in oklch, var(--border-strong) 50%, transparent) 1px, transparent 1.5px) 0 0/24px 24px,
+    linear-gradient(180deg, var(--surface-2), var(--surface));
 }
 
 .rail {

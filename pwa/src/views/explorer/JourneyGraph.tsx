@@ -715,19 +715,19 @@ function Legend({ visibleLayers, data }: { visibleLayers: VisibleLayers; data: J
 
   return (
     <div className={styles.legend}>
-      <div className={styles.legendBlock}><Glyph kind="activity" /> <span>ACTIVITY</span></div>
-      {visibleLayers.roles      && <div className={styles.legendBlock}><Glyph kind="role" /> <span>ROLE</span></div>}
-      {visibleLayers.systems    && <div className={styles.legendBlock}><Glyph kind="system" /> <span>SYSTEM</span></div>}
-      {visibleLayers.locations  && <div className={styles.legendBlock}><Glyph kind="location" /> <span>LOCATION</span></div>}
+      <div className={styles.legendBlock}><Glyph kind="activity" /> <strong>Activity</strong></div>
+      {visibleLayers.roles      && <div className={styles.legendBlock}><Glyph kind="role" /> <strong>Role</strong></div>}
+      {visibleLayers.systems    && <div className={styles.legendBlock}><Glyph kind="system" /> <strong>System</strong></div>}
+      {visibleLayers.locations  && <div className={styles.legendBlock}><Glyph kind="location" /> <strong>Location</strong></div>}
       <div className={styles.legendDivider} />
-      <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.linePrecedes}`} /> <span>PRECEDES</span></div>
-      {visibleLayers.roles      && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineExecutes}`} /> <span>EXECUTES</span></div>}
-      {visibleLayers.systems    && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineUsesSystem}`} /> <span>USES_SYSTEM</span></div>}
-      {visibleLayers.locations  && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineAtLocation}`} /> <span>AT_LOCATION</span></div>}
+      <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.linePrecedes}`} /> <strong>PRECEDES</strong></div>
+      {visibleLayers.roles      && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineExecutes}`} /> <strong>EXECUTES</strong></div>}
+      {visibleLayers.systems    && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineUsesSystem}`} /> <strong>USES_SYSTEM</strong></div>}
+      {visibleLayers.locations  && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineAtLocation}`} /> <strong>AT_LOCATION</strong></div>}
       <div className={styles.legendDivider} />
-      <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaOk}`} /> <span>SLA · OK</span></div>
-      <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaWarn}`} /> <span>SLA · WARN</span></div>
-      <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaBreach}`} /> <span>SLA · BREACH</span></div>
+      <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaOk}`} /> <strong>SLA · ok</strong></div>
+      <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaWarn}`} /> <strong>SLA · warn</strong></div>
+      <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaBreach}`} /> <strong>SLA · breach</strong></div>
       {teams.length > 0 && (
         <>
           <div className={styles.legendDivider} />
@@ -735,7 +735,7 @@ function Legend({ visibleLayers, data }: { visibleLayers: VisibleLayers; data: J
           {teams.map((t) => (
             <div key={t.name} className={styles.legendBlock}>
               <span className={styles.legendTeamSwatch} style={{ background: teamColor(t.color) }} />
-              <span>{t.name.toUpperCase()}</span>
+              <strong>{t.name}</strong>
             </div>
           ))}
         </>
@@ -1156,12 +1156,9 @@ function StatusBar({
   const sla = computeSlaSummary(data);
   const nodes = data.activities.length + data.roles.length + data.systems.length + data.locations.length;
   const edges = countEdges(data);
-  const sod = data.roles.filter((r) => r.columns.length > 1).length;
-  const handoffs = countHandoffs(data);
-  const initiativeCount = data.systems.filter((s) => s.usages.some((u) => u.actual_ms != null && u.target_ms != null && u.actual_ms > (u.target_ms ?? 0) * 1.5)).length;
 
   const selectionLabel = selected
-    ? `selected · ${selected.kind} · ${selectedName(data, selected) ?? selected.id.slice(0, 8)}`
+    ? `${selected.kind} · ${selectedName(data, selected) ?? selected.id.slice(0, 8)}`
     : "no selection";
 
   return (
@@ -1170,32 +1167,17 @@ function StatusBar({
       <span>·</span>
       <span><strong>{edges}</strong> edges</span>
       <span>·</span>
-      <span><strong>{sla.total}</strong> SLA-bearing (<span style={{ color: "var(--good-text)" }}>{sla.ok} ok</span> · <span style={{ color: "var(--warn-text)" }}>{sla.warn} warn</span> · <span style={{ color: "var(--danger-text)" }}>{sla.breach} breach</span>)</span>
+      <span><strong>{sla.total}</strong> SLA-bearing (<span style={{ color: "var(--good)" }}>{sla.ok} ok</span> · <span style={{ color: "var(--warn)" }}>{sla.warn} warn</span> · <span style={{ color: "var(--danger)" }}>{sla.breach} breach</span>)</span>
       <span>·</span>
       <span>read-only ✓</span>
       <span>·</span>
       <span>{selectionLabel}</span>
-      <span>·</span>
-      <span><strong>{handoffs}</strong> hand-offs</span>
-      <span>·</span>
-      <span><strong>{initiativeCount}</strong> initiative-touch</span>
-      <span>·</span>
-      <span><strong>{sod}</strong> SoD pairs</span>
       <span className={styles.statusSpacer} />
       <span className={styles.statusRender}>
-        <span className={styles.statusKbd}>⌥1-8</span> jump between surfaces
-        <span style={{ margin: "0 4px" }}>·</span>
-        <span className={styles.statusKbd}>/</span> focus search
-        <span style={{ margin: "0 4px" }}>·</span>
-        <span className={styles.statusKbd}>f</span> fit canvas
+        {journey.id} · /api/v1/journeys/{journey.id}/graph
+        {renderMs != null && ` · cypher ${renderMs}ms · render ${Math.round(renderMs * 1.7)}ms`}
       </span>
       <span>·</span>
-      {renderMs != null && (
-        <>
-          <span className={styles.statusRender}>{renderMs}ms · render {Math.round(renderMs * 1.7)}ms</span>
-          <span>·</span>
-        </>
-      )}
       <span>zoom <strong>{zoomPct}%</strong></span>
     </div>
   );
