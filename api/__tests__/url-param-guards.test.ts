@@ -1,28 +1,52 @@
-import { describe, test, expect } from "bun:test";
-import { NODE_LABELS } from "@companygraph/shared/schema/nodes";
-import { parseId, parseLabel } from "../src/routes/_helpers";
-import { UUIDV7_REGEX } from "../src/ids";
+import { describe, test, expect, mock } from "bun:test";
 
 // Pure-unit coverage of the URL parameter guards from
-// `api/src/routes/_helpers.ts`. These guards (parseLabel + parseId)
-// close design-review C-05: without them, `req.params.label as
-// NodeLabel` would otherwise admit arbitrary strings — including
-// Cypher-injection payloads — into the storage layer's
-// template-interpolated label position.
+// `api/src/routes/_helpers.ts`. These guards (parseRegistryLabel + parseId)
+// close design-review C-05: without them, `req.params.label as NodeLabel`
+// would otherwise admit arbitrary strings — including Cypher-injection
+// payloads — into the storage layer's template-interpolated label position.
 //
-// This file is intentionally NOT `.integration.test.ts`: the helpers
-// are pure functions so we exercise them directly with no Neo4j
-// dependency. The route handlers (`api/src/routes/nodes.ts`,
-// `api/src/routes/edges.ts`) hard-fail with `400 unknown_label` /
-// `400 invalid_payload` before any Cypher is composed when these
-// guards return `null`, so proving the guards reject malicious input
-// proves the route layer is safe.
+// History: the original synchronous `parseLabel` validated against the
+// compile-time 6-label NODE_LABELS tuple. It was replaced by the async,
+// registry-backed `parseRegistryLabel` when the ontology became
+// runtime-mutable (see the note at the top of _helpers.ts). The security
+// contract is unchanged — only names present in the schema registry pass,
+// so injection payloads never survive the guard — and this file re-proves
+// it against the registry-backed implementation.
+//
+// This file is intentionally NOT `.integration.test.ts`: the schema cache
+// is mocked below, so the guards are exercised with no Neo4j dependency.
+// The route handlers hard-fail with `400 unknown_label` /
+// `400 invalid_payload` before any Cypher is composed when these guards
+// return `null`, so proving the guards reject malicious input proves the
+// route layer is safe.
 
-describe("AC-05 / AC-22 — parseLabel URL-param guard", () => {
-  describe("accepts the canonical 6 labels exactly", () => {
-    for (const label of NODE_LABELS) {
-      test(`'${label}' → returned unchanged`, () => {
-        expect(parseLabel(label)).toBe(label);
+const REGISTRY_LABELS = [
+  "Domain",
+  "UserJourney",
+  "Activity",
+  "Role",
+  "System",
+  "Location",
+];
+
+mock.module("../src/ontology/cache/schema", () => ({
+  getSchema: async () => ({
+    nodeLabels: REGISTRY_LABELS.map((name) => ({ name })),
+    edgeTypes: [{ name: "PART_OF" }, { name: "PRECEDES" }],
+  }),
+}));
+
+const { parseId, parseRegistryLabel, parseEdgeTypeName } = await import(
+  "../src/routes/_helpers"
+);
+const { UUIDV7_REGEX } = await import("../src/ids");
+
+describe("AC-05 — parseRegistryLabel URL-param guard", () => {
+  describe("accepts exactly the labels present in the registry", () => {
+    for (const label of REGISTRY_LABELS) {
+      test(`'${label}' → returned unchanged`, async () => {
+        expect(await parseRegistryLabel(label)).toBe(label);
       });
     }
   });
@@ -51,20 +75,27 @@ describe("AC-05 / AC-22 — parseLabel URL-param guard", () => {
     ];
 
     for (const { name, input } of cases) {
-      test(`${name} → parseLabel returns null`, () => {
-        expect(parseLabel(input)).toBeNull();
+      test(`${name} → parseRegistryLabel returns null`, async () => {
+        expect(await parseRegistryLabel(input)).toBeNull();
       });
     }
   });
 
-  test("the allowlist is exactly the 6 NODE_LABELS — no extras", () => {
-    // Belt-and-braces: scan the printable ASCII range for any extra
-    // strings parseLabel would accept. Only the exact 6 must pass.
+  test("the allowlist is exactly the registry's labels — no extras", async () => {
     const accepted: string[] = [];
-    for (const candidate of [...NODE_LABELS, "Other", "Node", "User", "Tenant"]) {
-      if (parseLabel(candidate) !== null) accepted.push(candidate);
+    for (const candidate of [...REGISTRY_LABELS, "Other", "Node", "User", "Tenant"]) {
+      if ((await parseRegistryLabel(candidate)) !== null) accepted.push(candidate);
     }
-    expect(accepted.sort()).toEqual([...NODE_LABELS].sort());
+    expect(accepted.sort()).toEqual([...REGISTRY_LABELS].sort());
+  });
+});
+
+describe("AC-05 — parseEdgeTypeName URL-param guard", () => {
+  test("accepts a registry edge type, rejects injection", async () => {
+    expect(await parseEdgeTypeName("PART_OF")).toBe("PART_OF");
+    expect(await parseEdgeTypeName("PART_OF) DETACH DELETE n //")).toBeNull();
+    expect(await parseEdgeTypeName("")).toBeNull();
+    expect(await parseEdgeTypeName(42)).toBeNull();
   });
 });
 
@@ -106,17 +137,12 @@ describe("AC-05 — parseId URL-param guard", () => {
   });
 });
 
-describe("AC-22 — route handlers refuse before Cypher is composed", () => {
-  // The route handlers branch on `parseLabel(...) === null` and
-  // `parseId(...) === null` before calling into the storage layer.
-  // We assert the wiring here by re-checking the contract: any input
-  // the guard rejects MUST also be a value that, if passed through to
-  // the storage layer, would template-interpolate hazardous Cypher.
-  //
-  // This is a static contract check: if parseLabel ever changes to
-  // return a string instead of null, this test will catch the regression
-  // before the new behavior ships.
-  test("parseLabel rejects every input containing whitespace", () => {
+describe("AC-05 — route handlers refuse before Cypher is composed", () => {
+  // The route handlers branch on `parseRegistryLabel(...) === null` and
+  // `parseId(...) === null` before calling into the storage layer. Any
+  // input the guard rejects MUST also be a value that, if passed through,
+  // would template-interpolate hazardous Cypher.
+  test("parseRegistryLabel rejects every input containing whitespace", async () => {
     const hostile = [
       "Domain ",
       "Domain\n",
@@ -125,15 +151,15 @@ describe("AC-22 — route handlers refuse before Cypher is composed", () => {
       "System) RETURN n //",
     ];
     for (const h of hostile) {
-      expect(parseLabel(h)).toBeNull();
+      expect(await parseRegistryLabel(h)).toBeNull();
     }
   });
 
-  test("parseLabel rejects every input containing a Cypher metacharacter", () => {
-    const metacharacters = ["`", ";", ")", "(", "{", "}", "/", "\\", "'", "\""];
+  test("parseRegistryLabel rejects every input containing a Cypher metacharacter", async () => {
+    const metacharacters = ["`", ";", ")", "(", "{", "}", "/", "\\", "'", '"'];
     for (const m of metacharacters) {
-      expect(parseLabel(`Domain${m}`)).toBeNull();
-      expect(parseLabel(`${m}Domain`)).toBeNull();
+      expect(await parseRegistryLabel(`Domain${m}`)).toBeNull();
+      expect(await parseRegistryLabel(`${m}Domain`)).toBeNull();
     }
   });
 });

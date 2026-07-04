@@ -197,3 +197,180 @@ export async function handleSearch(req: Request): Promise<Response> {
   );
   return ok({ rows });
 }
+
+// Journey health query (US-JM-01)
+export async function handleJourneyHealth(_req: Request, idParam: string): Promise<Response> {
+  const id = parseId(idParam);
+  if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
+  const { rows } = await runPassthrough(
+    getDriver(),
+    `MATCH (j:UserJourney {id: $id})
+     OPTIONAL MATCH (a:Activity)-[:PART_OF]->(j)
+     OPTIONAL MATCH (a)-[:EXECUTES]->(r:Role)
+     OPTIONAL MATCH (a)-[:USES]->(s:System)
+     OPTIONAL MATCH (a)-[:PRECEDES]->(b:Activity)-[:PART_OF]->(j)
+     WITH j, count(DISTINCT a) AS activity_count,
+          count(DISTINCT r) AS role_count,
+          count(DISTINCT s) AS system_count,
+          count(DISTINCT b) AS handoff_count
+     RETURN j.id AS id, j.name AS name,
+            0.0 AS health_score,
+            0.0 AS sla_breach_rate,
+            handoff_count AS handoff_complexity,
+            0 AS sod_conflicts,
+            0.0 AS initiative_completion,
+            0.0 AS avg_cycle_time_p50,
+            0.0 AS avg_cycle_time_p99,
+            activity_count AS touchpoint_count,
+            system_count,
+            role_count`,
+    { id },
+  );
+  if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
+  return ok({ rows });
+}
+
+// Journey ownership query (US-JM-02)
+export async function handleJourneyOwnership(_req: Request, idParam: string): Promise<Response> {
+  const id = parseId(idParam);
+  if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
+  const { rows } = await runPassthrough(
+    getDriver(),
+    `MATCH (j:UserJourney {id: $id})
+     OPTIONAL MATCH (a:Activity)-[:PART_OF]->(j)-[:EXECUTES]->(r:Role)
+     WITH j, r, apoc.convert.fromJsonMap(coalesce(r.attributes_json, "{}")) AS rAttrs
+     RETURN j.id AS id, j.name AS name,
+            j.accountable_role AS accountable_role,
+            j.verified_date AS verified_date,
+            j.verified_by AS verified_by,
+            [] AS team_assignments,
+            j.compliance_tags AS compliance_tags,
+            rAttrs['owner_team'] AS owner_team`,
+    { id },
+  );
+  if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
+  return ok({ rows });
+}
+
+// Journey activities query (US-JM-03)
+export async function handleJourneyActivities(_req: Request, idParam: string): Promise<Response> {
+  const id = parseId(idParam);
+  if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
+  const { rows } = await runPassthrough(
+    getDriver(),
+    `MATCH (j:UserJourney {id: $id})
+     OPTIONAL MATCH (a:Activity)-[:PART_OF]->(j)
+     OPTIONAL MATCH (a)-[:PRECEDES]->(b:Activity)-[:PART_OF]->(j)
+     OPTIONAL MATCH (a)-[:USES]->(s:System)
+     WITH a, count(DISTINCT b) AS handoff_outgoing, count(DISTINCT s) AS system_count
+     RETURN a.id AS id, a.name AS name, a.description AS description,
+            apoc.convert.fromJsonMap(coalesce(a.attributes_json, "{}"))['sla_target_hours'] AS sla_target_hours,
+            apoc.convert.fromJsonMap(coalesce(a.attributes_json, "{}"))['p95_hours'] AS p95_hours,
+            apoc.convert.fromJsonMap(coalesce(a.attributes_json, "{}"))['kpi_score'] AS kpi_score,
+            0 AS role_count,
+            system_count,
+            0 AS handoff_incoming,
+            handoff_outgoing`,
+    { id },
+  );
+  if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
+  return ok({ rows });
+}
+
+// Journey roles query (US-JM-03)
+export async function handleJourneyRoles(_req: Request, idParam: string): Promise<Response> {
+  const id = parseId(idParam);
+  if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
+  const { rows } = await runPassthrough(
+    getDriver(),
+    `MATCH (j:UserJourney {id: $id})
+     OPTIONAL MATCH (a:Activity)-[:PART_OF]->(j)-[:EXECUTES]->(r:Role)
+     OPTIONAL MATCH (a)-[:PRECEDES]->(b:Activity)-[:EXECUTES]->(r2:Role)
+     WITH r, apoc.convert.fromJsonMap(coalesce(r.attributes_json, "{}")) AS rAttrs,
+          count(DISTINCT a) AS activity_count,
+          count(DISTINCT r2) AS handoff_outgoing
+     RETURN r.id AS id, r.name AS name,
+            rAttrs['team'] AS team,
+            activity_count,
+            0.0 AS avg_leverage_score,
+            0 AS handoff_incoming,
+            handoff_outgoing,
+            0 AS sod_conflicts`,
+    { id },
+  );
+  if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
+  return ok({ rows });
+}
+
+// Journey systems query (US-JM-03)
+export async function handleJourneySystems(_req: Request, idParam: string): Promise<Response> {
+  const id = parseId(idParam);
+  if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
+  const { rows } = await runPassthrough(
+    getDriver(),
+    `MATCH (j:UserJourney {id: $id})
+     OPTIONAL MATCH (a:Activity)-[:PART_OF]->(j)-[:USES]->(s:System)
+     WITH s, count(DISTINCT a) AS usage_count
+     RETURN s.id AS id, s.name AS name,
+            usage_count,
+            0 AS read_ops,
+            0 AS write_ops,
+            0 AS async_ops,
+            0 AS sla_breaches,
+            0.0 AS avg_sla_p99_ms,
+            usage_count AS touchpoint_count`,
+    { id },
+  );
+  if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
+  return ok({ rows });
+}
+
+// Journey handoffs query (US-JM-03)
+export async function handleJourneyHandoffs(_req: Request, idParam: string): Promise<Response> {
+  const id = parseId(idParam);
+  if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
+  const { rows } = await runPassthrough(
+    getDriver(),
+    `MATCH (j:UserJourney {id: $id})
+     MATCH (a:Activity)-[:PART_OF]->(j)-[:EXECUTES]->(r:Role)
+     MATCH (a)-[:PRECEDES]->(b:Activity)-[:PART_OF]->(j)-[:EXECUTES]->(r2:Role)
+     WITH r, r2, apoc.convert.fromJsonMap(coalesce(r.attributes_json, "{}")) AS rAttrs,
+          apoc.convert.fromJsonMap(coalesce(r2.attributes_json, "{}")) AS r2Attrs,
+          count(a) AS count
+     RETURN r.name AS from_role, r2.name AS to_role,
+            rAttrs['team'] AS from_team,
+            r2Attrs['team'] AS to_team,
+            count,
+            0 AS sla_breaches,
+            0.0 AS avg_duration_hours,
+            false AS sod_risk`,
+    { id },
+  );
+  if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
+  return ok({ rows });
+}
+
+// Journey touchpoints query (US-JM-07)
+export async function handleJourneyTouchpoints(_req: Request, idParam: string): Promise<Response> {
+  const id = parseId(idParam);
+  if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
+  const { rows } = await runPassthrough(
+    getDriver(),
+    `MATCH (j:UserJourney {id: $id})
+     OPTIONAL MATCH (a:Activity)-[:PART_OF]->(j)-[:USES]->(s:System)
+     OPTIONAL MATCH (a)-[:AT]->(l:Location)
+     WITH a, s, l, count(DISTINCT a) AS activity_count
+     RETURN coalesce(s.id, l.id) AS id,
+            coalesce(s.name, l.name) AS name,
+            CASE WHEN s IS NOT NULL THEN 'system' WHEN l IS NOT NULL THEN 'location' ELSE 'external' END AS type,
+            s.name AS system_name,
+            l.name AS location_name,
+            activity_count,
+            0 AS role_count,
+            false AS critical_path,
+            0 AS sla_breaches`,
+    { id },
+  );
+  if (rows.length === 0) return error(404, "not_found", "journey not found", { id });
+  return ok({ rows });
+}

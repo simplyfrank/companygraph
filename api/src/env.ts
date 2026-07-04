@@ -6,6 +6,7 @@ export interface Env {
   neo4jUri: string;
   neo4jUser: string;
   neo4jPassword: string;
+  postgresUri: string;
   // chat-interface (rev 3.1)
   anthropicApiKey: string | null; // null → MockLLMClient (FR-B06)
   chatDbPath: string;
@@ -17,6 +18,7 @@ export function loadEnv(): Env {
   const neo4jUri = process.env.NEO4J_URI ?? "bolt://127.0.0.1:7687";
   const neo4jUser = process.env.NEO4J_USER ?? "neo4j";
   const neo4jPassword = process.env.NEO4J_PASSWORD ?? "";
+  const postgresUri = process.env.POSTGRES_URI ?? "postgresql://companygraph:companygraph_dev@127.0.0.1:5432/companygraph";
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
   const chatDbPath = process.env.CHAT_DB_PATH ?? "../data/chat.db";
 
@@ -26,5 +28,5 @@ export function loadEnv(): Env {
     );
   }
 
-  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword, anthropicApiKey, chatDbPath };
+  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword, postgresUri, anthropicApiKey, chatDbPath };
 }

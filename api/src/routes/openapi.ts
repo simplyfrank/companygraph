@@ -23,6 +23,29 @@ import {
   importPayloadSchema,
   importResponseSchema,
 } from "@companygraph/shared/types";
+import {
+  nodeLabelCreateSchema,
+  nodeLabelPatchSchema,
+  nodeLabelReadSchema,
+  edgeTypeCreateSchema,
+  edgeTypePatchSchema,
+  edgeTypeReadSchema,
+  schemaResponseSchema,
+  ontologyImportSchema,
+  ontologyImportResponseSchema,
+  glossaryCollectionSchema,
+  glossaryCollectionPatchSchema,
+  glossaryCollectionReadSchema,
+  glossaryTermSchema,
+  glossaryTermPatchSchema,
+  glossaryTermReadSchema,
+  ontologyProposalSchema,
+  ontologyProposalPatchSchema,
+  ontologyProposalReadSchema,
+  complianceRuleSchema,
+  complianceRulePatchSchema,
+  complianceRuleReadSchema,
+} from "@companygraph/shared/schema/ontology";
 import { ERROR_CODES } from "../errors";
 
 // Static Route[] declared right here (design-review B-02 — OpenAPI
@@ -64,6 +87,29 @@ export function getOpenApiDoc(): object {
   registry.register("ErrorEnvelope", errorEnvelopeSchema);
   registry.register("Health", healthSchema);
   registry.register("Stats", statsSchema);
+
+  // Ontology schemas
+  registry.register("NodeLabelCreate", nodeLabelCreateSchema);
+  registry.register("NodeLabelPatch", nodeLabelPatchSchema);
+  registry.register("NodeLabel", nodeLabelReadSchema);
+  registry.register("EdgeTypeCreate", edgeTypeCreateSchema);
+  registry.register("EdgeTypePatch", edgeTypePatchSchema);
+  registry.register("EdgeType", edgeTypeReadSchema);
+  registry.register("SchemaResponse", schemaResponseSchema);
+  registry.register("OntologyImportPayload", ontologyImportSchema);
+  registry.register("OntologyImportResponse", ontologyImportResponseSchema);
+  registry.register("GlossaryCollectionCreate", glossaryCollectionSchema);
+  registry.register("GlossaryCollectionPatch", glossaryCollectionPatchSchema);
+  registry.register("GlossaryCollection", glossaryCollectionReadSchema);
+  registry.register("GlossaryTermCreate", glossaryTermSchema);
+  registry.register("GlossaryTermPatch", glossaryTermPatchSchema);
+  registry.register("GlossaryTerm", glossaryTermReadSchema);
+  registry.register("OntologyProposalCreate", ontologyProposalSchema);
+  registry.register("OntologyProposalPatch", ontologyProposalPatchSchema);
+  registry.register("OntologyProposal", ontologyProposalReadSchema);
+  registry.register("ComplianceRuleCreate", complianceRuleSchema);
+  registry.register("ComplianceRulePatch", complianceRulePatchSchema);
+  registry.register("ComplianceRule", complianceRuleReadSchema);
 
   registry.registerPath({
     method: "get", path: "/api/v1/healthz",
@@ -207,6 +253,251 @@ export function getOpenApiDoc(): object {
       400: { description: "invalid_payload | unknown_label | query_timeout", content: { "application/json": { schema: errorEnvelopeSchema } } },
     },
   });
+  // Ontology routes
+  registry.registerPath({
+    method: "get", path: "/api/v1/schema",
+    description: "GET cached ontology schema (node labels + edge types).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: schemaResponseSchema } } },
+    },
+  });
+  for (const method of ["post", "get"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/ontology/node-labels",
+      description: `Ontology node-labels ${method.toUpperCase()}.`,
+      ...(method === "post" ? { request: { body: { content: { "application/json": { schema: nodeLabelCreateSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: method === "get" ? z.array(nodeLabelReadSchema) : nodeLabelReadSchema } } },
+        ...(method === "post" ? { 201: { description: "created", content: { "application/json": { schema: nodeLabelReadSchema } } } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        409: { description: "conflict", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/ontology/node-labels/{name}",
+      description: `Ontology node-label ${method.toUpperCase()}.`,
+      ...(method === "patch" ? { request: { body: { content: { "application/json": { schema: nodeLabelPatchSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: nodeLabelReadSchema } } },
+        ...(method === "delete" ? { 204: { description: "deleted" } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        404: { description: "not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        409: { description: "conflict", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["post", "get"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/ontology/edge-types",
+      description: `Ontology edge-types ${method.toUpperCase()}.`,
+      ...(method === "post" ? { request: { body: { content: { "application/json": { schema: edgeTypeCreateSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: method === "get" ? z.array(edgeTypeReadSchema) : edgeTypeReadSchema } } },
+        ...(method === "post" ? { 201: { description: "created", content: { "application/json": { schema: edgeTypeReadSchema } } } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        409: { description: "conflict", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/ontology/edge-types/{name}",
+      description: `Ontology edge-type ${method.toUpperCase()}.`,
+      ...(method === "patch" ? { request: { body: { content: { "application/json": { schema: edgeTypePatchSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: edgeTypeReadSchema } } },
+        ...(method === "delete" ? { 204: { description: "deleted" } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        404: { description: "not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        409: { description: "conflict", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  registry.registerPath({
+    method: "post", path: "/api/v1/ontology/import",
+    description: "Bulk ontology import (JSON payload).",
+    request: { body: { content: { "application/json": { schema: ontologyImportSchema } } } },
+    responses: {
+      200: { description: "imported", content: { "application/json": { schema: ontologyImportResponseSchema } } },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/ontology/export",
+    description: "Ontology export (JSON/YAML).",
+    responses: { 200: { description: "ok" } },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/ontology/events",
+    description: "SSE stream of ontology change events.",
+    responses: { 200: { description: "event stream" } },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/ontology/migrations",
+    description: "Execute an ontology migration.",
+    responses: {
+      200: { description: "ok" },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/ontology/rollback/{version_id}",
+    description: "Rollback ontology to a previous version.",
+    responses: {
+      200: { description: "ok" },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      409: { description: "conflict", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/ontology/bounded-contexts",
+    description: "List all bounded contexts with entities and relationships.",
+    responses: { 200: { description: "ok", content: { "application/json": { schema: z.array(z.record(z.unknown())) } } } },
+  });
+
+  // Glossary routes
+  for (const method of ["post", "get"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/glossary/collections",
+      description: `Glossary collections ${method.toUpperCase()}.`,
+      ...(method === "post" ? { request: { body: { content: { "application/json": { schema: glossaryCollectionSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: method === "get" ? z.array(glossaryCollectionReadSchema) : glossaryCollectionReadSchema } } },
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/glossary/collections/{iri}",
+      description: `Glossary collection ${method.toUpperCase()}.`,
+      ...(method === "patch" ? { request: { body: { content: { "application/json": { schema: glossaryCollectionPatchSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: glossaryCollectionReadSchema } } },
+        ...(method === "delete" ? { 204: { description: "deleted" } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        404: { description: "not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["post", "get"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/glossary/terms",
+      description: `Glossary terms ${method.toUpperCase()}.`,
+      ...(method === "post" ? { request: { body: { content: { "application/json": { schema: glossaryTermSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: method === "get" ? z.array(glossaryTermReadSchema) : glossaryTermReadSchema } } },
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/glossary/terms/{id}",
+      description: `Glossary term ${method.toUpperCase()}.`,
+      ...(method === "patch" ? { request: { body: { content: { "application/json": { schema: glossaryTermPatchSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: glossaryTermReadSchema } } },
+        ...(method === "delete" ? { 204: { description: "deleted" } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        404: { description: "not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+
+  // Ontology proposals
+  for (const method of ["post", "get"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/ontology/proposals",
+      description: `Ontology proposals ${method.toUpperCase()}.`,
+      ...(method === "post" ? { request: { body: { content: { "application/json": { schema: ontologyProposalSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: method === "get" ? z.array(ontologyProposalReadSchema) : ontologyProposalReadSchema } } },
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/ontology/proposals/{id}",
+      description: `Ontology proposal ${method.toUpperCase()}.`,
+      ...(method === "patch" ? { request: { body: { content: { "application/json": { schema: ontologyProposalPatchSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: ontologyProposalReadSchema } } },
+        ...(method === "delete" ? { 204: { description: "deleted" } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        404: { description: "not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+
+  // Compliance rules
+  for (const method of ["post", "get"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/compliance/rules",
+      description: `Compliance rules ${method.toUpperCase()}.`,
+      ...(method === "post" ? { request: { body: { content: { "application/json": { schema: complianceRuleSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: method === "get" ? z.array(complianceRuleReadSchema) : complianceRuleReadSchema } } },
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method, path: "/api/v1/compliance/rules/{id}",
+      description: `Compliance rule ${method.toUpperCase()}.`,
+      ...(method === "patch" ? { request: { body: { content: { "application/json": { schema: complianceRulePatchSchema } } } } } : {}),
+      responses: {
+        200: { description: "ok", content: { "application/json": { schema: complianceRuleReadSchema } } },
+        ...(method === "delete" ? { 204: { description: "deleted" } } : {}),
+        400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+        404: { description: "not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      },
+    });
+  }
+  registry.registerPath({
+    method: "post", path: "/api/v1/compliance/rules/evaluate",
+    description: "Evaluate a compliance rule.",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.record(z.unknown()) } } },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      404: { description: "not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+
+  // RDF routes
+  registry.registerPath({
+    method: "post", path: "/api/v1/ontology/rdf/import",
+    description: "Import ontology from RDF (JSON-LD, Turtle, N-Triples).",
+    responses: {
+      200: { description: "imported", content: { "application/json": { schema: z.record(z.unknown()) } } },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/ontology/rdf/export",
+    description: "Export ontology to RDF (JSON-LD, Turtle, N-Triples).",
+    responses: {
+      200: { description: "exported" },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+
+  // Query route
+  registry.registerPath({
+    method: "post", path: "/api/v1/ontology/query",
+    description: "Execute Cypher or SPARQL query against the ontology graph.",
+    request: { body: { content: { "application/json": { schema: z.object({ query: z.string(), params: z.record(z.unknown()).optional(), write: z.boolean().optional(), type: z.enum(["cypher", "sparql"]).optional() }) } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.record(z.unknown()) } } },
+      400: { description: "invalid_payload | write_statement_rejected", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      501: { description: "not_implemented (SPARQL)", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+
   registry.registerPath({
     method: "get", path: "/api/v1/openapi.json",
     description: "FR-16 — the v1 contract as a self-describing OpenAPI 3.1 document. Generated at server boot from the same zod definitions used at runtime; no hand-maintained copy.",

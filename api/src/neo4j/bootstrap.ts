@@ -28,6 +28,7 @@ import { applyMetaSchema } from "../ontology/meta-bootstrap";
 import {
   isRegistryEmpty,
   seedRegistryFromConstTuples,
+  seedBoundedContexts,
 } from "../ontology/seed";
 import { ontologyEvents } from "../ontology/events";
 
@@ -47,7 +48,11 @@ export async function applySchema(driver: Driver): Promise<void> {
     });
   }
 
-  // Step 3: iterate the registry and ensure per-label / per-type data
+  // Step 3: seed bounded contexts from specification file.
+  // This runs every bootstrap but is idempotent (checks if already seeded).
+  await seedBoundedContexts(driver);
+
+  // Step 4: iterate the registry and ensure per-label / per-type data
   // constraints exist. All statements use `IF NOT EXISTS` so re-running
   // is a no-op (AC-04 / AC-14).
   const session = driver.session();
