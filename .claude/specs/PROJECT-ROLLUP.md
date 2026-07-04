@@ -16,6 +16,47 @@
 > risk-compliance-change, cto-analytics completion. The rollup below this
 > banner predates the adoption — read it as the pre-drift pipeline state.
 
+## Business Modeling Studio — spec-app fan-out (2026-07-04)
+
+A 10-feature application (`blueprint.md`) turning companygraph into a
+business-modeling studio: author workflows across roles as first-class
+user stories with Given/When/Then ACs → land in the graph → optimize key
+activities → make them measurable via quantified KPI impact → base
+domain-driven IT-system modeling on the process requirements. Multiple
+business models coexist and share versioned, journey-level modules.
+
+**Planning-complete (Phase C):** all 10 specs authored + reviewed; every
+reviewed phase at `approve`; 0 unresolved blockers. Fan-out ran via the
+`spec-app` Workflow engine (foundation waves first, dependency-ordered).
+
+| Slug | Tier | Size | Req | Design | Tasks | Execution |
+|------|------|------|-----|--------|-------|-----------|
+| `model-workspace-core` | foundation | large | approve | approve (rev3) | approve (22) | **in progress** |
+| `system-augmentation-model` | foundation | medium | approve | approve | (size: no review) | **complete + verified** |
+| `kpi-okr-governance` | foundation | large | approve | approve | approve (21) | **complete + verified** |
+| `story-spec-core` | foundation | large | approve | approve | approve (16) | not started |
+| `business-model-authoring` | feature | large | approve | approve | approve (17) | not started |
+| `key-activity-optimizer` | feature | medium | approve | approve | (size: no review) | not started |
+| `ddd-system-modeling` | feature | large | approve | approve | approve (17) | not started |
+| `kpi-impact-mapping` | feature | medium | approve | approve | (size: no review) | not started |
+| `kpi-okr-performance-dashboards` | feature | large | approve | approve | approve | not started |
+| `requirements-export` | feature | small | (size: no review) | (small: none) | (size: no review) | not started |
+
+**Consistency:** routes verbatim vs View Tree; `route.ts` solely owned by
+`model-workspace-core` for `#/model/*`; no conflicting file rewrites.
+XD-01/02/15 honoured with `git diff` guard ACs. Coordination hotspots for
+execution: `seed-rbac-roles.ts` (multiple additive appenders),
+`JourneyCanvas.tsx`/`journeyData.ts` (`business-model-authoring` + `ddd` +
+inherited shadow-`kind`→`systemKind` migration).
+
+**Open user decisions before `kpi-impact-mapping` execution:** (1) roll-up
+store-of-truth — Neo4j `:KPIMeasurement` (as-built `kpi-trends`) vs Postgres
+`kpi_measurements` (the V-02 split-brain); (2) XD-04 edge naming —
+`DRIVES_KPI` (blueprint) vs as-built `ALIGNED_TO` (weighted activity→KPI).
+As-built defect pinned by `kpi-okr-governance`: `GET /roll-down/contributions`
+runs invalid Cypher and 500s. Mode is single-shot (XD-17): blueprint approval
+authorizes end-to-end build; foundation tier is already executing.
+
 ## Project shape
 
 `companygraph` is a single-tenant, self-hosted platform modelling a
