@@ -1,5 +1,7 @@
 # /sync-backlog — Batch Sync Specs to GitHub Backlog
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Batch wrapper over `/plan`, which is hardcoded to the `Myndshare/personalassistant` repo + board IDs. Fix `/plan`'s targets first. Reconcile against this repo before following any instruction below.
+
 Scans all spec directories for approved tasks and syncs unsynced ones to the GitHub project board.
 
 ## Usage

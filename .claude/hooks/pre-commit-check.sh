@@ -1,42 +1,23 @@
 #!/bin/bash
-# Pre-commit transpile validation
-# Runs bun build on the entry points to catch compile errors before commit
+# Pre-commit transpile validation for companygraph
+# Runs the workspace typecheck (bun build --no-bundle on both entry points)
+# when TypeScript sources are staged. Invoked by the PreToolUse Bash hook
+# on git-commit-shaped commands.
 
-BUN="/Users/frank/.bun/bin/bun"
-PROJECT="/Users/frank/Documents/coding/personalassistant"
-FAILED=0
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+[ -z "$REPO_ROOT" ] && exit 0
+cd "$REPO_ROOT" || exit 0
 
-# Check if any .ts files in telegram/src are staged
-TS_STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep '^telegram/src/.*\.ts$' | head -1)
+BUN="${BUN_BIN:-$HOME/.bun/bin/bun}"
+command -v "$BUN" >/dev/null 2>&1 || BUN=bun
 
-if [ -n "$TS_STAGED" ]; then
-  echo "Checking telegram transpile..."
-  cd "$PROJECT/telegram"
-  if ! $BUN build src/cloud/relay.ts --no-bundle > /dev/null 2>&1; then
-    echo "FAIL: relay.ts transpile failed"
-    FAILED=1
-  fi
-  if ! $BUN build src/local/agent.ts --no-bundle > /dev/null 2>&1; then
-    echo "FAIL: agent.ts transpile failed"
-    FAILED=1
-  fi
-fi
+# Only run when TS/TSX in a workspace is staged
+TS_STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(api|pwa|shared)/.*\.(ts|tsx)$' | head -1)
+[ -z "$TS_STAGED" ] && exit 0
 
-# Check if any .js files in pwa are staged — basic syntax check
-JS_STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep '^pwa/.*\.js$' | head -1)
-
-if [ -n "$JS_STAGED" ]; then
-  echo "Checking PWA syntax..."
-  for f in $(git diff --cached --name-only --diff-filter=ACMR | grep '^pwa/.*\.js$'); do
-    if ! node -c "$PROJECT/$f" > /dev/null 2>&1; then
-      echo "FAIL: $f has syntax errors"
-      FAILED=1
-    fi
-  done
-fi
-
-if [ $FAILED -ne 0 ]; then
-  echo "Pre-commit check failed. Fix errors before committing."
+echo "Staged TypeScript detected — running bun run typecheck..."
+if ! "$BUN" run typecheck; then
+  echo "FAIL: typecheck failed (bun build --no-bundle). Fix errors before committing."
   exit 1
 fi
 

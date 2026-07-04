@@ -12,7 +12,9 @@
       "Bash(bun run typecheck)",
       "Bash(bun test*)",
       "Bash(.claude/skills/*/scaffold.sh*)",
-      "Bash(.claude/skills/*/sync.sh*)"
+      "Bash(.claude/skills/*/sync.sh*)",
+      "Bash(node --check .claude/workflows/*.js)",
+      "Workflow(spec-app)"
     ]
   },
   "hooks": {
@@ -22,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./scripts/hooks/session-log.sh start"
+            "command": ".claude/hooks/session-log.sh start"
           },
           {
             "type": "command",
@@ -37,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./scripts/hooks/session-log.sh stop"
+            "command": ".claude/hooks/session-log.sh stop"
           }
         ]
       }

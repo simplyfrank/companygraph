@@ -1,5 +1,7 @@
 # PWA Component
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Describes personalassistant vanilla-JS factory components. In companygraph, components are React `pwa/src/components/*.tsx` + CSS modules, governed by `design-system.manifest.yaml` (`/wireframe-extract`) — read an existing component there instead of following this shape. Reconcile against this repo before following any instruction below.
+
 **When to use:** Extracting a repeated UI pattern out of one or more `pwa/views/*.js` files, or creating a new shared visual primitive.
 **Canonical examples:** `pwa/components/card.js` (builder API), `pwa/components/ux-primitives.js` (badge/lane/queue taxonomy), `pwa/components/inbox-panel.js` (panel-shape with WS bindings).
 **Catalog:** [`pwa/components/CATALOG.md`](../../pwa/components/CATALOG.md) — the **scenario → default-component** map. Before authoring any new component, grep CATALOG for the scenario; if a default exists, use it. Every new component **must** be added to CATALOG as part of the same commit (the `/component` skill enforces this — see Gate 5 of `/component new`).

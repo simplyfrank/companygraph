@@ -21,7 +21,7 @@
             "description": "route hash or pwa/views/<x>.js; null until plan resolves it"
           },
           "decision": { "enum": ["fresh", "migrate", "unknown"] },
-          "voyager_components": {
+          "catalog_components": {
             "type": "array",
             "items": { "type": "string" },
             "description": "CATALOG component names this surface maps to"
@@ -32,12 +32,12 @@
           },
           "token_reconciliation": {
             "type": "array",
-            "description": "foreign value -> nearest Voyager token, or a proposed design-system.yaml retune",
+            "description": "foreign value -> nearest companygraph token, or a proposed design-system.yaml retune",
             "items": {
               "type": "object",
               "properties": {
                 "foreign": { "type": "string" },
-                "voyager_token": { "type": ["string", "null"] },
+                "catalog_token": { "type": ["string", "null"] },
                 "proposed_retune": { "type": ["string", "null"] }
               }
             }

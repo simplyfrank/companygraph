@@ -5,7 +5,7 @@
 TARGET_FILE="$1"
 [ -z "$TARGET_FILE" ] && exit 0
 
-# Only check telegram/ and pwa/ source files (not specs themselves, not config)
+# Only check workspace source files — api/, pwa/, shared/ (not specs themselves, not config)
 case "$TARGET_FILE" in
   */specs/*|*/.claude/*|*.md|*.json) exit 0 ;;
 esac

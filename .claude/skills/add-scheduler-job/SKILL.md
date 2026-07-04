@@ -1,5 +1,7 @@
 # Adding a Scheduler Job
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Targets the personalassistant scheduler (`telegram/src/…`). companygraph has no scheduler workspace. Reconcile against this repo before following any instruction below.
+
 Guide for adding a new scheduled job to the cloud bot.
 
 ## File: `telegram/src/cloud/scheduler.ts`

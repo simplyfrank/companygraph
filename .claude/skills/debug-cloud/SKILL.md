@@ -1,5 +1,7 @@
 # /debug-cloud - Debug Cloud Bot
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Targets the personalassistant EC2 cloud bot via SSM. companygraph has no cloud deployment — it runs locally via docker-compose with a loopback-only API on 127.0.0.1:8787. Reconcile against this repo before following any instruction below.
+
 Diagnose and monitor the EC2 cloud bot.
 
 ## Usage

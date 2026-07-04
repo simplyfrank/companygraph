@@ -225,7 +225,7 @@ Shall I begin?
 3. For each task in dependency order:
    - Announce: "Implementing T-0X: <title>..."
    - Make the code changes
-   - Run transpile check: `/Users/frank/.bun/bin/bun build telegram/src/cloud/relay.ts --no-bundle > /dev/null 2>&1`
+   - Run transpile check from the repo root: `bun run typecheck` (covers both `api/src/server.ts` and `pwa/src/main.tsx`)
    - Report result: "T-0X complete. Transpile: pass/fail"
 4. After all tasks: full validation
 5. **Verification gate (BLOCKING)**: before marking STATUS complete, collect for every AC either a passing test path OR a written `manual: <one-line repro>` (must include input mode and observable outcome). The completion hook (`.claude/hooks/spec-completion-check.sh`) blocks the STATUS.md edit if `verification_artifact` is missing.

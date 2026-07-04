@@ -1,5 +1,7 @@
 # Adding a Memory/Persistence Module
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Targets personalassistant SQLite memory modules (`telegram/src/memory/…`). companygraph has no such subsystem. Reconcile against this repo before following any instruction below.
+
 Guide for adding a new SQLite-backed persistence layer.
 
 ## File: `telegram/src/memory/<name>.ts`

@@ -1,5 +1,7 @@
 # PWA View
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Canonical examples are personalassistant vanilla-JS views (`pwa/views/*.js`). In companygraph, views are React: `pwa/src/views/**/*.tsx` + CSS modules, wired via `pwa/src/route.ts` — read an existing view there instead of following this shape. Reconcile against this repo before following any instruction below.
+
 **When to use:** Adding a new vanilla-JS SPA route under `pwa/views/`.
 **Canonical examples:** `pwa/views/inbox.js`, `pwa/views/backlog.js`, `pwa/views/finance.js`
 **Router:** `pwa/index.html::handleRoute` (hash-based, ~line 2056)

@@ -26,10 +26,12 @@ Read the document at `document_path` completely.
 - Read the approved `requirements.md` in the same spec directory
 - Read **every file** listed in the File Changes table
 - Verify patterns match existing codebase conventions:
-  - Actions follow the pattern in `telegram/src/actions/`
-  - Memory modules follow `telegram/src/memory/` patterns
-  - API endpoints follow `telegram/src/webapp-server.ts` patterns
-  - PWA views follow `pwa/views/` patterns
+  - REST routes follow `api/src/routes/` patterns and mount under `/api/v1/`
+  - Storage helpers follow `api/src/neo4j/` + the graph-core storage primitives
+  - Shared schema/types live in `shared/src/` (registry-driven tuples)
+  - PWA views follow `pwa/src/views/` + `pwa/src/components/` patterns
+    (CSS Modules, tokens via `var(--…)`, catalog components first)
+  - Routes/views in UI specs match the app blueprint's View Tree verbatim
 - Check that all FR-* from requirements are addressed
 - Check that all AC-* are traceable to file changes
 
@@ -46,14 +48,21 @@ Read the document at `document_path` completely.
 **Completeness**: Are all template sections filled? Any missing information?
 
 **Feasibility**: Can this be implemented in the current architecture?
-- Does it respect the cloud/local split?
-- Does it use existing patterns (grammY commands, SQLite memory, PWA vanilla JS)?
-- Are there performance concerns (e.g., t4g.nano memory limits)?
+- Does it respect the house rules (loopback binding, auth via the central
+  router gate + `api/src/auth/`, zod-only validation, no tsc, en-US
+  identifiers)?
+- Does it use existing patterns (Bun workspaces, Neo4j via the graph-core
+  storage primitives, Postgres via `api/src/storage/postgres/`, React + CSS
+  Modules + design tokens in pwa/)?
+- Are there performance concerns (Cypher passthrough caps, canvas node counts,
+  bundle budget)?
 
 **Conflicts**: Does this contradict existing code?
-- Naming collisions (routes, callback prefixes, DB tables)
-- Breaking changes to existing APIs
-- Pattern violations (e.g., using external DB instead of SQLite)
+- Naming collisions (routes, node labels, edge types, error codes)
+- Breaking changes to the `/api/v1/` contract (those require a v2 bump)
+- Pattern violations (e.g., a fourth datastore beyond Neo4j/Postgres/SQLite,
+  a second validation library instead of zod, per-route auth checks bypassing
+  the central router gate)
 
 **Risks**: What did the author miss?
 - Edge cases in error handling

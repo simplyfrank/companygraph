@@ -1,5 +1,7 @@
 # Adding a New Telegram Bot Command
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Adds commands to the personalassistant Telegram bot (`telegram/src/…`). companygraph has no Telegram/bot workspace. Reconcile against this repo before following any instruction below.
+
 Guide for adding a new `/command` to the bot. Touches 4-6 files across the stack.
 
 ## Files to Create/Modify

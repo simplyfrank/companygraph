@@ -1,0 +1,27 @@
+{
+  "specs_root": ".claude/specs",
+  "baseline_spec": "_baseline",
+  "enforced": true,
+  "build_cmd": "bun run typecheck",
+  "test_cmd": "bun test",
+  "code_globs": [
+    "api/src/*",
+    "pwa/src/*",
+    "shared/src/*",
+    "api/scripts/*",
+    "scripts/*"
+  ],
+  "allow_globs": [
+    ".claude/*",
+    "*.md",
+    "*.json",
+    "docs/*",
+    "*/__tests__/*",
+    "*.test.*",
+    "*.spec.*",
+    ".github/*",
+    "scripts/spec/*",
+    "pwa/playwright/*"
+  ],
+  "traceability_cutoff": "2026-07-04"
+}

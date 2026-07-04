@@ -1,5 +1,7 @@
 # /test-harness-add — Scaffold a New Test Helper
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Scaffolds helpers under `telegram/tests/` — no such workspace in this repo. See `api/__tests__/` for companygraph's test layout before adapting anything here. Reconcile against this repo before following any instruction below.
+
 Scaffolds a new test helper module under `telegram/tests/` (or co-located) with a matching contract test and a README snippet. The goal is to keep every helper in the harness producing the same shape: typed functional API, `NODE_ENV=test` guard, `getDb()`-only DB access, and a contract test that proves the helper's promises under the per-file runner.
 
 ## Usage

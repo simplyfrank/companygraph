@@ -1,5 +1,7 @@
 # Test Generation Skill
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Mock templates A–F target `telegram/src` (memory/cloud/actions/webapp) from personalassistant. companygraph tests with `bun:test` across `api/`, `pwa/`, `shared/`: unit via `bun test`, integration via `bun test:integration` (needs Neo4j up). The quality checklist and pitfalls below remain valid; the templates' paths and mocks do not. Reconcile against this repo before following any instruction below.
+
 Generate test files for any module with correct mock setup, patterns from this codebase, and quality verification.
 
 ## Usage

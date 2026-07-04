@@ -19,9 +19,9 @@ existing design skills under one contract and adds the deterministic gate.
 
 ## The contract (locked by the user, do not re-litigate)
 
-1. **Voyager Midnight is the only canonical DS, app-wide.** `tokens.css`
+1. **companygraph is the only canonical DS, app-wide.** `tokens.css`
    is generated from `.claude/stitch/design-system.yaml`. A drop is
-   *input* — you map a foreign palette onto Voyager tokens or propose a
+   *input* — you map a foreign palette onto companygraph tokens or propose a
    YAML retune through `/stitch tokens-sync`. Never a parallel `--*`
    namespace, never a parallel class system. The `.m-*` Maison classes /
    `Cormorant` serif (`pwa/styles/maison.css`, `wardrobe-landing.js`) are
@@ -54,7 +54,7 @@ unconditionally without affecting any deploy until a drop is in flight.
 ## Anti-patterns
 
 - **Parallel token namespace / parallel stylesheet** for a drop. Map onto
-  Voyager or retune the YAML — never run two systems live.
+  companygraph or retune the YAML — never run two systems live.
 - **Hand-rolled CATALOG duplicate** because `/component migrate` "is
   slower". The gate + `/component audit` exist precisely to stop this.
 - **Ungated batch** ("they're all the same pattern, apply all 9").

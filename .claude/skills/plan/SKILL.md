@@ -1,5 +1,7 @@
 # /plan — Push Spec Tasks to GitHub Backlog
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Hardcoded to the `Myndshare/personalassistant` repo and the Myndshare Roadmap project (#6) field/option IDs. Re-point the repo and project/field IDs at this repo's board before using it here. Reconcile against this repo before following any instruction below.
+
 Creates GitHub Issues from a spec's `tasks.md` and adds them to the Myndshare Roadmap project board.
 
 ## Usage

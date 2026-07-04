@@ -5,7 +5,9 @@
 ACTION="${1:-log}"
 MESSAGE="${2:-}"
 
-LOG_DIR="$HOME/.local/share/personalassistant/logs"
+# Per-project log dir, derived from the repo the session runs in
+PROJECT_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+LOG_DIR="$HOME/.local/share/claude-sessions/$PROJECT_NAME"
 TODAY=$(date +%Y-%m-%d)
 LOG_FILE="$LOG_DIR/session-$TODAY.log"
 STATE_FILE="$LOG_DIR/.session-state"

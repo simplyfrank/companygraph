@@ -52,11 +52,12 @@ Find your intent in the left column. That's your entrypoint. The chain column sh
 
 | I want to… | Start with | Chains into | Gate(s) |
 |---|---|---|---|
+| Plan a whole app / large subsystem | `/spec-app <idea>` | decompose → `blueprint.md` → parallel fan-out of one `/spec` pipeline per feature (via `.claude/workflows/spec-app.js`) | human gates the **decomposition** + the **final plan**; per-feature reviews gate autonomously |
 | Build a non-trivial feature | `/spec new <feature>` | clarifying Qs → requirements → design → tasks → impl; may call `/component`, `/tdd`, `/test` | Approve/Revise/Reject at every phase (proactive) |
 | Apply a design dropped in `docs/design/` | `/design-apply ingest` → `plan` → `apply` | `/component`, `/add-pwa-view`, `/stitch`, `/review-ui` + the conformance gate | per-surface conformance (hard) + human review (never self-approved) |
 | Add a new PWA screen/route | `/add-pwa-view` (or `/design-apply` if from a design drop) | `/component new` for any missing primitive | CATALOG check before markup |
 | Add/extend/migrate a shared UI component | `/component new\|extend\|migrate\|extract` | storybook scaffold, CATALOG row | framework-Storybook review gate |
-| Generate UI variants via Stitch | `/stitch generate-*` / `tokens-sync` | token sync to `pwa/styles/tokens.css` | "show assembled prompt before sending" |
+| Generate UI variants via Stitch | `/stitch generate-*` / `tokens-sync` | token sync to `pwa/src/styles/companygraph/tokens.css` | "show assembled prompt before sending" |
 | Audit one view's visual quality | `/review-ui <view>` | screenshots + scorecard (read-only) | none (report only) |
 | Add a Telegram command / scheduler job / memory module | `/add-command` · `/add-scheduler-job` · `/add-memory-module` | the matching pattern doc | pattern acceptance checklist |
 | Write tests for a module | `/test <module>` (or `/tdd` to go test-first) | correct mock/db-isolation setup | `/tdd`: failing tests approved before impl |
@@ -130,7 +131,7 @@ You: "apply the new design"
         │
    …repeat apply per surface (never batched)…  →  you commit (worktree + PR)
 ```
-Conductor: `/design-apply`. Canonical DS is **Voyager Midnight only**; foreign palettes map onto existing tokens or retune the YAML — never a parallel system. Detail: [`patterns/design-apply.md`](patterns/design-apply.md).
+Conductor: `/design-apply`. Canonical DS is **companygraph only**; foreign palettes map onto existing tokens or retune the YAML — never a parallel system. Detail: [`patterns/design-apply.md`](patterns/design-apply.md).
 
 ### Flow B — A new multi-phase feature
 
@@ -145,6 +146,22 @@ You: "build <feature>"
    /spec status | /spec continue | /spec audit   ← resume / verify drift
 ```
 The orchestrator is **proactive** — after each approved gate it advances itself; you don't re-issue commands. Specs are the durable record of intent under `.claude/specs/`.
+
+For a **whole application** (many features at once), `/spec-app <idea>` sits one level up:
+
+```
+You: "plan out this app"
+   /spec-app <idea>
+        ├─ decompose → .claude/specs/blueprint.md (features, tiers, deps, XD-* decisions)
+        │   ▒ GATE: you approve the decomposition (the highest-leverage checkpoint) ▒
+        ├─ fan out → .claude/workflows/spec-app.js runs one /spec pipeline PER feature
+        │            in parallel — foundation tier first, then the rest in dep-order waves
+        │            (each pipeline = the SAME spec-workflow author + spec-review reviewer,
+        │             same STATUS.md, same size rules, same 2-pass review cap, same hooks)
+        └─ consolidate → cross-spec consistency pass + PROJECT-ROLLUP refresh
+            ▒ GATE: you approve the overall plan ▒
+```
+It **reuses** the single-feature machinery — it does not fork a second spec system. Per-feature review loops run autonomously (the reviewer is always a fresh agent ≠ the author, so "never self-approve" holds); humans gate only the decomposition and the final plan. Ported from `docorg`, rewired to companygraph's spec conventions.
 
 ### Flow C — Ship a change
 
@@ -196,8 +213,11 @@ Spawned by Claude (or by a skill) to parallelize or scope work. **You don't usua
 | **general-purpose** | multi-step research / uncertain searches | a task needs several tool rounds |
 | **claude-code-guide** | questions about Claude Code / Agent SDK / Anthropic API | "does Claude Code support …?" |
 | `/parallel-agents` | **you** explicitly fan out N disjoint jobs | you have 5 unrelated tasks |
+| **spec-author** (`.claude/agents/`) | authoring/revising one spec artifact per house format | `/spec-app` fan-outs author requirements/design/tasks |
+| **spec-reviewer** (`.claude/agents/`) | adversarial cold review of one spec artifact — **has no Edit tool**, so it can never modify what it judges | every fan-out review gate; verdict approve/revise/reject |
+| **spec-architect** (`.claude/agents/`) | decomposing a whole app into a blueprint + feature list (XD-*, View Tree, UX-*, sizes) | `/spec-app` Phase A delegates heavy research |
 
-These are ephemeral, scoped, and report back a result. They keep the main session's context clean.
+These are ephemeral, scoped, and report back a result. They keep the main session's context clean. The three `spec-*` agents live in `.claude/agents/` (a pattern adopted from `docorg`) and are thin role wrappers around the `spec-workflow` / `spec-review` / `spec-app` skills — role separation with tool restrictions, not a parallel spec system.
 
 ### 5b. Product runtime subagents (the deployed assistant)
 
@@ -243,7 +263,7 @@ If a skill ever *doesn't* stop where this section says it should, that's a bug i
 | Running a deploy script directly | push to `main`; let CI/CD + the prod gate run (Flow C) |
 | Treating green conformance / "looks fine in Storybook" as approval | a human reviews every surface — §6 |
 | Building a 10-file feature ad hoc | `/spec new` — so intent is recorded and gated |
-| Editing `pwa/styles/tokens.css` by hand | edit `design-system.yaml`, run `/stitch tokens-sync` |
+| Editing `pwa/src/styles/companygraph/tokens.css` by hand | edit `design-system.yaml`, run `/stitch tokens-sync` |
 | A second parallel session in the main checkout | start a worktree (CLAUDE.md) |
 | Inventing surfaces from an empty `docs/design/` drop | `/design-apply ingest` stops and says "no design content" — trust it |
 | Asking "is the plan ok?" then proceeding without the gate | the gate *is* the approval; wait for it |
@@ -258,7 +278,7 @@ If a skill ever *doesn't* stop where this section says it should, that's a bug i
 - **Architecture (how it runs):** [`.claude/CLAUDE.md`](CLAUDE.md).
 - **Code conventions (how skills must write code):** [`.claude/patterns/README.md`](patterns/README.md).
 - **Durable feature plans & their status:** `.claude/specs/` (`/spec status`).
-- **Design pipeline specifics:** [`patterns/design-apply.md`](patterns/design-apply.md), [`patterns/stitch-when-to-use.md`](patterns/stitch-when-to-use.md), [`pwa/components/CATALOG.md`](../pwa/components/CATALOG.md).
+- **Design pipeline specifics:** [`patterns/design-apply.md`](patterns/design-apply.md), [`patterns/stitch-when-to-use.md`](patterns/stitch-when-to-use.md), [`design-system.manifest.yaml`](../design-system.manifest.yaml).
 - **Reliability / incident decision tree:** CLAUDE.md "Reliability" + `docs/CRITICAL-PATH-RELIABILITY-MATRIX.md`.
 
 **The one sentence:** *say what you want — the skill that owns that intent will pick itself up, do the work to the codebase's standards, and stop at the human gates that keep it safe.*

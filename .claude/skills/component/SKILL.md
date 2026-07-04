@@ -1,12 +1,14 @@
 # PWA Component Library
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Manages the personalassistant vanilla-JS IIFE library (`pwa/components/*.js`, `CATALOG.md`, `storybook.html`) — none of which exist here. companygraph's components are React (`pwa/src/components/*.tsx` + CSS modules), governed by `design-system.manifest.yaml` via `/wireframe-extract`. The gate discipline below (never self-approve, audit before new, semantic-equivalence check) still applies; the paths and file shapes do not. Reconcile against this repo before following any instruction below.
+
 Manage the no-build, vanilla-JS component library at `pwa/components/`. Seven subcommands cover the full lifecycle: net-new design, additive extension of an existing component, view-to-existing-component migration, mechanical pattern extraction, audit, storybook scaffolding, and in-flight-redesign status.
 
 ## Reference
 
 - [.claude/patterns/pwa-component.md](../../patterns/pwa-component.md) — IIFE shape, idempotent style guard, token system, acceptance checklist, **and the "when to extend / redesign / spec" decision tree**.
-- [pwa/components/CATALOG.md](../../../pwa/components/CATALOG.md) — the **scenario → default-component** map with **Status** column tracking which components are stable, extending, redesigning, superseded, or deprecated. Every `/component new`, `/component extend`, and `/component extract` ends with a CATALOG row added or updated. Every other agent (`/add-pwa-view`, anything writing UI) must consult this catalog before hand-rolling markup.
-- **Upstream conductor:** when a design artifact in `docs/design/` is being applied, `/design-apply` (`.claude/skills/design-apply/`) is the orchestrator — it calls *this* skill (`new`/`migrate`/`extract`) per surface under a Voyager-conformance gate. If you arrived here from a design drop, prefer running `/design-apply` so the work is tracked + gated.
+- [design-system.manifest.yaml](../../../design-system.manifest.yaml) — the **scenario → default-component** map with **Status** column tracking which components are stable, extending, redesigning, superseded, or deprecated. Every `/component new`, `/component extend`, and `/component extract` ends with a CATALOG row added or updated. Every other agent (`/add-pwa-view`, anything writing UI) must consult this catalog before hand-rolling markup.
+- **Upstream conductor:** when a design artifact in `docs/design/` is being applied, `/design-apply` (`.claude/skills/design-apply/`) is the orchestrator — it calls *this* skill (`new`/`migrate`/`extract`) per surface under a companygraph-conformance gate. If you arrived here from a design drop, prefer running `/design-apply` so the work is tracked + gated.
 
 ## Commands
 
@@ -60,7 +62,7 @@ If `<scenario>` is terse ("status badge", "card for shopping list row"), ask 2-4
 - **What existing component (if any) it replaces or composes with**.
 
 Then:
-1. **Check the CATALOG** (`pwa/components/CATALOG.md`) for any existing scenario row that overlaps. If a default already exists, name it back to the user — they may want `/component story` or `/component extract` instead. Don't create a duplicate default.
+1. **Check the CATALOG** (`design-system.manifest.yaml`) for any existing scenario row that overlaps. If a default already exists, name it back to the user — they may want `/component story` or `/component extract` instead. Don't create a duplicate default.
 2. Propose a **component name** (kebab-case, no `.js`), a **slot in the design system** (badge / card / panel / control / overlay / chrome), and the **public API shape** (factory vs. builder, options object, return type).
 3. Present the requirements summary in 4-6 lines. Ask: **Approve → Revise → Reject**.
 
@@ -103,12 +105,12 @@ After 3 iterations, **do not offer "Iterate again"**. Offer only: "Approve → S
 Once approved:
 1. Confirm the acceptance checklist from `pwa-component.md` (walk it explicitly, don't assume).
 2. Run the component's test if one exists (`bun test pwa/__tests__/<name>.test.ts`) and the wider PWA suite (`bun test pwa/__tests__`) — broken sw-parity / cross-origin tests catch missing precache entries.
-3. Stage: `pwa/components/<name>.js`, `pwa/index.html`, `pwa/sw.js`, `pwa/storybook.html`, `pwa/components/CATALOG.md` (filled in Gate 5), and the test file if you wrote one.
+3. Stage: `pwa/components/<name>.js`, `pwa/index.html`, `pwa/sw.js`, `pwa/storybook.html`, `design-system.manifest.yaml` (filled in Gate 5), and the test file if you wrote one.
 4. Don't commit yet — Gate 5 needs to land in the same commit.
 
 ### Gate 5 — Register as default in CATALOG
 
-This is what "becomes the default component for its usage scenario" means in practice. Edit `pwa/components/CATALOG.md`:
+This is what "becomes the default component for its usage scenario" means in practice. Edit `design-system.manifest.yaml`:
 1. Find the right table (Badges / Cards / Panels / Controls / Overlays / Chrome — match the slot from Gate 1).
 2. Add a row: `| <Scenario one-liner> | <name> | <one-line API> | <file:line> |`.
 3. **Verify the file:line pointer just before commit.** Edits during Gate 3 iteration shift line numbers — the right command is `grep -n '<API symbol>' pwa/components/<name>.js` immediately before staging, then update the row to match. A stale pointer makes the catalog actively misleading.
@@ -137,7 +139,7 @@ This is what "becomes the default component for its usage scenario" means in pra
   - `pwa/.storybook/preview-head.html` (script tag for the IIFE)
   - `pwa/index.html` (script tag, before any view that consumes it)
   - `pwa/sw.js` PRECACHE_URLS (CI templates the cache name; do not hand-edit)
-  - `pwa/components/CATALOG.md` (catalog row with **freshly-verified** file:line pointer)
+  - `design-system.manifest.yaml` (catalog row with **freshly-verified** file:line pointer)
 - [ ] Both surfaces render correctly: `bun x storybook dev` shows the new sidebar entries; `storybook.html` shows the new section.
 - [ ] Test file at `pwa/__tests__/<name>.test.ts` exists if the component has any non-trivial logic — regression net for future refactors.
 - [ ] Single commit, single push, single deploy.
@@ -203,7 +205,7 @@ Same review-cap discipline as `/component new` Gate 3: capped at **3 rounds** of
 Once approved:
 1. Walk the pattern's acceptance checklist explicitly.
 2. Run `bun test pwa/__tests__/<name>.test.ts` and the wider PWA suite (`bun test pwa/__tests__`).
-3. Update `pwa/components/CATALOG.md`:
+3. Update `design-system.manifest.yaml`:
    - Update the existing row's "Notes" / "API" column to reflect the new capability.
    - **Flip the row's Status column to `extending` with the date** (e.g. `extending since 2026-04-27`).
    - Verify the file:line pointer with a fresh grep before staging.
@@ -222,7 +224,7 @@ If a consumer is *intentionally not migrating* (e.g. domain-specific divergence 
 ### Gate 6 — Flip status back to `stable`
 
 1. Run `/component status` — confirm no consumer-migration PRs are still open or pending for this component.
-2. Edit `pwa/components/CATALOG.md`: flip Status from `extending` back to `stable`. Remove the date.
+2. Edit `design-system.manifest.yaml`: flip Status from `extending` back to `stable`. Remove the date.
 3. If the extension is now the recommended default for a scenario the component didn't previously cover, add a new row pointing to the same component file but with the new scenario.
 4. Commit. One-liner: `chore(pwa): mark <name> stable after .<method>() rollout`.
 
@@ -243,7 +245,7 @@ Goal: read-only inspector showing the design-system migration state at a glance.
 
 ### Steps
 
-1. Read `pwa/components/CATALOG.md` and parse all rows.
+1. Read `design-system.manifest.yaml` and parse all rows.
 2. Group by Status:
    - `stable` rows — count only.
    - `extending` rows — list with the date in the Status cell.
@@ -414,7 +416,7 @@ Goal: lift one CSS+markup pattern from one source view into a new component file
    - Hand them the deep link to the relevant story: `http://localhost:6006/?path=/story/<title>--<story>`.
    - Also instruct: `cd pwa && python3 -m http.server 8000` → `http://localhost:8000/#/<view>` to confirm the source view still works.
    - Ask: **Approve the extraction → Iterate → Reject**. **Do not self-approve.** No commit before the user replies.
-6. **Register in CATALOG.** Edit `pwa/components/CATALOG.md` — add a row for the scenario this component now serves (ask the user to phrase the scenario in one line; that one line is what every future agent will grep for). Without this row, the component is invisible to the design system and a future agent will hand-roll the same markup again.
+6. **Register in CATALOG.** Edit `design-system.manifest.yaml` — add a row for the scenario this component now serves (ask the user to phrase the scenario in one line; that one line is what every future agent will grep for). Without this row, the component is invisible to the design system and a future agent will hand-roll the same markup again.
 7. **Commit.** Single commit, message `feat(pwa): extract <pattern-name> component from <view>`. List the registry files touched in the body, including CATALOG.md.
 
 ### Acceptance checklist before declaring done

@@ -1,8 +1,20 @@
 # companygraph — project rollup
 
-**Date**: 2026-05-23  
-**Author**: orchestrator session  
-**Status**: 2 specs at `execution:complete`; 3 specs still in pipeline.
+**Date**: 2026-07-04 (baseline adoption update; prior rollup 2026-05-23)
+**Author**: orchestrator session
+**Status**: 3 specs at `execution:complete` (incl. `_baseline`); 3 specs in pipeline; 4 adopted surfaces awaiting backfill.
+
+> **2026-07-04 adoption:** the post-2026-05-23 off-spec expansion (auth/RBAC/
+> tenancy, Postgres storage layer, KPI/SLA/OKR, risk/compliance/change
+> management, exec/analytics views) was **adopted, not reverted**, per the
+> user's decision. It is governed by the as-built baseline spec
+> `.claude/specs/_baseline/` (execution:complete, traceability green:
+> 16 FRs / 16 ACs / 16 tasks). CLAUDE.md is reconciled; the former no-auth
+> invariant (NFR-08/AC-22) is retired and its guard test deleted. Coverage:
+> `_inventory.md` reports 24/24 code areas governed. Backfill specs still
+> owed: auth-hardening (dev-mode JWT fallback!), kpi-sla-okr,
+> risk-compliance-change, cto-analytics completion. The rollup below this
+> banner predates the adoption — read it as the pre-drift pipeline state.
 
 ## Project shape
 

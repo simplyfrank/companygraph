@@ -1,14 +1,16 @@
 # Adding a PWA View
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Describes the personalassistant vanilla-JS no-build PWA (`pwa/views/*.js`, hash router in `index.html`, `sw.js` precache, Telegram webapp server). companygraph's PWA is **Vite + React + TS under `pwa/src/`**: add views as `pwa/src/views/**/*.tsx`, wire them in `pwa/src/route.ts`, style with CSS modules over `var(--…)` tokens, and verify with `bun run typecheck` + `scripts/design-conformance.ts`. The component catalog is `design-system.manifest.yaml` (managed by `/wireframe-extract`). Reconcile against this repo before following any instruction below.
+
 Guide for adding a new view to the Progressive Web App.
 
 ## Before you write markup — consult the component catalog
 
-Read [`pwa/components/CATALOG.md`](../../../pwa/components/CATALOG.md) first. It maps every recurring UI scenario (state badges, cards, panels, action bars, empty states, …) to the default component the view should use. Hand-rolling markup that duplicates a catalog row is the most common drift in this codebase.
+Read [`design-system.manifest.yaml`](../../../design-system.manifest.yaml) first. It maps every recurring UI scenario (state badges, cards, panels, action bars, empty states, …) to the default component the view should use. Hand-rolling markup that duplicates a catalog row is the most common drift in this codebase.
 
 If the view needs a UI shape that isn't in the catalog and will repeat across 2+ views, run `/component new <scenario>` before continuing — the originating flow designs, reviews, deploys, and registers the component, after which you import it from the view.
 
-**Adding this view from a design dropped in `docs/design/`?** Don't run this skill standalone — run `/design-apply` (`.claude/skills/design-apply/`). It decides fresh-vs-migrate, calls *this* skill for the fresh case, and enforces the deterministic Voyager-conformance gate (`scripts/design-conformance.ts`) plus a per-surface human review gate that a standalone `/add-pwa-view` would skip.
+**Adding this view from a design dropped in `docs/design/`?** Don't run this skill standalone — run `/design-apply` (`.claude/skills/design-apply/`). It decides fresh-vs-migrate, calls *this* skill for the fresh case, and enforces the deterministic companygraph-conformance gate (`scripts/design-conformance.ts`) plus a per-surface human review gate that a standalone `/add-pwa-view` would skip.
 
 ## Architecture
 

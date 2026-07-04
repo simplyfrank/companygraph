@@ -1,6 +1,6 @@
 # Stitch — Visual-Design Pipeline
 
-Drive Stitch as the visual-design engine for the PWA. This skill assembles prompts from editable markdown artifacts (so iteration compounds), wraps the Stitch MCP, logs every run for traceability, and keeps `pwa/styles/tokens.css` in sync with `.claude/stitch/design-system.yaml`.
+Drive Stitch as the visual-design engine for the PWA. This skill assembles prompts from editable markdown artifacts (so iteration compounds), wraps the Stitch MCP, logs every run for traceability, and keeps `pwa/src/styles/companygraph/tokens.css` in sync with `.claude/stitch/design-system.yaml`.
 
 ## Reference
 
@@ -8,8 +8,8 @@ Drive Stitch as the visual-design engine for the PWA. This skill assembles promp
 - **Pattern doc:** [.claude/patterns/stitch-when-to-use.md](../../patterns/stitch-when-to-use.md) — decision tree + Triggers/Skip tables. **Read first** before deciding to call any `/stitch generate-*`.
 - **Upstream conductor:** when a design artifact lands in `docs/design/`, `/design-apply` (`.claude/skills/design-apply/`) orchestrates application and calls `/stitch generate-*` / `tokens-sync` only when `stitch-when-to-use.md` matches. Token reconciliation from a drop routes through this skill's `tokens-sync` gate — never a parallel token namespace.
 - **Artifacts (the editable layer — iterate here, not in this skill):**
-  - [.claude/stitch/house-style.md](../../stitch/house-style.md) — global preamble (Voyager Midnight, density, motion, do/don't).
-  - [.claude/stitch/component-vocabulary.md](../../stitch/component-vocabulary.md) — canonical components Stitch must reuse, seeded from `pwa/components/CATALOG.md`.
+  - [.claude/stitch/house-style.md](../../stitch/house-style.md) — global preamble (companygraph, density, motion, do/don't).
+  - [.claude/stitch/component-vocabulary.md](../../stitch/component-vocabulary.md) — canonical components Stitch must reuse, seeded from `design-system.manifest.yaml`.
   - [.claude/stitch/design-system.yaml](../../stitch/design-system.yaml) — the canonical token set.
   - [.claude/stitch/briefs/*.md](../../stitch/briefs/) — per-artifact intent (shell, chat-panel, travel-overview, …).
   - [.claude/stitch/prompts/*.md](../../stitch/prompts/) — assembly templates (generate-shell, generate-section, generate-page).
@@ -24,12 +24,12 @@ Drive Stitch as the visual-design engine for the PWA. This skill assembles promp
 | `/stitch list` | List Stitch projects | nothing |
 | `/stitch project [id]` | Show current project (or specified) | nothing |
 | `/stitch screen <id>` | Show a screen — title, thumbnail, HTML download URL | nothing |
-| `/stitch tokens-sync` | Push `design-system.yaml` to Stitch via `update_design_system`, emit `pwa/styles/tokens.css` | Stitch design system, pwa/styles/tokens.css |
+| `/stitch tokens-sync` | Push `design-system.yaml` to Stitch via `update_design_system`, emit `pwa/src/styles/companygraph/tokens.css` | Stitch design system, pwa/src/styles/companygraph/tokens.css |
 | `/stitch generate-shell [--notes "..."]` | Assemble shell prompt, call `generate_screen_from_text`, write run-log | Stitch (creates screens), runs/ |
 | `/stitch generate-section <domain> [--notes "..."]` | Assemble section-frame prompt, call MCP, log | Stitch, runs/ |
 | `/stitch generate-page <domain>/<page> [--notes "..."]` | Assemble page-body prompt, call MCP, log | Stitch, runs/ |
 | `/stitch variants <screen-id> [--notes "..."]` | Call `generate_variants` to explore a screen further | Stitch, runs/ |
-| `/stitch vocab-check` | Diff `component-vocabulary.md` against `pwa/components/CATALOG.md` | nothing |
+| `/stitch vocab-check` | Diff `component-vocabulary.md` against `design-system.manifest.yaml` | nothing |
 | `/stitch runs [N]` | List N most recent runs (default 10) | nothing |
 
 ## Global rules
@@ -37,7 +37,7 @@ Drive Stitch as the visual-design engine for the PWA. This skill assembles promp
 These override any "go faster" pressure earlier in the session.
 
 1. **Always show the assembled prompt before sending it to Stitch.** Print the full assembled prompt and ask the user **Approve → Revise → Cancel**. Do not call any `mcp__stitch__generate_*` until the user explicitly says go. The whole iteration premise is "you can see and improve the prompt"; calling without preview defeats it.
-2. **Never silently overwrite `pwa/styles/tokens.css`.** `tokens-sync` runs the script in `--dry-run` first, prints a unified diff against the existing file (if any), and asks **Approve → Cancel** before the real write.
+2. **Never silently overwrite `pwa/src/styles/companygraph/tokens.css`.** `tokens-sync` runs the script in `--dry-run` first, prints a unified diff against the existing file (if any), and asks **Approve → Cancel** before the real write.
 3. **`vocab-check` runs automatically after every `generate-page`.** If Stitch's HTML output references components not in `component-vocabulary.md`, surface them as `Stitch's invented name` rows for the user to triage. Do not silently let drift accumulate.
 4. **Every `generate-*` call writes a run-log entry, even on failure.** The log captures what was tried; a missing log is worse than a "this attempt failed" log.
 5. **Don't commit to git inside this skill.** All commands stop after writing local files / calling Stitch. Commits are a separate user step.
@@ -52,7 +52,7 @@ Goal: bootstrap the Stitch side of the pipeline so subsequent `generate-*` and `
    - If `--attach <project-id>` provided: validate via `mcp__stitch__get_project`. Adopt it.
    - Else: ask the user to confirm creating `Personal Assistant — Shell + Travel` via `mcp__stitch__create_project`. Show the proposed name; require Approve → Revise → Cancel.
 3. **Apply the design system**:
-   - Call `mcp__stitch__list_design_systems`. If a "Voyager Midnight" entry exists, ask whether to reuse or recreate. Else call `mcp__stitch__create_design_system` seeded from `design-system.yaml.stitch_overrides` (primary `#4E7BFF`, secondary `#00D1FF`, tertiary `#8A99B1`, neutral `#0A0B14`).
+   - Call `mcp__stitch__list_design_systems`. If a "companygraph" entry exists, ask whether to reuse or recreate. Else call `mcp__stitch__create_design_system` seeded from `design-system.yaml.stitch_overrides` (primary `#4E7BFF`, secondary `#00D1FF`, tertiary `#8A99B1`, neutral `#0A0B14`).
    - Call `mcp__stitch__apply_design_system` to bind it to the project.
 4. **Update state.json** with: `current_project_id`, `design_system_id`, `created_at`, and an empty `screens` map.
 5. **Update `design-system.yaml`** — replace the `<TBD: ...>` placeholder under `sync_targets.stitch.project_ids` with the new project ID.
@@ -81,13 +81,13 @@ Goal: keep Stitch's design system, the local YAML, and the PWA CSS in sync — a
 1. **Validate** — read `design-system.yaml` via the script's parser (run `bun run scripts/stitch-tokens-to-css.ts --check` to confirm it parses); if it errors, print the error and stop.
 2. **Local diff preview**:
    - Run `bun run scripts/stitch-tokens-to-css.ts --dry-run` and capture stdout.
-   - If `pwa/styles/tokens.css` exists, compute and print a unified diff against the dry-run output. Else print "(new file)".
+   - If `pwa/src/styles/companygraph/tokens.css` exists, compute and print a unified diff against the dry-run output. Else print "(new file)".
 3. **Stitch diff preview** (per project ID in `sync_targets.stitch.project_ids`):
    - Compare `design-system.yaml.stitch_overrides` and the current Stitch design-system overrides on each project.
    - Print which fields will change.
 4. **Gate — Approve → Revise → Cancel.** Show the combined preview and stop.
 5. **On approve**:
-   - Run `bun run scripts/stitch-tokens-to-css.ts` (writes `pwa/styles/tokens.css`).
+   - Run `bun run scripts/stitch-tokens-to-css.ts` (writes `pwa/src/styles/companygraph/tokens.css`).
    - For each project ID in `sync_targets.stitch.project_ids`, call `mcp__stitch__update_design_system` with the YAML's overrides + named colors + typography + roundness.
    - Append a run-log entry `runs/<ts>-tokens-sync.md` listing what changed.
    - Print summary: bytes written, projects updated, suggested next step (`/stitch generate-page <existing>` to spot-regenerate one canonical view and verify the token change didn't degrade anything — per `stitch-when-to-use.md` "Token / design-system change" trigger).
@@ -104,7 +104,7 @@ Goal: produce the application shell screen with three device variants in the cur
 2. **Assemble the prompt** following the order in `prompts/generate-shell.md`:
    1. House style verbatim.
    2. Component vocabulary verbatim.
-   3. Design system reference: `Voyager Midnight` (named).
+   3. Design system reference: `companygraph` (named).
    4. Shell brief verbatim.
    5. Chat panel brief verbatim (sub-component of shell).
    6. `--notes` value if provided.
@@ -129,7 +129,7 @@ Goal: generate the section frame for a domain (sub-nav contents) inside the exis
 2. **Assemble** per `prompts/generate-section.md`:
    1. House style.
    2. Component vocabulary.
-   3. `Voyager Midnight`.
+   3. `companygraph`.
    4. Shell ref: include `state.json.screens.shell-master[0]` as `<<SHELL_REF>>` plus the one-paragraph chrome summary from the prompt template.
    5. Section brief.
    6. `--notes` if provided.
@@ -151,7 +151,7 @@ Goal: generate a page body inside an existing section.
 2. **Assemble** per `prompts/generate-page.md`:
    1. House style.
    2. Component vocabulary.
-   3. `Voyager Midnight`.
+   3. `companygraph`.
    4. Shell ref.
    5. Section ref.
    6. Page brief.
@@ -178,7 +178,7 @@ Goal: explore visual alternatives of an existing screen.
 
 ## /stitch vocab-check
 
-Goal: detect drift between `component-vocabulary.md` and `pwa/components/CATALOG.md`.
+Goal: detect drift between `component-vocabulary.md` and `design-system.manifest.yaml`.
 
 1. Parse the rows in CATALOG.md (every "Default" column entry is the canonical name).
 2. Parse the names in `component-vocabulary.md` (the "Name" column of every table).
@@ -312,8 +312,8 @@ When you hit the ceiling, **stop using `edit_screens`** for that work. The body 
 
 ### Practical token rules
 
-- The design-system binding (Voyager Midnight) only enforces palette tokens at the *theme* level. Stitch still emits raw hex literals (`#0a0a0a`, `#1e293b`, etc.) inside generated HTML on every call. The hex-literal cleanup edit can reduce but not eliminate them.
-- For consistent token use across screens, the durable answer is: emit `pwa/styles/tokens.css` from `design-system.yaml` (already done), then enforce token-only via PWA code review — not via Stitch.
+- The design-system binding (companygraph) only enforces palette tokens at the *theme* level. Stitch still emits raw hex literals (`#0a0a0a`, `#1e293b`, etc.) inside generated HTML on every call. The hex-literal cleanup edit can reduce but not eliminate them.
+- For consistent token use across screens, the durable answer is: emit `pwa/src/styles/companygraph/tokens.css` from `design-system.yaml` (already done), then enforce token-only via PWA code review — not via Stitch.
 
 ### When to stop using Stitch
 

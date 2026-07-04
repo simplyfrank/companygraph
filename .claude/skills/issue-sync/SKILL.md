@@ -1,5 +1,7 @@
 # /issue-sync — Sync Spec Execution to GitHub Issues
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Hardcoded to the `Myndshare/personalassistant` repo + project board option IDs. Re-point before use in this repo. Reconcile against this repo before following any instruction below.
+
 Updates GitHub issue status and project board fields as spec tasks are completed.
 
 ## Usage

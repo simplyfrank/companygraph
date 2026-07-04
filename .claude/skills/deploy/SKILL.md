@@ -1,5 +1,7 @@
 # /deploy - Deploy via CI/CD Pipeline
 
+> **⚠️ STALE STACK — ported from personalassistant, not yet rewired for companygraph.** Describes the personalassistant CodePipeline + Telegram prod-approval flow. companygraph has no deploy pipeline; CI is GitHub Actions gating PRs only. Reconcile against this repo before following any instruction below.
+
 All deployments go through the CodePipeline CI/CD pipeline with staging/production promotion. **NEVER run deploy scripts directly.**
 
 ## Usage
