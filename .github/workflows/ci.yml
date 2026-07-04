@@ -14,7 +14,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: docker compose config -q
-      - run: bun test
+      - run: bun run test
 
   integration:
     runs-on: ubuntu-latest
