@@ -39,6 +39,15 @@ colors:
   border-strong: "oklch(86% 0.008 250)"
   accent:        "oklch(58% 0.18 255)"
   accent-soft:   "oklch(96% 0.025 255)"
+  # Five-stop mono-ramp derived from --accent (hue 255) — cto-analytics T-21
+  # (design §2 Pin-4). Lightness descends 100→900; chroma tracks lightness so
+  # the mid stop (-500) equals the base accent. Consumed by the FR-01 system
+  # map's cluster coloring (Systems.tsx) and detokenised charts (RD-5).
+  accent-100:    "oklch(92% 0.05 255)"
+  accent-300:    "oklch(76% 0.12 255)"
+  accent-500:    "oklch(58% 0.18 255)"
+  accent-700:    "oklch(44% 0.15 255)"
+  accent-900:    "oklch(30% 0.1 255)"
   good:          "oklch(58% 0.16 145)"
   warn:          "oklch(70% 0.16 75)"
   danger:        "oklch(60% 0.22 25)"

@@ -1,0 +1,29 @@
+.pane {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.note {
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 var(--space-md);
+}
+
+.formula {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.deferred {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: var(--space-md) 0 0;
+}

@@ -13,7 +13,7 @@
  *   • bottlenecks (top 10 betweenness)
  */
 
-import { runGraphAnalytics } from "../ontology/analytics/graph";
+import { runGraphAnalytics } from "../analytics/graph";
 import { ok } from "./_helpers";
 
 export async function handleGraphAnalytics(): Promise<Response> {

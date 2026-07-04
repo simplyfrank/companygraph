@@ -1,0 +1,107 @@
+/* cto-analytics FR-01 / T-07 — force-directed System map.
+ *
+ * Colors are tokens-only (design-conformance `tokens-only` rule): the five
+ * cluster fills come from the accent-100..900 mono-ramp in
+ * pwa/src/styles/companygraph/tokens.css (T-21), applied inline on each node.
+ * Nothing in this file hardcodes a hex/rgb/oklch color literal. */
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-w);
+  gap: var(--space-xl);
+}
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+.canvasWrap {
+  min-height: 560px;
+  height: 560px;
+  position: relative;
+}
+
+/* FR-01 Native Conflict suppression (Resolves: C-04): the force-directed
+ * canvas owns its own pointer/pinch gestures; `touch-action: none` stops the
+ * browser from hijacking pinch-zoom/scroll on the map container so the custom
+ * double-tap "fit to view" handler + pinch behave, not the page. */
+.canvas {
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  touch-action: none;
+}
+
+.edges {
+  pointer-events: none;
+}
+.edge {
+  stroke: var(--border-strong);
+  stroke-width: 1.25;
+  opacity: 0.55;
+  transition: opacity 0.18s linear;
+}
+.edge[data-dim="true"] {
+  opacity: 0.12;
+}
+
+.nodeGroup {
+  cursor: pointer;
+  transition: opacity 0.18s linear;
+}
+.nodeGroup[data-dim="true"] {
+  opacity: 0.2;
+}
+.nodeGroup:hover circle {
+  stroke-width: 2.5;
+  filter: drop-shadow(0 1px 5px color-mix(in oklch, var(--fg) 25%, transparent));
+  transition: filter 0.12s ease-out;
+}
+
+.nodeLabel {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--fg);
+  pointer-events: none;
+  user-select: none;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--surface);
+  flex: 0 0 auto;
+}
+
+.id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
