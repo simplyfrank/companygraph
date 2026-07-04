@@ -1,0 +1,401 @@
+meta:
+  generatedAt: "2026-05-23"
+  builder: "vite + @vitejs/plugin-react"
+  designSystemVersion: "0.1.0"
+  generator: "/wireframe-extract --discover (manual first pass)"
+
+paths:
+  mocks:
+    - "design/companygraph/companygraph-views.html"
+    - "design/companygraph/companygraph-journeys.html"
+    - "design/companygraph/companygraph-user-stories.html"
+    - "design/companygraph/index.html"
+  designMd:    "design/companygraph/DESIGN.md"
+  tokensYaml:  ".claude/stitch/design-system.yaml"
+  tokensCss:   "pwa/src/styles/companygraph/tokens.css"
+  output:
+    views:      "pwa/src/views"
+    components: "pwa/src/components"
+
+# ---------------------------------------------------------------------------
+# Component catalog — sourced from DESIGN.md §5 (keystones) plus the class
+# clusters discovered in the mocks. Status pending until /wireframe-extract
+# (without --discover) emits the React files.
+# ---------------------------------------------------------------------------
+components:
+  - name: TopBar
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".topbar"
+    variants: ["default", "compact"]      # @media (max-width: 1100px) hides .stat .env .health
+    props:
+      - { name: "brand", type: "string" }
+      - { name: "env", type: "string" }
+      - { name: "surfaces", type: "Array<{id: string, label: string, kbd?: string, href?: string}>" }
+      - { name: "activeSurface", type: "string" }
+      - { name: "healthy", type: "boolean" }
+      - { name: "user", type: "{name: string, initials: string}" }
+    status: extracted
+    target: "pwa/src/components/TopBar.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: SubNav
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".subnav"
+    variants: ["default"]
+    props:
+      - { name: "crumbs", type: "Array<{label: string, href?: string}>" }
+      - { name: "tabs", type: "Array<{id: string, label: string}>" }
+      - { name: "activeTab", type: "string" }
+      - { name: "search", type: "{placeholder?: string, shortcut?: string} | undefined" }
+      - { name: "actions", type: "ReactNode" }
+    status: extracted
+    target: "pwa/src/components/SubNav.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: Card
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".card"
+    variants: ["default", "with-head"]   # bare body vs card-head + card-pad
+    props:
+      - { name: "title", type: "string | undefined" }
+      - { name: "actions", type: "ReactNode | undefined" }
+      - { name: "children", type: "ReactNode" }
+    status: extracted
+    target: "pwa/src/components/Card.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: Pill
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".pill"
+    variants: ["neutral", "accent", "good", "warn", "danger"]
+    props:
+      - { name: "tone", type: "'neutral'|'accent'|'good'|'warn'|'danger'" }
+      - { name: "children", type: "ReactNode" }
+    status: extracted
+    target: "pwa/src/components/Pill.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: KeyValueList
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".kvs"
+    variants: ["default"]
+    props:
+      - { name: "rows", type: "Array<{label: string, value: ReactNode}>" }
+    status: extracted
+    target: "pwa/src/components/KeyValueList.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: DataTable
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: "table.t"
+    variants: ["default"]
+    props:
+      - { name: "columns", type: "Array<{id: string, label: string, align?: 'left'|'right', kind?: 'id'|'num'|'text'}>" }
+      - { name: "rows", type: "Array<Record<string, ReactNode>>" }
+    status: extracted
+    target: "pwa/src/components/DataTable.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: DomainCard
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: "a.domain-card"
+    variants: ["default"]
+    props:
+      - { name: "domain", type: "{id: string, name: string, description?: string}" }
+      - { name: "counts", type: "Array<{label: string, value: string|number, href?: string}>" }
+      - { name: "href", type: "string | undefined" }
+    status: extracted
+    target: "pwa/src/components/DomainCard.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: ActivityChain
+    sources: ["design/companygraph/companygraph-views.html", "design/companygraph/companygraph-journeys.html"]
+    region: ".chain"
+    variants: ["default"]
+    props:
+      - { name: "steps", type: "Array<{id: string, name: string, sub?: string, slas?: SLA[], transition?: string}>" }
+    status: extracted
+    target: "pwa/src/components/ActivityChain.tsx"
+    notes: "Connector lines + arrowheads drawn via .step::before/.step::after — must be reproducible in React without breaking the count-based pseudo-element numbering. Use a custom counter or inline number prop."
+    overrides: {}
+
+  - name: SLAchip
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".sla"
+    variants: ["neutral", "good", "warn", "breach"]
+    props:
+      - { name: "tone", type: "'neutral'|'good'|'warn'|'breach'" }
+      - { name: "label", type: "string" }
+      - { name: "value", type: "string | undefined" }
+    status: extracted
+    target: "pwa/src/components/SLAchip.tsx"
+    notes: "Breach variant has the slaPulse animation — token from design-system.yaml#animation.sla_pulse."
+    overrides: {}
+
+  - name: Button
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".btn"
+    variants: ["default", "primary", "ghost", "danger"]
+    props:
+      - { name: "tone", type: "'default'|'primary'|'ghost'|'danger'" }
+      - { name: "onClick", type: "() => void | undefined" }
+      - { name: "href", type: "string | undefined" }
+      - { name: "children", type: "ReactNode" }
+    status: extracted
+    target: "pwa/src/components/Button.tsx"
+    notes: ""
+    overrides: {}
+
+  - name: GreyBlock
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".grey-block"
+    variants: ["default"]
+    props:
+      - { name: "label", type: "string" }
+      - { name: "height", type: "string | number | undefined" }
+    status: extracted
+    target: "pwa/src/components/GreyBlock.tsx"
+    notes: "Placeholder primitive for canvases/charts not yet wired. Diagonal-stripe dashed-border block; design system spec §5 #11."
+    overrides: {}
+
+  - name: BoundList
+    sources: ["design/companygraph/companygraph-views.html"]
+    region: ".bound-list"
+    variants: ["default"]
+    props:
+      - { name: "items", type: "Array<{kind: 'executes'|'uses'|'at', label: string, href?: string}>" }
+    status: extracted
+    target: "pwa/src/components/BoundList.tsx"
+    notes: "Used in the journey-shell right panel. Glyph squares are tinted via --good/--accent/--warn."
+    overrides: {}
+
+# ---------------------------------------------------------------------------
+# Screen catalog — sourced from DESIGN.md §6. Each entry maps to a section in
+# the mocks marked with data-view="<surface>" data-tab="<tab>". Stitch
+# captions are pre-authored in DESIGN.md and can be passed directly to
+# /stitch generate-screen-from-text.
+#
+# Ownership column maps each screen to the spec that should own its
+# implementation (one of the four follow-up specs).
+# ---------------------------------------------------------------------------
+screens:
+  # ----- process-explorer-ui (5) -----
+  - id: explorer/domains
+    surface: explorer
+    tab: domains
+    owner: process-explorer-ui
+    caption: "Domain index card grid for a retail-process graph."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: explorer/journey
+    surface: explorer
+    tab: journey
+    owner: process-explorer-ui
+    caption: "Journey detail view with ordered activity chain and bound entities."
+    sources: ["design/companygraph/companygraph-views.html", "design/companygraph/companygraph-journeys.html"]
+    status: extracted
+  - id: explorer/graph
+    surface: explorer
+    tab: graph
+    owner: process-explorer-ui
+    caption: "Interactive graph canvas, filter rail, hover details."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: explorer/systems
+    surface: explorer
+    tab: systems
+    owner: process-explorer-ui
+    caption: "System index with integration relationship table."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: explorer/path
+    surface: explorer
+    tab: path
+    owner: process-explorer-ui
+    caption: "Path-finding result between two nodes with hop list."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+
+  # ----- chat-interface (1) -----
+  - id: chat/thread
+    surface: chat
+    tab: thread
+    owner: chat-interface
+    caption: "Chat thread, AI response with subgraph citations."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+
+  # ----- ontology-manager (6) -----
+  - id: ontology/catalog
+    surface: ontology
+    tab: catalog
+    owner: ontology-manager
+    caption: "Entity-type catalogue with attribute counts."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: ontology/erd
+    surface: ontology
+    tab: erd
+    owner: ontology-manager
+    caption: "ERD-style schema canvas, draggable entity nodes."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: ontology/editor
+    surface: ontology
+    tab: editor
+    owner: ontology-manager
+    caption: "Attribute editor for a single entity type."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: ontology/edges
+    surface: ontology
+    tab: edges
+    owner: ontology-manager
+    caption: "Relation-type editor, endpoint label matrix."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: ontology/versions
+    surface: ontology
+    tab: versions
+    owner: ontology-manager
+    caption: "Schema version history with diff selector."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: ontology/audit
+    surface: ontology
+    tab: audit
+    owner: ontology-manager
+    caption: "Schema-change audit log with actor + diff."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+
+  # ----- process-explorer-ui (SME write paths) (3) -----
+  - id: sme/review
+    surface: sme
+    tab: review
+    owner: process-explorer-ui
+    caption: "SME review queue card list."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: sme/add
+    surface: sme
+    tab: add
+    owner: process-explorer-ui
+    caption: "SME entity-add form with attribute editor."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: sme/quarterly
+    surface: sme
+    tab: quarterly
+    owner: process-explorer-ui
+    caption: "Quarterly sign-off dashboard, per-domain status."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+
+  # ----- cto-analytics (4) -----
+  - id: analytics/overview
+    surface: analytics
+    tab: overview
+    owner: cto-analytics
+    caption: "Analytics overview, KPI tile grid."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: analytics/matrix
+    surface: analytics
+    tab: matrix
+    owner: cto-analytics
+    caption: "Domain ↔ system alignment heatmap matrix."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: analytics/complexity
+    surface: analytics
+    tab: complexity
+    owner: cto-analytics
+    caption: "Graph complexity metrics — centrality, modularity, redundancy."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: analytics/ai
+    surface: analytics
+    tab: ai
+    owner: cto-analytics
+    caption: "AI optimisation recommendations list with rationale + accept/reject."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+
+  # ----- api-explorer follow-on (or process-explorer-ui) (3) -----
+  - id: api/endpoints
+    surface: api
+    tab: endpoints
+    owner: api-explorer
+    caption: "OpenAPI endpoint explorer with try-it panel."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: api/errors
+    surface: api
+    tab: errors
+    owner: api-explorer
+    caption: "Error-code reference table — code, message, examples."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: api/import
+    surface: api
+    tab: import
+    owner: api-explorer
+    caption: "Bulk import upload wizard with phase-1/2 result panel."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+
+  # ----- cto-analytics (exec dashboards) (5) -----
+  - id: exec/ops
+    surface: exec
+    tab: ops
+    owner: cto-analytics
+    caption: "Exec ops dashboard — KPI tiles + recent activity feed."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: exec/finance
+    surface: exec
+    tab: finance
+    owner: cto-analytics
+    caption: "Exec finance dashboard — domain spend breakdown + trend."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: exec/people
+    surface: exec
+    tab: people
+    owner: cto-analytics
+    caption: "Exec people dashboard — role headcount + ownership map."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: exec/transform
+    surface: exec
+    tab: transform
+    owner: cto-analytics
+    caption: "Exec transformation dashboard — programme status grid."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+  - id: exec/risk
+    surface: exec
+    tab: risk
+    owner: cto-analytics
+    caption: "Exec risk dashboard — risk register + heatmap."
+    sources: ["design/companygraph/companygraph-views.html"]
+    status: extracted
+
+coverage:
+  mocks: 4
+  components_catalogued: 12
+  components_extracted: 12      # 2026-05-23: all 12 emitted via /wireframe-extract Phase 3
+  screens_catalogued: 27
+  screens_extracted: 27         # 2026-05-23: all 27 emitted as React views with hash routing + live API binding
+  pending:
+    - "screens are first-pass shells — 9 are wired to live /api/v1/* endpoints (Domains, Journey, Graph, Systems, Path, Ontology Catalog, Ontology Edges, Analytics Overview/Matrix/Complexity, API Endpoints/Errors/Import, Exec Ops/People, SME Quarterly); the remaining 13 are GreyBlock-placeholder shells owned by the four follow-up specs"
+    - "design-conformance.ts run on all 24 component files (tsx + module.css) — PASS"
+    - "`bun install` + `bun run dev` succeeded; full app live at http://127.0.0.1:5173/ backed by Neo4j 5.26.26 with retail-mini seed loaded"

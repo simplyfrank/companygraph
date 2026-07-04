@@ -1,0 +1,186 @@
+/*
+ * chat-interface (rev 3.1) — chat pane + canvas highlight styles.
+ * Mirrors the wireframe classes from companygraph-views.html:373-452.
+ *
+ * Uses tokens from styles/companygraph/tokens.css (--accent,
+ * --surface, --border, --muted, --space-*, --radius-*).
+ */
+
+/* ── Canvas highlight (FR-H02 / DD-11) ───────────────────────── */
+
+.gnode { cursor: pointer; transition: opacity var(--dur-base) var(--ease-out); }
+.gnode.selected .shape {
+  stroke: var(--accent);
+  stroke-width: 2.4;
+  filter: drop-shadow(0 1px 8px color-mix(in oklch, var(--accent) 45%, transparent));
+}
+.gnode.dim { opacity: 0.22; }
+
+.gedge { transition: stroke-width var(--dur-fast) var(--ease-out), opacity var(--dur-base) var(--ease-out); }
+.gedge.highlight { stroke-width: 2.6; opacity: 1; }
+.gedge.dim { opacity: 0.18; }
+.gedge.breach { stroke: var(--danger); }
+.gedge.warn   { stroke: var(--warn); }
+
+/* ── Chat pane layout ────────────────────────────────────────── */
+
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-height: 0;
+}
+
+.chat-banners {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.chat-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: var(--space-md);
+  min-height: 360px;
+}
+
+.chat-msglist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.chat-msg {
+  display: flex;
+  width: 100%;
+}
+.chat-msg-user { justify-content: flex-end; }
+.chat-msg-assistant { justify-content: flex-start; }
+
+.chat-bubble {
+  max-width: 78%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+  color: var(--fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-msg-user .chat-bubble {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklch, var(--accent) 25%, var(--border));
+}
+
+.chat-answer { display: block; }
+
+/* ── Citation pill (FR-C01 / DD-12) ──────────────────────────── */
+
+.cite {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  margin: 0 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-family: var(--type-mono-family);
+  font-size: 12px;
+  line-height: 1.3;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.cite:hover {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklch, var(--accent) 40%, var(--border-strong));
+}
+.cite-node::before { content: "◇"; opacity: 0.7; }
+.cite-edge::before { content: "↗"; opacity: 0.7; }
+
+.chat-cite-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed var(--border);
+}
+
+/* ── Reasoning disclosure ────────────────────────────────────── */
+
+.chat-reasoning {
+  margin-top: var(--space-sm);
+  font-size: var(--type-mono-size);
+  color: var(--muted);
+}
+.chat-reasoning > summary {
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--type-mono-family);
+  font-size: 12px;
+}
+.chat-reasoning-list {
+  margin: var(--space-xs) 0 0 var(--space-md);
+  padding: 0;
+  font-family: var(--type-mono-family);
+  font-size: 12px;
+}
+.chat-reasoning-meta { color: var(--muted-2); }
+.chat-reasoning-err  { color: var(--danger-text); }
+
+/* ── Latency footer ──────────────────────────────────────────── */
+
+.latency {
+  margin-top: var(--space-xs);
+  font-family: var(--type-mono-family);
+  font-size: 11px;
+  color: var(--muted-2);
+}
+
+/* ── Composer / input row ────────────────────────────────────── */
+
+.chat-composer {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-end;
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.chat-composer textarea {
+  flex: 1 1 auto;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  line-height: 1.45;
+  color: var(--fg);
+  min-height: 38px;
+  max-height: 160px;
+}
+.chat-composer textarea:focus { outline: none; }
+
+.chat-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--type-mono-family);
+  font-size: 11.5px;
+}

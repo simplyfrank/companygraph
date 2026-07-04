@@ -1,0 +1,39 @@
+{
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"uj_order_fulfillment\"}",
+      "tool_calls": [
+        {
+          "id": "toolu_01react_a",
+          "name": "sla_hotspots",
+          "input": {
+            "journey": "uj_order_fulfillment",
+            "status": "breach"
+          }
+        }
+      ],
+      "usage": { "input_tokens": 1200, "output_tokens": 70 }
+    },
+    {
+      "stop_reason": "tool_use",
+      "tool_calls": [
+        {
+          "id": "toolu_01react_b",
+          "name": "neighbors",
+          "input": {
+            "nodeId": "a_pack",
+            "edgeTypes": ["EXECUTES"]
+          }
+        }
+      ],
+      "usage": { "input_tokens": 1600, "output_tokens": 50 }
+    },
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "The breach on the [Pick→Pack](e_pick_pack) edge is owned by the [Packer](r_packer) and [Shift Lead](r_shift_lead) roles, both on the Warehouse team.",
+      "usage": { "input_tokens": 2000, "output_tokens": 110 }
+    }
+  ]
+}

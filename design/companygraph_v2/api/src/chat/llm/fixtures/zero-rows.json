@@ -1,0 +1,25 @@
+{
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"graph_analyst\"}",
+      "tool_calls": [
+        {
+          "id": "toolu_01zero",
+          "name": "list_nodes_by_label",
+          "input": {
+            "label": "Domain",
+            "filter": { "name_contains": "nonexistent" }
+          }
+        }
+      ],
+      "usage": { "input_tokens": 1100, "output_tokens": 60 }
+    },
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "I found 0 domains matching that filter — the orchestrator should override this with FR-G01.",
+      "usage": { "input_tokens": 1400, "output_tokens": 40 }
+    }
+  ]
+}

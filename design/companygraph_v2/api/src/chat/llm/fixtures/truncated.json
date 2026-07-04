@@ -1,0 +1,22 @@
+{
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"graph_analyst\"}",
+      "tool_calls": [
+        {
+          "id": "toolu_01trunc",
+          "name": "list_nodes_by_label",
+          "input": { "label": "Activity" }
+        }
+      ],
+      "usage": { "input_tokens": 1100, "output_tokens": 40 }
+    },
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "Returned >1000 rows — the orchestrator should override with FR-G04.",
+      "usage": { "input_tokens": 1300, "output_tokens": 35 }
+    }
+  ]
+}

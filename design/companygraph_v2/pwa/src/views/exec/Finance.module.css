@@ -1,0 +1,95 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+
+.tileBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tileLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tileValue {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: -0.022em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.tone-good   { color: var(--good-text); }
+.tone-warn   { color: var(--warn-text); }
+.tone-danger { color: var(--danger-text); }
+
+.tileCaption {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Budget table */
+.budgetTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.budgetTable th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.budgetTable td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.budgetTable tr:last-child td {
+  border-bottom: 0;
+}
+.budgetTable tr:hover td {
+  background: var(--surface-2);
+}
+.num {
+  text-align: right;
+}
+
+/* Bar cell */
+.barCell {
+  width: 220px;
+}
+.barWrap {
+  position: relative;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  height: 22px;
+  overflow: hidden;
+}
+.bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--radius-sm);
+}
+.bar-good   { background: color-mix(in oklch, var(--good)   20%, var(--surface-2)); }
+.bar-warn   { background: color-mix(in oklch, var(--warn)   25%, var(--surface-2)); }
+.bar-danger { background: color-mix(in oklch, var(--danger) 25%, var(--surface-2)); }
+.barLabel {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}

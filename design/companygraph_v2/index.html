@@ -1,0 +1,1890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User stories & journeys — companygraph</title>
+<style>
+  :root {
+    --bg:      oklch(99% 0.002 240);
+    --surface: oklch(100% 0 0);
+    --fg:      oklch(18% 0.012 250);
+    --muted:   oklch(54% 0.012 250);
+    --border:  oklch(92% 0.005 250);
+    --border-strong: oklch(86% 0.008 250);
+    --accent:  oklch(58% 0.18 255);
+    --accent-soft: oklch(96% 0.025 255);
+
+    --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    --font-body:    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --font-mono:    ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    --maxw: 1240px;
+    --nav-w: 240px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .page { max-width: var(--maxw); margin: 0 auto; padding: 0 32px; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: saturate(180%) blur(8px);
+    background-color: color-mix(in oklch, var(--surface) 92%, transparent);
+  }
+  .topbar .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-size: 15px;
+  }
+  .brand .dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  .topbar nav { display: flex; gap: 22px; }
+  .topbar nav a {
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: -0.005em;
+  }
+  .topbar nav a:hover { color: var(--fg); text-decoration: none; }
+  .topbar .meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 56px 0 36px; border-bottom: 1px solid var(--border); }
+  .hero .kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(36px, 4.6vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    margin: 0 0 18px;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+  .hero p.lede {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0 0 28px;
+    text-wrap: pretty;
+  }
+  .hero .stats {
+    display: grid;
+    grid-template-columns: repeat(5, max-content);
+    gap: 40px;
+    padding: 20px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+  .hero .stat .n {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero .stat .l {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ---------- layout: nav + main ---------- */
+  .body {
+    display: grid;
+    grid-template-columns: var(--nav-w) 1fr;
+    gap: 56px;
+    padding: 48px 0 96px;
+  }
+  @media (max-width: 920px) {
+    .body { grid-template-columns: 1fr; gap: 24px; }
+    .sidebar { position: static !important; }
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 80px;
+    align-self: start;
+    font-size: 13px;
+  }
+  .sidebar .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  .sidebar ol {
+    list-style: none;
+    margin: 0 0 22px;
+    padding: 0;
+    counter-reset: navc;
+  }
+  .sidebar ol li {
+    counter-increment: navc;
+    margin: 0;
+  }
+  .sidebar ol li a {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
+    color: var(--fg);
+    border-radius: 2px;
+  }
+  .sidebar ol li a::before {
+    content: "P" counter(navc);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    width: 24px;
+    flex: none;
+  }
+  .sidebar ol li a:hover { color: var(--accent); text-decoration: none; }
+  .sidebar .sec-links a {
+    display: block;
+    padding: 4px 0;
+    color: var(--muted);
+  }
+  .sidebar .sec-links a:hover { color: var(--fg); text-decoration: none; }
+
+  /* ---------- main content ---------- */
+  main { min-width: 0; }
+  section.persona { margin: 0 0 88px; scroll-margin-top: 72px; }
+  section.persona:first-of-type { margin-top: 0; }
+
+  .persona-head {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 24px;
+    align-items: start;
+    padding: 0 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .persona-avatar {
+    width: 64px; height: 64px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    background: var(--surface);
+  }
+  .persona-head .meta { min-width: 0; }
+  .persona-head .pid {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .persona-head h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: -0.022em;
+    margin: 0 0 6px;
+  }
+  .persona-head h2 .who {
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .persona-head .descr {
+    color: var(--muted);
+    margin: 4px 0 0;
+    max-width: 60ch;
+    text-wrap: pretty;
+  }
+  .persona-head .facts {
+    text-align: right;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    min-width: 220px;
+  }
+  .persona-head .facts dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .persona-head .facts dt:first-child { margin-top: 0; }
+  .persona-head .facts dd {
+    margin: 1px 0 0;
+    color: var(--fg);
+  }
+
+  @media (max-width: 720px) {
+    .persona-head { grid-template-columns: 56px 1fr; }
+    .persona-head .facts { grid-column: 1 / -1; text-align: left; }
+  }
+
+  /* ---------- epic ---------- */
+  .epic { margin: 32px 0; }
+  .epic-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 0 0 14px;
+  }
+  .epic-head .eid {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    flex: none;
+  }
+  .epic-head h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -0.015em;
+    margin: 0;
+    color: var(--fg);
+  }
+  .epic-head .target {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--surface);
+  }
+
+  .epic-descr {
+    color: var(--muted);
+    margin: 0 0 14px;
+    max-width: 70ch;
+  }
+
+  /* ---------- stories table ---------- */
+  .story-list {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .story {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 16px;
+    padding: 16px 18px;
+    border-top: 1px solid var(--border);
+    align-items: start;
+  }
+  .story:first-child { border-top: 0; }
+  .story .sid {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding-top: 1px;
+    letter-spacing: -0.01em;
+  }
+  .story .body p.line {
+    margin: 0 0 10px;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--fg);
+    text-wrap: pretty;
+  }
+  .story .body .as { color: var(--muted); }
+  .story .body .as em { color: var(--fg); font-style: normal; font-weight: 500; }
+
+  .acs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: ac;
+    border-top: 1px dashed var(--border);
+    padding-top: 10px;
+    margin-top: 6px;
+  }
+  .acs li {
+    counter-increment: ac;
+    position: relative;
+    padding: 4px 0 4px 26px;
+    font-size: 13.5px;
+    color: var(--fg);
+    line-height: 1.5;
+  }
+  .acs li::before {
+    content: counter(ac);
+    position: absolute;
+    left: 0;
+    top: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    width: 18px;
+    text-align: right;
+  }
+  .acs li code,
+  .story .body code,
+  .epic-descr code,
+  .traceability code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--accent-soft);
+    color: var(--fg);
+    padding: 0.5px 5px;
+    border-radius: 3px;
+    border: 1px solid color-mix(in oklch, var(--accent) 18%, var(--border));
+  }
+  .acs li .ref {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 0 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 560px) {
+    .story { grid-template-columns: 1fr; }
+    .story .sid { padding-top: 0; }
+  }
+
+  /* ---------- persona index grid ---------- */
+  .pgrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 0 0 8px;
+  }
+  @media (max-width: 880px) { .pgrid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .pgrid { grid-template-columns: 1fr; } }
+  .pcell {
+    background: var(--surface);
+    padding: 18px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pcell .pid {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .pcell .name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .pcell .role { color: var(--muted); font-size: 13px; margin: 0; }
+  .pcell .surface {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: auto;
+  }
+
+  /* ---------- cross-cutting section ---------- */
+  .xc {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 24px 26px;
+    margin-top: 24px;
+  }
+  .xc h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+  }
+  .xc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .xc-list li {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 16px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .xc-list li:first-child { border-top: 0; }
+  .xc-list li .id {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ---------- traceability ---------- */
+  .traceability {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface);
+    margin-top: 24px;
+  }
+  .tr-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 130px;
+    gap: 24px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    align-items: baseline;
+    font-size: 14px;
+  }
+  .tr-row:first-child { border-top: 0; background: oklch(98% 0.004 250); }
+  .tr-row .h { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .tr-row .spec {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--fg);
+  }
+  .tr-row .stories { color: var(--muted); font-size: 12.5px; font-family: var(--font-mono); line-height: 1.55; }
+  .tr-row .count {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 720px) {
+    .tr-row { grid-template-columns: 1fr; gap: 4px; }
+    .tr-row .count { text-align: left; }
+  }
+
+  /* ---------- section heading ---------- */
+  .sec-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0 64px;
+    color: var(--muted);
+    font-size: 12.5px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer .ref { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="page row">
+    <div class="brand">
+      <span class="dot" aria-hidden="true"></span>
+      <span>companygraph / spec: graph-core</span>
+    </div>
+    <nav>
+      <a href="#personas">Personas</a>
+      <a href="#stories">Stories</a>
+      <a href="#cross-cutting">Cross-cutting</a>
+      <a href="#traceability">Traceability</a>
+    </nav>
+    <div class="meta">v0.1 · 2026-05-22 · wireframe</div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero page">
+  <div class="kicker">User stories &amp; journeys</div>
+  <h1>Six personas, eighteen epics, fifty-four stories.</h1>
+  <p class="lede">
+    A structured catalog of who uses the companygraph platform, what they need it to do, and how each
+    story will be verified. Drafted to feed the design phase of <code style="font-family:var(--font-mono);font-size:13px;background:var(--accent-soft);padding:1px 5px;border-radius:3px;border:1px solid color-mix(in oklch, var(--accent) 18%, var(--border));">graph-core</code>
+    and the four downstream specs: <em>ontology-manager</em>, <em>process-explorer-ui</em>,
+    <em>chat-interface</em>, <em>cto-analytics</em>.
+  </p>
+  <div class="stats">
+    <div class="stat"><div class="n">6</div><div class="l">Personas</div></div>
+    <div class="stat"><div class="n">18</div><div class="l">Epics</div></div>
+    <div class="stat"><div class="n">54</div><div class="l">User stories</div></div>
+    <div class="stat"><div class="n">110</div><div class="l">Acceptance criteria</div></div>
+    <div class="stat"><div class="n">5</div><div class="l">Cross-cutting</div></div>
+  </div>
+</section>
+
+<!-- ============ PERSONA INDEX ============ -->
+<section class="page" id="personas" style="padding:48px 0 8px;">
+  <div class="sec-title">Persona index</div>
+  <div class="pgrid">
+    <div class="pcell">
+      <div class="pid">P1 · Ontology Author</div>
+      <p class="name">Maya</p>
+      <p class="role">Curates node labels, edge types, and attribute schemas as the business evolves.</p>
+      <div class="surface">→ ontology-manager</div>
+    </div>
+    <div class="pcell">
+      <div class="pid">P2 · Process Explorer</div>
+      <p class="name">Ravi</p>
+      <p class="role">Operations PM walking the graph to answer "what depends on what?" questions.</p>
+      <div class="surface">→ process-explorer-ui</div>
+    </div>
+    <div class="pcell">
+      <div class="pid">P3 · Chat User</div>
+      <p class="name">Lin</p>
+      <p class="role">Domain head who asks plain-English questions and trusts the cited graph evidence.</p>
+      <div class="surface">→ chat-interface</div>
+    </div>
+    <div class="pcell">
+      <div class="pid">P4 · CTO / Analyst</div>
+      <p class="name">Karim</p>
+      <p class="role">Owns the system landscape; ranks journeys by complexity and AI-leverage potential.</p>
+      <div class="surface">→ cto-analytics</div>
+    </div>
+    <div class="pcell">
+      <div class="pid">P5 · Domain SME</div>
+      <p class="name">Priya</p>
+      <p class="role">Subject-matter expert bootstrapping and signing off the catalog in her domain.</p>
+      <div class="surface">→ process-explorer-ui + ontology-manager</div>
+    </div>
+    <div class="pcell">
+      <div class="pid">P6 · API Consumer</div>
+      <p class="name">Theo</p>
+      <p class="role">External script developer hitting <code style="font-family:var(--font-mono);">/api/v1/</code> for sync, export, BI.</p>
+      <div class="surface">→ graph-core REST</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BODY: NAV + MAIN ============ -->
+<div class="page body" id="stories">
+
+  <!-- ----- sidebar ----- -->
+  <aside class="sidebar">
+    <p class="label">Personas</p>
+    <ol>
+      <li><a href="#p1">Maya · Ontology Author</a></li>
+      <li><a href="#p2">Ravi · Process Explorer</a></li>
+      <li><a href="#p3">Lin · Chat User</a></li>
+      <li><a href="#p4">Karim · CTO / Analyst</a></li>
+      <li><a href="#p5">Priya · Domain SME</a></li>
+      <li><a href="#p6">Theo · API Consumer</a></li>
+    </ol>
+    <p class="label">Sections</p>
+    <div class="sec-links">
+      <a href="#cross-cutting">Cross-cutting</a>
+      <a href="#traceability">Traceability matrix</a>
+      <a href="#notes">Notes &amp; conventions</a>
+    </div>
+  </aside>
+
+  <!-- ----- main content ----- -->
+  <main>
+
+    <!-- ========== P1 ONTOLOGY AUTHOR ========== -->
+    <section class="persona" id="p1">
+      <header class="persona-head">
+        <div class="persona-avatar">M</div>
+        <div class="meta">
+          <div class="pid">P1 · Ontology Author</div>
+          <h2>Maya <span class="who">— curates the schema</span></h2>
+          <p class="descr">
+            Owns the canonical model. Adds new node labels (e.g. <code>Product</code>, <code>KPI</code>),
+            new edge types with allowed label pairs, and attribute schemas. Cares about
+            consistency, defensibility, and zero-drift over time.
+          </p>
+        </div>
+        <dl class="facts">
+          <dt>Surface</dt><dd>ontology-manager</dd>
+          <dt>Frequency</dt><dd>Weekly · ad-hoc</dd>
+          <dt>Success</dt><dd>Zero schema drift after 6 months; every type has a definition + example.</dd>
+        </dl>
+      </header>
+
+      <!-- Epic OA-1 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">OA-1</span>
+          <h3>Schema curation — define &amp; evolve labels and edge types</h3>
+          <span class="target">ontology-manager</span>
+        </div>
+        <p class="epic-descr">
+          Extend the canonical schema beyond the six built-in labels and six edge types from
+          <code>graph-core/FR-03</code> and <code>FR-04</code> without breaking existing data.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">OA-1.1</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want to <em>add a new node label</em>
+                (e.g. <code>Product</code>) with a typed attribute schema, so that downstream tools can
+                render and validate it.</p>
+              <ul class="acs">
+                <li>A new label appears in <code>/api/v1/stats</code> keyset and is creatable via
+                  <code>POST /api/v1/nodes/:label</code> within one minute of registration.</li>
+                <li>Required attributes are enforced on <code>POST</code> + <code>PATCH</code>;
+                  violations return <code>400 {error:{code:"attribute_violation"}}</code>.</li>
+                <li>Existing rows are not retroactively rewritten — historical attribute-less rows
+                  surface as <code>null</code> until backfilled.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">OA-1.2</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want to <em>add a new edge type</em>
+                with explicit <code>(fromLabel, toLabel)</code> pairs, so that the validator rejects
+                illegal pairs at write time.</p>
+              <ul class="acs">
+                <li>Edge type definition stores allowed <code>(fromLabel, toLabel)</code> pairs;
+                  validator enforces them on <code>POST /api/v1/edges</code>. <span class="ref">addresses C-02 (review pass 2)</span></li>
+                <li>Each new type is documented in ontology metadata and surfaces in
+                  <code>/api/v1/schema</code>.</li>
+                <li>Fixture proves rejection of a pair outside the allow-list with
+                  <code>400 {error:{code:"type_pair_violation"}}</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">OA-1.3</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want to <em>deprecate a label or
+                edge type</em> without breaking existing data, so the graph stays internally
+                consistent across schema revisions.</p>
+              <ul class="acs">
+                <li>A deprecated type is marked <code>deprecated_at</code> but remains queryable.</li>
+                <li>Writes return <code>200</code> with a <code>Deprecation</code> response header;
+                  reads are unaffected.</li>
+                <li>Removal requires an explicit migration step that nulls or remaps all instances
+                  first; bare removal returns <code>409 {error:{code:"deprecation_required"}}</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">OA-1.4</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want to <em>version the
+                ontology</em>, so I can roll back accidental changes.</p>
+              <ul class="acs">
+                <li>Every schema change writes an immutable <code>ontology_version</code> row
+                  containing the diff, actor, and timestamp.</li>
+                <li><code>GET /api/v1/ontology/versions</code> returns the version list with
+                  <code>created_at</code>, <code>author</code>, <code>summary</code>.</li>
+                <li><code>POST /api/v1/ontology/rollback/:version</code> restores the prior schema in
+                  a single transaction; AC-04 idempotency rules preserved.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic OA-2 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">OA-2</span>
+          <h3>Catalog management — keep the type catalog readable</h3>
+          <span class="target">ontology-manager</span>
+        </div>
+        <p class="epic-descr">
+          A single readable view of what exists, plus optional alignment to external retail
+          reference models.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">OA-2.1</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want <em>a single readable view of
+                all node + edge types</em> with descriptions and examples.</p>
+              <ul class="acs">
+                <li><code>GET /api/v1/schema</code> returns a stable JSON document covering all six
+                  base types plus any user-defined ones.</li>
+                <li>Per-type description and a one-line usage example are mandatory on creation;
+                  blank descriptions return <code>400</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">OA-2.2</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want to <em>align my types with an
+                external reference</em> (e.g. ARTS retail), so the catalog stays defensible.</p>
+              <ul class="acs">
+                <li>Each type may carry an <code>external_alignment: [{source, id}]</code> array.</li>
+                <li>Alignment is optional; absence does not block creation.</li>
+                <li>Querying <code>/api/v1/schema?alignment=ARTS</code> filters to aligned types only.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">OA-2.3</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want to <em>import the catalog from
+                a YAML/JSON file</em>, so I can review schema changes in version control.</p>
+              <ul class="acs">
+                <li><code>POST /api/v1/ontology/import</code> is idempotent on type <code>id</code>
+                  and rejects schema-breaking changes.</li>
+                <li><code>GET /api/v1/ontology/export</code> returns the same shape, round-trippable
+                  with zero diff.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic OA-3 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">OA-3</span>
+          <h3>Schema safety — prevent destructive changes</h3>
+          <span class="target">ontology-manager</span>
+        </div>
+        <p class="epic-descr">
+          Dry-runs, refusal of data-invalidating changes, and an audit log of who changed what.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">OA-3.1</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want a <em>dry-run mode</em> for
+                every schema change, so I see the impact before committing.</p>
+              <ul class="acs">
+                <li><code>?dryRun=true</code> returns the planned changes without applying them.</li>
+                <li>Output includes affected node and edge counts per type.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">OA-3.2</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want to be <em>warned when a change
+                would invalidate existing data</em>.</p>
+              <ul class="acs">
+                <li>Adding a required attribute to a label with existing rows is blocked unless
+                  <code>forceBackfill=true</code> is supplied with a backfill value.</li>
+                <li>Block returns <code>409 {error:{code:"would_invalidate", details:{affected:n}}}</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">OA-3.3</div>
+            <div class="body">
+              <p class="line as">As an <em>Ontology Author</em>, I want every <em>schema change to
+                write a structured audit log entry</em>.</p>
+              <ul class="acs">
+                <li>One JSON-line audit row per change with <code>actor</code>, <code>before</code>,
+                  <code>after</code>, <code>ts</code>. <span class="ref">aligns with FR-13 logging</span></li>
+                <li>Audit is queryable via <code>GET /api/v1/ontology/audit?since=:iso</code>.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ========== P2 PROCESS EXPLORER ========== -->
+    <section class="persona" id="p2">
+      <header class="persona-head">
+        <div class="persona-avatar">R</div>
+        <div class="meta">
+          <div class="pid">P2 · Process Explorer</div>
+          <h2>Ravi <span class="who">— walks the graph</span></h2>
+          <p class="descr">
+            Operations PM. Wants fast answers to questions of graph shape: "which activities use
+            POS?", "what roles touch Order Fulfillment?", "what's the path from a store to the
+            POS system?" Doesn't write Cypher.
+          </p>
+        </div>
+        <dl class="facts">
+          <dt>Surface</dt><dd>process-explorer-ui</dd>
+          <dt>Frequency</dt><dd>Daily</dd>
+          <dt>Success</dt><dd>Time-to-answer &lt; 2 min for any graph-shape question.</dd>
+        </dl>
+      </header>
+
+      <!-- Epic PE-1 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">PE-1</span>
+          <h3>Browse &amp; navigate the graph</h3>
+          <span class="target">process-explorer-ui</span>
+        </div>
+        <p class="epic-descr">
+          Drill from domains down to activities and pivot to bound roles, systems, and locations.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">PE-1.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want a <em>domain index</em> so I
+                can see all four (or more) domains at a glance.</p>
+              <ul class="acs">
+                <li><code>/explorer/domains</code> lists every domain with member-journey count and
+                  last-updated time.</li>
+                <li>Clicking a domain card opens the journey list within 200 ms without a full reload.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">PE-1.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want to <em>drill from a domain to
+                its journeys</em>, then a journey to its activities ordered by <code>PRECEDES</code>.</p>
+              <ul class="acs">
+                <li>Journey detail renders activities in the order defined by <code>PRECEDES</code>,
+                  with arrows between consecutive steps.</li>
+                <li>Cycles in <code>PRECEDES</code> are flagged with a warning ribbon and rendered in
+                  declaration order; explorer never enters an infinite render loop.</li>
+                <li>Activity ordering survives reload (URL deep-link includes anchor).</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">PE-1.3</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want to <em>pivot from any activity
+                to the roles, systems, and locations</em> bound to it.</p>
+              <ul class="acs">
+                <li>Activity detail renders four bound lists: roles
+                  (<code>EXECUTES</code>), systems (<code>USES_SYSTEM</code>), locations
+                  (<code>AT_LOCATION</code>), and adjacent activities (<code>PRECEDES</code>).</li>
+                <li>Each item routes to its entity detail; back navigation preserves scroll position.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">PE-1.4</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want a <em>system-centric view</em>:
+                "show me all activities that use the POS system."</p>
+              <ul class="acs">
+                <li><code>/explorer/systems/:id</code> lists activities via <code>USES_SYSTEM</code>
+                  with their parent journey + domain.</li>
+                <li>A toggle reveals downstream <code>INTEGRATES_WITH</code> systems with one-hop
+                  neighbours visualised.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic PE-2 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">PE-2</span>
+          <h3>Search &amp; filter the graph</h3>
+          <span class="target">process-explorer-ui</span>
+        </div>
+        <p class="epic-descr">
+          Find anything by typing a fragment; combine filters; trace a path between two nodes.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">PE-2.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want <em>full-text search across
+                node names</em>, so I can find anything by typing a fragment.</p>
+              <ul class="acs">
+                <li>Search returns within 500 ms on the retail-mini seed (~60 nodes per FR-08).</li>
+                <li>Results are grouped by label.</li>
+                <li>Keyboard navigation: <code>/</code> focuses search; arrows move; enter opens.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">PE-2.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want to <em>filter activities by
+                system, role, or location simultaneously</em>.</p>
+              <ul class="acs">
+                <li><code>/explorer/activities?system=:id&amp;role=:id&amp;location=:id</code>
+                  AND-filters correctly.</li>
+                <li>Empty filter returns all activities; URL is shareable + survives reload.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">PE-2.3</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want to <em>find the shortest path
+                between two nodes</em>, so I see how they connect.</p>
+              <ul class="acs">
+                <li>UI calls <code>findPath(fromId, toId, maxDepth)</code> (FR-07) and renders each
+                  hop with the edge-type label inline.</li>
+                <li>Depth selector caps at <code>maxDepth = 8</code>
+                  <span class="ref">NFR-09</span> with an inline error on overflow.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic PE-3 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">PE-3</span>
+          <h3>Visualise &amp; export</h3>
+          <span class="target">process-explorer-ui</span>
+        </div>
+        <p class="epic-descr">
+          Interactive canvas for one journey, plus PNG/SVG export and deep-linkable URLs.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">PE-3.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want an <em>interactive graph
+                canvas</em> for a single journey, so I can present it in a meeting.</p>
+              <ul class="acs">
+                <li>Canvas renders ≤ 200 nodes at 60 fps on a 2021 MacBook Air baseline.</li>
+                <li>Pinch-zoom on iPad Safari is captured by the canvas; the corresponding
+                  Native Conflicts row is added to <code>process-explorer-ui</code> requirements.</li>
+                <li>Selecting a node opens its detail in a side panel without losing canvas state.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">PE-3.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want to <em>export the current view
+                as PNG and SVG</em>.</p>
+              <ul class="acs">
+                <li>Export produces 1× and 2× PNG and a vector SVG; filenames embed the journey slug
+                  and ISO date.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">PE-3.3</div>
+            <div class="body">
+              <p class="line as">As a <em>Process Explorer</em>, I want <em>deep-link URLs for every
+                entity</em>, so I can paste them into Slack.</p>
+              <ul class="acs">
+                <li><code>#/explorer/journeys/:id</code>, <code>#/explorer/activities/:id</code>, etc.
+                  all hydrate the correct detail panel from a cold load.</li>
+                <li>Invalid id renders a 404 panel with a back-to-domain link, not a blank screen.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ========== P3 CHAT USER ========== -->
+    <section class="persona" id="p3">
+      <header class="persona-head">
+        <div class="persona-avatar">L</div>
+        <div class="meta">
+          <div class="pid">P3 · Chat User</div>
+          <h2>Lin <span class="who">— asks in plain English</span></h2>
+          <p class="descr">
+            Domain head. Wants the conversational interface to be grounded in the graph — every
+            answer cites nodes; never hallucinates retail facts; refuses unanswerable questions
+            instead of confabulating.
+          </p>
+        </div>
+        <dl class="facts">
+          <dt>Surface</dt><dd>chat-interface</dd>
+          <dt>Frequency</dt><dd>Daily · drive-by</dd>
+          <dt>Success</dt><dd>80%+ questions answered with traceable citations.</dd>
+        </dl>
+      </header>
+
+      <!-- Epic CU-1 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">CU-1</span>
+          <h3>Ask questions in plain English</h3>
+          <span class="target">chat-interface</span>
+        </div>
+        <p class="epic-descr">
+          Natural-language Q&amp;A grounded in the graph, with cited evidence and visible Cypher.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">CU-1.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want to ask <em>"Which systems does Order
+                Fulfillment use?"</em> and get a grounded answer with cited nodes.</p>
+              <ul class="acs">
+                <li>Response cites each system with its <code>id</code> and a clickable deep link to
+                  the explorer.</li>
+                <li>The generated Cypher query is shown on demand (collapsible by default).</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">CU-1.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want the chat to <em>refuse to answer
+                questions outside the graph</em>, so I never get hallucinated retail facts.</p>
+              <ul class="acs">
+                <li>A question with no matching nodes returns <em>"no nodes found in current graph"</em>
+                  rather than a generated answer.</li>
+                <li>Out-of-scope questions ("what's the weather") return a fixed scope-redirect
+                  message naming the four downstream specs.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">CU-1.3</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want <em>follow-up questions to retain
+                context</em>, so I can say "and which roles execute those?" after the previous answer.</p>
+              <ul class="acs">
+                <li>The last answer's cited node ids are passed to the next prompt as bound context.</li>
+                <li>An explicit "new conversation" button clears the context.</li>
+                <li>Context bound count is displayed (e.g. "5 systems carried forward").</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">CU-1.4</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want to <em>see the source data in a side
+                panel</em>, so I can verify the chat's answer.</p>
+              <ul class="acs">
+                <li>Citations open a side panel with the raw node + edge rows that supported the
+                  answer.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic CU-2 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">CU-2</span>
+          <h3>Trust &amp; guard-rails</h3>
+          <span class="target">chat-interface</span>
+        </div>
+        <p class="epic-descr">
+          Read-only Cypher, bounded results, observable latency.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">CU-2.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want every <em>generated Cypher query to
+                be read-only</em>, so a bad question can never mutate the graph.</p>
+              <ul class="acs">
+                <li>All chat-issued Cypher routes through <code>POST /api/v1/query/cypher</code>
+                  (read-only passthrough). <span class="ref">NFR-06</span></li>
+                <li>Attempts to emit <code>CREATE</code> / <code>MERGE</code> / <code>SET</code> /
+                  <code>DELETE</code> are rejected upstream and surface as "this question is not
+                  answerable read-only — please use the explorer".</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">CU-2.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want chat answers <em>truncated to ≤1000
+                rows</em> with a "see more in explorer" link.</p>
+              <ul class="acs">
+                <li>Responses at the cap show the truncation banner with a count and explorer link.
+                  <span class="ref">NFR-09</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">CU-2.3</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want each answer to <em>expose latency
+                and Cypher execution time</em>, so I can spot slow questions.</p>
+              <ul class="acs">
+                <li>Response footer shows <code>cypherDurationMs</code> + <code>totalMs</code>,
+                  consistent with FR-13 logging.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic CU-3 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">CU-3</span>
+          <h3>Conversation management</h3>
+          <span class="target">chat-interface</span>
+        </div>
+        <p class="epic-descr">
+          Bookmarks for repeated questions, shareable conversation URLs.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">CU-3.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want to <em>bookmark useful questions</em>,
+                so I can re-run them weekly.</p>
+              <ul class="acs">
+                <li>Bookmarked questions appear in a sidebar; click re-runs against the live graph.</li>
+                <li>Bookmark name is editable and free-text.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">CU-3.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Chat User</em>, I want to <em>share a conversation by URL</em>,
+                so a colleague can pick up where I left off.</p>
+              <ul class="acs">
+                <li>Conversation deep-link restores message history and cited nodes.</li>
+                <li>Shared conversations are read-only for the recipient; they can fork to continue.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ========== P4 CTO / ANALYST ========== -->
+    <section class="persona" id="p4">
+      <header class="persona-head">
+        <div class="persona-avatar">K</div>
+        <div class="meta">
+          <div class="pid">P4 · CTO / Analyst</div>
+          <h2>Karim <span class="who">— sizes complexity and AI leverage</span></h2>
+          <p class="descr">
+            Owns the system landscape. Cares about integration density, domain↔service alignment,
+            and which activities are best candidates for automation. Outputs are quarterly
+            executive summaries.
+          </p>
+        </div>
+        <dl class="facts">
+          <dt>Surface</dt><dd>cto-analytics</dd>
+          <dt>Frequency</dt><dd>Weekly · quarterly deep-dive</dd>
+          <dt>Success</dt><dd>Top 3 AI candidates surfaced with quantified evidence each quarter.</dd>
+        </dl>
+      </header>
+
+      <!-- Epic AN-1 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">AN-1</span>
+          <h3>System &amp; integration overview</h3>
+          <span class="target">cto-analytics</span>
+        </div>
+        <p class="epic-descr">
+          A defensible map of which systems exist, how densely they integrate, and which serve
+          which domains.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">AN-1.1</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want a <em>system map</em> showing
+                every <code>System</code> node with its <code>INTEGRATES_WITH</code> neighbours, so I
+                can see integration density.</p>
+              <ul class="acs">
+                <li>Dashboard renders every system with degree-centrality and integration count.</li>
+                <li>Clusters are coloured by degree using shades of the single accent — no rainbow
+                  palette.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">AN-1.2</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want the <em>domain ↔ system
+                alignment matrix</em>, so I can see which systems serve which domains.</p>
+              <ul class="acs">
+                <li>Matrix rows are domains; columns are systems; cell value is the count of
+                  activities binding them via <code>USES_SYSTEM</code>.</li>
+                <li>Cells link through to the underlying activity list.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">AN-1.3</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want to <em>flag duplicate-purpose
+                systems</em> (two systems used by the same activity), so I can prioritise
+                consolidation.</p>
+              <ul class="acs">
+                <li>A "consolidation candidates" panel lists activities with ≥ 2 <code>USES_SYSTEM</code>
+                  edges, sorted by usage count.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic AN-2 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">AN-2</span>
+          <h3>Complexity &amp; risk metrics</h3>
+          <span class="target">cto-analytics</span>
+        </div>
+        <p class="epic-descr">
+          Rank journeys by re-engineering value; expose critical paths.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">AN-2.1</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want a <em>complexity score per
+                journey</em> (depth of <code>PRECEDES</code> chain × distinct systems × distinct
+                roles), so I can rank journeys.</p>
+              <ul class="acs">
+                <li>Score is computed nightly and rendered in a sortable table.</li>
+                <li>Each score's formula is shown on hover; score weights are tunable in settings.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">AN-2.2</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want a <em>"single-system journey"
+                report</em> — journeys that go through one system end-to-end — for migration
+                assessment.</p>
+              <ul class="acs">
+                <li>Report enumerates journeys where <code>distinct(USES_SYSTEM) == 1</code>.</li>
+                <li>Each row links to the journey detail with the bound system pinned.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">AN-2.3</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want a <em>critical-path report</em> —
+                the longest <code>PRECEDES</code> chain per journey.</p>
+              <ul class="acs">
+                <li>Each journey row shows critical-path length, start activity, end activity.</li>
+                <li>Cyclic journeys are flagged but not crashed; longest acyclic chain reported.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic AN-3 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">AN-3</span>
+          <h3>AI-leverage candidates</h3>
+          <span class="target">cto-analytics</span>
+        </div>
+        <p class="epic-descr">
+          Surface activities whose attributes mark them as automation candidates and produce an
+          executive summary export.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">AN-3.1</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want to <em>flag activities whose
+                attributes mark them as <code>repetitive=true</code> and <code>data_richness=high</code></em>,
+                so AI candidates are surfaced consistently.</p>
+              <ul class="acs">
+                <li>Filter returns the candidate list; export to CSV is available.</li>
+                <li>Empty result handled with explicit "no attributes tagged yet — see
+                  ontology-manager" rather than a blank screen.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">AN-3.2</div>
+            <div class="body">
+              <p class="line as">As a <em>CTO / Analyst</em>, I want an <em>executive summary
+                export</em> (PDF) covering top 5 journeys by complexity, top 3 consolidation
+                candidates, top 3 AI candidates.</p>
+              <ul class="acs">
+                <li>PDF is generated server-side from current graph state; reproducible across runs.</li>
+                <li>Header carries graph-state hash so a reader can verify the snapshot.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ========== P5 DOMAIN SME ========== -->
+    <section class="persona" id="p5">
+      <header class="persona-head">
+        <div class="persona-avatar">P</div>
+        <div class="meta">
+          <div class="pid">P5 · Domain SME</div>
+          <h2>Priya <span class="who">— validates the catalog</span></h2>
+          <p class="descr">
+            Subject-matter expert. Bootstraps the journey catalog from workshops, corrects errors,
+            and signs off each journey quarterly. Doesn't write Cypher; needs lightweight forms
+            and a clear review queue.
+          </p>
+        </div>
+        <dl class="facts">
+          <dt>Surface</dt><dd>process-explorer-ui (write paths) + ontology-manager</dd>
+          <dt>Frequency</dt><dd>Weekly</dd>
+          <dt>Success</dt><dd>Every journey in her domain reviewed quarterly.</dd>
+        </dl>
+      </header>
+
+      <!-- Epic SME-1 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">SME-1</span>
+          <h3>Bootstrap a domain catalog</h3>
+          <span class="target">process-explorer-ui (write)</span>
+        </div>
+        <p class="epic-descr">
+          Add journeys and activities through forms and bulk paste; bind to existing entities via
+          typeahead.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">SME-1.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want to <em>add a new
+                <code>UserJourney</code></em> to my domain by filling a four-field form, so I don't
+                need to write Cypher.</p>
+              <ul class="acs">
+                <li>Form requires name, description, parent domain (pre-selected), and at least one
+                  activity stub.</li>
+                <li>Submit creates the journey + activity stubs via
+                  <code>POST /api/v1/nodes/UserJourney</code> + <code>POST /api/v1/edges</code> in a
+                  single transaction.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">SME-1.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want to <em>bulk-paste a list of
+                activities</em> under a journey, so I can transcribe a workshop output quickly.</p>
+              <ul class="acs">
+                <li>Paste field accepts newline-delimited names; each line becomes a
+                  <code>POST /api/v1/nodes/Activity</code> plus a <code>PART_OF</code> edge.</li>
+                <li>Order in the paste field becomes the initial <code>PRECEDES</code> chain;
+                  idempotent re-paste rebinds order without duplicating activities.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">SME-1.3</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want to <em>bind activities to roles,
+                systems, and locations from a typeahead</em>, so I never type IDs.</p>
+              <ul class="acs">
+                <li>Typeahead pulls top 20 matches by <code>name</code> within 200 ms.</li>
+                <li>"Create new" inline option creates the missing role/system/location and binds in
+                  one click.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic SME-2 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">SME-2</span>
+          <h3>Correct &amp; validate</h3>
+          <span class="target">process-explorer-ui (write)</span>
+        </div>
+        <p class="epic-descr">
+          Mark doubtful entries for review; record who verified what; prevent out-of-domain edits.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">SME-2.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want to <em>flag a node as "needs
+                review"</em> with a reason, so doubtful entries surface in a backlog.</p>
+              <ul class="acs">
+                <li>Node attribute <code>review_status</code> with values
+                  <code>needs_review | verified | deprecated</code> is settable via PATCH.</li>
+                <li><code>/sme/review-queue</code> lists all <code>needs_review</code> nodes in my
+                  domain.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">SME-2.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want to <em>mark a journey as "verified
+                by me on &lt;date&gt;"</em>, so accountability is visible.</p>
+              <ul class="acs">
+                <li>Attributes <code>verified_by</code> (Role id) and <code>verified_at</code>
+                  (ISO date) are settable on a journey.</li>
+                <li>Verification metadata appears in journey detail header.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">SME-2.3</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want a <em>redirect when I land on an
+                out-of-domain node</em>, so I don't accidentally edit another team's catalog.</p>
+              <ul class="acs">
+                <li>Out-of-domain edit attempts return <code>403 {error:{code:"out_of_domain"}}</code>
+                  with a home-domain link.</li>
+                <li>Read access is unaffected; SMEs can still browse other domains.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic SME-3 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">SME-3</span>
+          <h3>Quarterly sign-off</h3>
+          <span class="target">process-explorer-ui (write)</span>
+        </div>
+        <p class="epic-descr">
+          A single screen for the quarterly review with bulk sign-off.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">SME-3.1</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want a <em>quarterly checklist of every
+                journey in my domain</em> with sign-off state, so I can do the review in one sitting.</p>
+              <ul class="acs">
+                <li>Checklist groups journeys by overdue (<code>verified_at &lt; 90 days ago</code>)
+                  vs current.</li>
+                <li>Per-row toggle expands to show the activity list inline.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">SME-3.2</div>
+            <div class="body">
+              <p class="line as">As a <em>Domain SME</em>, I want to <em>sign off journeys in
+                bulk</em> after spot-checking, so the workflow is realistic.</p>
+              <ul class="acs">
+                <li>Multi-select plus "sign off selected" applies <code>verified_by</code> +
+                  <code>verified_at</code> in one transaction.</li>
+                <li>Audit log entry records the bulk action with the journey id list.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ========== P6 API CONSUMER ========== -->
+    <section class="persona" id="p6">
+      <header class="persona-head">
+        <div class="persona-avatar">T</div>
+        <div class="meta">
+          <div class="pid">P6 · API Consumer</div>
+          <h2>Theo <span class="who">— integrates from outside</span></h2>
+          <p class="descr">
+            External script developer. Pulls graph data into BI tools, syncs to a wiki, or seeds
+            a separate audit log. Cares about stable contracts, typed clients, idempotent
+            ingestion, and incremental sync.
+          </p>
+        </div>
+        <dl class="facts">
+          <dt>Surface</dt><dd>REST · <code style="font-family:var(--font-mono);font-size:11px;">/api/v1/</code></dd>
+          <dt>Frequency</dt><dd>Daily · automated</dd>
+          <dt>Success</dt><dd>Integrations stable across schema revisions; idempotent imports.</dd>
+        </dl>
+      </header>
+
+      <!-- Epic API-1 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">API-1</span>
+          <h3>Discover &amp; navigate the API</h3>
+          <span class="target">graph-core</span>
+        </div>
+        <p class="epic-descr">
+          Published schema, consistent error envelope, versioned base path.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">API-1.1</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want a <em>published OpenAPI 3.1
+                schema</em> at <code>/api/v1/openapi.json</code>, so I can codegen typed clients.</p>
+              <ul class="acs">
+                <li>Schema covers every endpoint in FR-06, FR-07, FR-11 with request and response
+                  bodies.</li>
+                <li>Schema is generated from the same <code>zod</code> definitions used at runtime —
+                  no hand-maintained copy.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">API-1.2</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want <em>consistent error
+                envelopes</em>, so error handling is generic.</p>
+              <ul class="acs">
+                <li>Every 4xx/5xx returns <code>{error:{code, message, details?}}</code>. <span class="ref">NFR-05 · AC-20</span></li>
+                <li>Codes are stable across releases; each is documented in the OpenAPI schema.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">API-1.3</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want a <em>versioned base path</em>,
+                so my client survives schema evolution.</p>
+              <ul class="acs">
+                <li>All endpoints under <code>/api/v1/</code>. <span class="ref">FR-06</span></li>
+                <li>Breaking changes increment to <code>/api/v2/</code> and <code>/api/v1/</code> is
+                  supported in parallel for at least three months.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic API-2 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">API-2</span>
+          <h3>Read paths — query &amp; export</h3>
+          <span class="target">graph-core</span>
+        </div>
+        <p class="epic-descr">
+          Full export, streaming export, and incremental sync.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">API-2.1</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want <em>bulk export of the full
+                graph</em> as JSON, so I can sync to a BI warehouse nightly.</p>
+              <ul class="acs">
+                <li><code>GET /api/v1/export</code> returns <code>{nodes:[…], edges:[…]}</code>
+                  deterministically ordered by <code>id</code>.</li>
+                <li>Payload is round-trippable through <code>POST /api/v1/import</code> with zero
+                  diff. <span class="ref">NFR-04</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">API-2.2</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want <em>streaming export via
+                newline-delimited JSON</em>, so I don't OOM on a 100k-node graph.</p>
+              <ul class="acs">
+                <li><code>GET /api/v1/export.ndjson</code> streams one node/edge per line with
+                  <code>Content-Type: application/x-ndjson</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">API-2.3</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want <em>incremental sync</em> —
+                "give me everything changed since <code>updatedAt &gt; t</code>" — so a downstream
+                cache is cheap to keep current.</p>
+              <ul class="acs">
+                <li><code>GET /api/v1/changes?since=:iso</code> returns nodes + edges updated after
+                  the timestamp, ordered by <code>updatedAt</code>.</li>
+                <li>Tombstones for deleted ids are included in the response.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+
+      <!-- Epic API-3 -->
+      <div class="epic">
+        <div class="epic-head">
+          <span class="eid">API-3</span>
+          <h3>Write paths — ingestion</h3>
+          <span class="target">graph-core</span>
+        </div>
+        <p class="epic-descr">
+          Idempotent imports, partial-failure semantics, dry-run validation.
+        </p>
+
+        <ol class="story-list" style="list-style:none;padding:0;margin:0;">
+          <div class="story">
+            <div class="sid">API-3.1</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want to <em>push a delta payload via
+                <code>POST /api/v1/import</code></em> and have it upsert idempotently on
+                <code>id</code>.</p>
+              <ul class="acs">
+                <li>Re-import of the same payload produces zero new nodes/edges. <span class="ref">AC-08</span></li>
+                <li>Mixed-order payloads (edges before nodes) are handled via two-phase ingestion.
+                  <span class="ref">FR-06</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">API-3.2</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want <em>partial-failure
+                semantics</em> — one bad row should not abort the whole import — with a per-row
+                error report.</p>
+              <ul class="acs">
+                <li>Response shape is <code>{accepted:n, rejected:[{index, error}]}</code> rather
+                  than all-or-nothing.</li>
+                <li>Rejected rows do not roll back accepted rows.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="story">
+            <div class="sid">API-3.3</div>
+            <div class="body">
+              <p class="line as">As an <em>API Consumer</em>, I want a <em>dry-run option on
+                import</em>, so I can validate before writing.</p>
+              <ul class="acs">
+                <li><code>?dryRun=true</code> returns the same
+                  <code>{accepted, rejected}</code> shape without writing.</li>
+              </ul>
+            </div>
+          </div>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ========== CROSS-CUTTING ========== -->
+    <section id="cross-cutting" style="scroll-margin-top:72px; margin-top:24px;">
+      <div class="sec-title">Cross-cutting concerns</div>
+      <p style="color:var(--muted); max-width:62ch; margin:0 0 16px;">
+        Concerns that don't belong to one persona but constrain every surface. Each is anchored to
+        an existing FR / NFR / AC in <code>graph-core/requirements.md</code>.
+      </p>
+      <div class="xc">
+        <ul class="xc-list">
+          <li>
+            <span class="id">XC-1.1</span>
+            <span>Every surface (PWA shell, explorer, chat, analytics dashboard) polls
+              <code>/api/v1/healthz</code> on mount, on <code>visibilitychange→visible</code>,
+              and every 30s while visible. <span class="ref">FR-09 · AC-14</span></span>
+          </li>
+          <li>
+            <span class="id">XC-1.2</span>
+            <span>Node + edge counts from <code>/api/v1/stats</code> render in the shell as a
+              ground-truth indicator across all four downstream surfaces. <span class="ref">FR-11</span></span>
+          </li>
+          <li>
+            <span class="id">XC-2.1</span>
+            <span>Single-tenant, no auth — no surface introduces a user model, session, or
+              tenant boundary. <span class="ref">NFR-08 · AC-22</span></span>
+          </li>
+          <li>
+            <span class="id">XC-2.2</span>
+            <span>All ad-hoc Cypher (chat, explorer's "advanced query" pane, analytics filters)
+              routes through the read-only passthrough; writes are rejected at parse time.
+              <span class="ref">NFR-06 · AC-10</span></span>
+          </li>
+          <li>
+            <span class="id">XC-3.1</span>
+            <span>Reproducible boot — <code>bun install &amp;&amp; bun run dev</code> brings up
+              Neo4j, API, and PWA on a clean clone in under five minutes (excluding image pull),
+              on any supported container runtime. <span class="ref">NFR-03 · AC-15 · risk #7</span></span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========== TRACEABILITY ========== -->
+    <section id="traceability" style="scroll-margin-top:72px; margin-top:48px;">
+      <div class="sec-title">Traceability matrix — stories → downstream spec</div>
+      <p style="color:var(--muted); max-width:62ch; margin:0 0 16px;">
+        Each story is owned by exactly one downstream spec. Use this matrix when scoping each
+        spec's <code>requirements.md</code>.
+      </p>
+      <div class="traceability">
+        <div class="tr-row">
+          <span class="h">Downstream spec</span>
+          <span class="h">Owned stories</span>
+          <span class="h" style="text-align:right;">Count</span>
+        </div>
+        <div class="tr-row">
+          <span class="spec">graph-core</span>
+          <span class="stories">API-1.1, API-1.2, API-1.3, API-2.1, API-2.2, API-2.3, API-3.1, API-3.2, API-3.3, XC-1.1, XC-1.2, XC-2.1, XC-2.2, XC-3.1</span>
+          <span class="count">14</span>
+        </div>
+        <div class="tr-row">
+          <span class="spec">ontology-manager</span>
+          <span class="stories">OA-1.1, OA-1.2, OA-1.3, OA-1.4, OA-2.1, OA-2.2, OA-2.3, OA-3.1, OA-3.2, OA-3.3</span>
+          <span class="count">10</span>
+        </div>
+        <div class="tr-row">
+          <span class="spec">process-explorer-ui</span>
+          <span class="stories">PE-1.1, PE-1.2, PE-1.3, PE-1.4, PE-2.1, PE-2.2, PE-2.3, PE-3.1, PE-3.2, PE-3.3, SME-1.1, SME-1.2, SME-1.3, SME-2.1, SME-2.2, SME-2.3, SME-3.1, SME-3.2</span>
+          <span class="count">18</span>
+        </div>
+        <div class="tr-row">
+          <span class="spec">chat-interface</span>
+          <span class="stories">CU-1.1, CU-1.2, CU-1.3, CU-1.4, CU-2.1, CU-2.2, CU-2.3, CU-3.1, CU-3.2</span>
+          <span class="count">9</span>
+        </div>
+        <div class="tr-row">
+          <span class="spec">cto-analytics</span>
+          <span class="stories">AN-1.1, AN-1.2, AN-1.3, AN-2.1, AN-2.2, AN-2.3, AN-3.1, AN-3.2</span>
+          <span class="count">8</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== NOTES ========== -->
+    <section id="notes" style="scroll-margin-top:72px; margin-top:48px;">
+      <div class="sec-title">Notes &amp; conventions</div>
+      <div class="xc">
+        <ul class="xc-list">
+          <li>
+            <span class="id">N-01</span>
+            <span>Story IDs are <code>&lt;persona-prefix&gt;-&lt;epic#&gt;.&lt;story#&gt;</code>;
+              acceptance criteria are numbered inside each story. Persona prefixes:
+              OA (Ontology Author), PE (Process Explorer), CU (Chat User), AN (Analyst),
+              SME (Domain SME), API (API Consumer), XC (Cross-cutting).</span>
+          </li>
+          <li>
+            <span class="id">N-02</span>
+            <span>Where a story directly refines an existing
+              <code>graph-core</code> FR / NFR / AC, a <span class="ref">reference badge</span>
+              is shown. The badges are pointers, not duplicates of the requirement.</span>
+          </li>
+          <li>
+            <span class="id">N-03</span>
+            <span>All identifiers use en-US spelling (<code>neighbors</code>, <code>color</code>,
+              <code>behavior</code>) per <code>NFR-10</code>. Prose may use en-GB.</span>
+          </li>
+          <li>
+            <span class="id">N-04</span>
+            <span>Each persona is a single role, not a real user. The given names are working
+              labels so design + spec docs can refer to them by name rather than role.</span>
+          </li>
+          <li>
+            <span class="id">N-05</span>
+            <span>This catalog feeds the <code>design</code> phase of <code>graph-core</code> and
+              is the seed for each downstream spec's <code>requirements.md</code>. It is not
+              itself a spec — no AC-style verification recipe applies.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="page">
+  <div>companygraph · user stories &amp; journeys · wireframe v0.1</div>
+  <div class="ref">spec: graph-core · revision 2 · approved 2026-05-22</div>
+</footer>
+
+</body>
+</html>

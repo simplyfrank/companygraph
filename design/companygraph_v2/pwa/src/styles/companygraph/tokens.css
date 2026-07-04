@@ -1,0 +1,170 @@
+/*
+ * AUTO-GENERATED from .claude/stitch/design-system.yaml.
+ * DO NOT EDIT BY HAND. Edit design-system.yaml and run:
+ *   bun run scripts/stitch-tokens-to-css.ts
+ *
+ * Design system: companygraph
+ * Mode: light
+ */
+
+:root {
+  /* Colours — flat names match the mock's :root */
+  --bg: oklch(99% 0.002 240);
+  --surface: oklch(100% 0 0);
+  --surface-2: oklch(98% 0.004 250);
+  --fg: oklch(18% 0.012 250);
+  --muted: oklch(54% 0.012 250);
+  --muted-2: oklch(70% 0.01 250);
+  --border: oklch(92% 0.005 250);
+  --border-strong: oklch(86% 0.008 250);
+  --accent: oklch(58% 0.18 255);
+  --accent-soft: oklch(96% 0.025 255);
+  --good: oklch(58% 0.16 145);
+  --warn: oklch(70% 0.16 75);
+  --danger: oklch(60% 0.22 25);
+  --warn-text: oklch(40% 0.08 75);
+  --warn-text-strong: oklch(36% 0.1 75);
+  --danger-text: oklch(40% 0.12 25);
+  --danger-text-strong: oklch(35% 0.16 25);
+  --good-text: oklch(38% 0.08 145);
+  --on-accent: oklch(100% 0 0);
+
+  /* Fonts — three native stacks (display / body / mono) */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono:    ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Layout dimensions */
+  --rail-w: 220px;
+  --topbar-h: 52px;
+  --subnav-h: 44px;
+  --panel-w: 320px;
+  --collapse-at: 1100px;
+  --collapse-at-2col: 1080px;
+
+  /* Spacing — 8px rhythm */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 18px;
+  --space-xl: 24px;
+  --space-2xl: 28px;
+  --space-3xl: 48px;
+
+  /* Motion — durations and easing curves.
+   *   --dur-instant : state-only swaps, no perceived latency    (0 ms)
+   *   --dur-fast    : micro-interactions, hover, selection       (90 ms)
+   *   --dur-base    : panel slides, opacity fades, dim/undim    (140 ms)
+   *   --dur-slow    : entrance animations, SLA pulse period     (200 ms)
+   *   --ease-out    : almost all UI motion (deceleration curve)
+   *   --ease-in-out : looping / breathing animations
+   *   --ease-spring : spatial drag, tooltip appear              (custom cubic)
+   *   --ease-linear : opacity-only fades (no spatial component)
+   */
+  --dur-instant: 0ms;
+  --dur-fast:    90ms;
+  --dur-base:   140ms;
+  --dur-slow:   200ms;
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-linear: linear;
+
+  /* Roundness */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-pill: 10px;
+  --radius-round: 50%;
+
+  /* Typography scales — companygraph addition (h1/h2/h3/body/lede/mono/caption-mono) */
+  --type-h1-family: "SF Pro Display", system-ui, sans-serif;
+  --type-h1-size: 24px;
+  --type-h1-weight: 600;
+  --type-h1-line-height: 1.2;
+  --type-h1-letter-spacing: -0.022em;
+  --type-h2-family: "SF Pro Display", system-ui, sans-serif;
+  --type-h2-size: 17px;
+  --type-h2-weight: 600;
+  --type-h2-line-height: 1.3;
+  --type-h2-letter-spacing: -0.015em;
+  --type-h3-family: "SF Pro Display", system-ui, sans-serif;
+  --type-h3-size: 14px;
+  --type-h3-weight: 600;
+  --type-h3-line-height: 1.35;
+  --type-h3-letter-spacing: -0.01em;
+  --type-body-family: "SF Pro Text", system-ui, sans-serif;
+  --type-body-size: 14px;
+  --type-body-weight: 400;
+  --type-body-line-height: 1.5;
+  --type-body-letter-spacing: normal;
+  --type-lede-family: "SF Pro Text", system-ui, sans-serif;
+  --type-lede-size: 13.5px;
+  --type-lede-weight: 400;
+  --type-lede-line-height: 1.5;
+  --type-lede-letter-spacing: normal;
+  --type-mono-family: "SF Mono", system-ui, sans-serif;
+  --type-mono-size: 12.5px;
+  --type-mono-weight: 400;
+  --type-mono-line-height: 1.4;
+  --type-mono-letter-spacing: normal;
+  --type-caption-mono-family: "SF Mono", system-ui, sans-serif;
+  --type-caption-mono-size: 10px;
+  --type-caption-mono-weight: 500;
+  --type-caption-mono-line-height: 1.4;
+  --type-caption-mono-letter-spacing: 0.1em;
+  --type-caption-mono-transform: uppercase;
+}
+
+/* Utility classes for the named type scales */
+.text-h1 {
+  font-family: var(--type-h1-family);
+  font-size: var(--type-h1-size);
+  font-weight: var(--type-h1-weight);
+  line-height: var(--type-h1-line-height);
+  letter-spacing: var(--type-h1-letter-spacing);
+}
+.text-h2 {
+  font-family: var(--type-h2-family);
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  line-height: var(--type-h2-line-height);
+  letter-spacing: var(--type-h2-letter-spacing);
+}
+.text-h3 {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-line-height);
+  letter-spacing: var(--type-h3-letter-spacing);
+}
+.text-body {
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-line-height);
+  letter-spacing: var(--type-body-letter-spacing);
+}
+.text-lede {
+  font-family: var(--type-lede-family);
+  font-size: var(--type-lede-size);
+  font-weight: var(--type-lede-weight);
+  line-height: var(--type-lede-line-height);
+  letter-spacing: var(--type-lede-letter-spacing);
+}
+.text-mono {
+  font-family: var(--type-mono-family);
+  font-size: var(--type-mono-size);
+  font-weight: var(--type-mono-weight);
+  line-height: var(--type-mono-line-height);
+  letter-spacing: var(--type-mono-letter-spacing);
+}
+.text-caption-mono {
+  font-family: var(--type-caption-mono-family);
+  font-size: var(--type-caption-mono-size);
+  font-weight: var(--type-caption-mono-weight);
+  line-height: var(--type-caption-mono-line-height);
+  letter-spacing: var(--type-caption-mono-letter-spacing);
+  text-transform: var(--type-caption-mono-transform);
+}

@@ -1,0 +1,47 @@
+{
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"graph_analyst\"}",
+      "tool_calls": [
+        { "id": "toolu_01budget1", "name": "describe_schema", "input": {} }
+      ],
+      "usage": { "input_tokens": 1100, "output_tokens": 40 }
+    },
+    {
+      "stop_reason": "tool_use",
+      "tool_calls": [
+        { "id": "toolu_01budget2", "name": "describe_schema", "input": {} }
+      ],
+      "usage": { "input_tokens": 1300, "output_tokens": 35 }
+    },
+    {
+      "stop_reason": "tool_use",
+      "tool_calls": [
+        { "id": "toolu_01budget3", "name": "describe_schema", "input": {} }
+      ],
+      "usage": { "input_tokens": 1500, "output_tokens": 35 }
+    },
+    {
+      "stop_reason": "tool_use",
+      "tool_calls": [
+        { "id": "toolu_01budget4", "name": "describe_schema", "input": {} }
+      ],
+      "usage": { "input_tokens": 1700, "output_tokens": 35 }
+    },
+    {
+      "stop_reason": "tool_use",
+      "tool_calls": [
+        { "id": "toolu_01budget5", "name": "describe_schema", "input": {} }
+      ],
+      "usage": { "input_tokens": 1900, "output_tokens": 35 }
+    },
+    {
+      "stop_reason": "tool_use",
+      "tool_calls": [
+        { "id": "toolu_01budget6", "name": "describe_schema", "input": {} }
+      ],
+      "usage": { "input_tokens": 2100, "output_tokens": 35 }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+.sla {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 1.5px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sla strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--muted-2);
+}
+
+.neutral {}
+
+.warn {
+  border-color: color-mix(in oklch, var(--warn) 35%, var(--border));
+  background: color-mix(in oklch, var(--warn) 8%, var(--surface));
+  color: var(--warn-text);
+}
+.warn .dot { background: var(--warn); }
+.warn strong { color: var(--warn-text-strong); }
+
+.breach {
+  border-color: color-mix(in oklch, var(--danger) 35%, var(--border));
+  background: color-mix(in oklch, var(--danger) 8%, var(--surface));
+  color: var(--danger-text);
+}
+.breach .dot {
+  background: var(--danger);
+  animation: slaPulse 1.1s var(--ease-in-out) infinite;
+}
+.breach strong { color: var(--danger-text-strong); }
+
+.good {
+  border-color: color-mix(in oklch, var(--good) 30%, var(--border));
+  background: color-mix(in oklch, var(--good) 8%, var(--surface));
+  color: var(--good-text);
+}
+.good .dot { background: var(--good); }
+
+@keyframes slaPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}

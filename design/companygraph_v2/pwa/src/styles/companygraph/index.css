@@ -1,0 +1,23 @@
+/* companygraph design-system entry — import shim. */
+/* tokens.css is auto-generated; do not edit by hand. */
+
+@import "./tokens.css";
+
+/* Base resets + body defaults (verbatim from the mock). */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button { font: inherit; cursor: pointer; border: 0; background: transparent; color: inherit; }
+input, textarea, select { font: inherit; color: inherit; }
+code, .mono { font-family: var(--font-mono); font-size: 12.5px; }

@@ -1,0 +1,10 @@
+{
+  "turns": [
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "{\"intent\": \"oos\", \"role_id\": null, \"oos_reason\": \"weather question\"}",
+      "usage": { "input_tokens": 900, "output_tokens": 30 }
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-xl);
+  align-items: start;
+}
+@media (max-width: 920px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* Heatmap */
+.heatmapWrap {
+  position: relative;
+}
+.heatmap {
+  border-collapse: separate;
+  border-spacing: 4px;
+  margin: 6px auto;
+}
+.heatmapCorner {
+  width: 28px;
+  height: 28px;
+}
+.heatmapAxis {
+  width: 28px;
+  height: 28px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.heatmapYLabel {
+  position: absolute;
+  left: -28px;
+  top: 24px;
+  transform: rotate(-90deg);
+  transform-origin: top left;
+  white-space: nowrap;
+}
+.heatCell {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  vertical-align: middle;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: outline 0.12s linear, transform 0.12s linear;
+}
+.heatCell:hover {
+  transform: scale(1.03);
+}
+.heatCellHL {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.heat-good   { background: color-mix(in oklch, var(--good)   12%, var(--surface)); border: 1px solid color-mix(in oklch, var(--good)   30%, var(--border)); }
+.heat-warn   { background: color-mix(in oklch, var(--warn)   18%, var(--surface)); border: 1px solid color-mix(in oklch, var(--warn)   35%, var(--border)); }
+.heat-danger { background: color-mix(in oklch, var(--danger) 22%, var(--surface)); border: 1px solid color-mix(in oklch, var(--danger) 40%, var(--border)); }
+
+.heatCellScore {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  pointer-events: none;
+}
+.heatCellDots {
+  position: absolute;
+  inset: auto 0 6px 0;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  align-items: center;
+}
+.heatCellDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg);
+  opacity: 0.65;
+}
+.heatCellMore {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--fg);
+  margin-left: 2px;
+}
+
+/* Owner list */
+.ownerList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ownerBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12.5px;
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+}
+.ownerBtn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.ownerActive {
+  border-color: color-mix(in oklch, var(--accent) 30%, var(--border));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ownerCount {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* Register table */
+.registerTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.registerTable th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.registerTable td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.rowHighlight td {
+  background: var(--accent-soft);
+}
+.num {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.id {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.trendCell {
+  text-align: center;
+  font-size: 14px;
+}
+.trendUp   { color: var(--danger); }
+.trendDown { color: var(--good); }
+.trendFlat { color: var(--muted); }

@@ -1,0 +1,35 @@
+# Local Neo4j for graph-core development. Production deployment is out of
+# scope for this spec — do not use this file in production.
+#
+# NEO4J_AUTH is interpolated from .env. The :?missing form fails loud if
+# either variable is unset rather than silently defaulting to neo4j/neo4j
+# (which Neo4j refuses anyway).
+
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: companygraph_neo4j
+    environment:
+      NEO4J_AUTH: "${NEO4J_USER:?missing NEO4J_USER in .env}/${NEO4J_PASSWORD:?missing NEO4J_PASSWORD in .env}"
+      NEO4J_server_memory_pagecache_size: "256m"
+      NEO4J_server_memory_heap_initial__size: "256m"
+      NEO4J_server_memory_heap_max__size: "1g"
+      # APOC required by ontology-manager migrations + forceBackfill path
+      # (graph-core/design.md §8.3 + ontology-manager/design.md §4.1 + §4.7).
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+    ports:
+      - "127.0.0.1:7687:7687"
+      - "127.0.0.1:7474:7474"
+    volumes:
+      - companygraph_neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  companygraph_neo4j_data:
+    name: companygraph_neo4j_data

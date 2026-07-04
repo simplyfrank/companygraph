@@ -1,0 +1,33 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--fg) 5%, transparent);
+}
+
+.head {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  margin: 0;
+  flex: 1;
+  color: var(--fg);
+}
+
+.actions {
+  display: flex;
+  gap: 5px;
+}
+
+.pad {
+  padding: 10px 12px;
+}

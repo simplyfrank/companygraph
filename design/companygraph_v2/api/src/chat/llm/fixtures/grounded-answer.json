@@ -1,0 +1,22 @@
+{
+  "turns": [
+    {
+      "stop_reason": "tool_use",
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"uj_order_fulfillment\"}",
+      "tool_calls": [
+        {
+          "id": "toolu_01grounded",
+          "name": "get_journey",
+          "input": { "id": "uj_order_fulfillment" }
+        }
+      ],
+      "usage": { "input_tokens": 1200, "output_tokens": 80 }
+    },
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "Order Fulfillment uses 6 systems: [POS](sys_pos), [WMS](sys_wms), [TMS](sys_tms), [OMS](sys_oms), [ERP](sys_erp), and [CRM](sys_crm). The critical path runs through [Pick](a_pick) → [Pack](a_pack) → [Ship](a_ship).",
+      "usage": { "input_tokens": 1800, "output_tokens": 120 }
+    }
+  ]
+}

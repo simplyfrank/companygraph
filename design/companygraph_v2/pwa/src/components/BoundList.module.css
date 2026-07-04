@@ -1,0 +1,49 @@
+.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  padding: var(--space-md) var(--space-md);
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 12.5px;
+}
+.item:first-child {
+  border-top: 0;
+}
+
+.gly {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius-xs);
+  flex: none;
+}
+
+.executes .gly {
+  background: color-mix(in oklch, var(--good) 20%, transparent);
+  border-color: var(--good);
+}
+
+.uses .gly {
+  background: color-mix(in oklch, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+}
+
+.at .gly {
+  background: color-mix(in oklch, var(--warn) 20%, transparent);
+  border-color: var(--warn);
+}

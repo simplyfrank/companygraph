@@ -1,0 +1,83 @@
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.grid th, .grid td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  vertical-align: top;
+}
+.rowHead {
+  text-align: left;
+  font-weight: 500;
+  min-width: 160px;
+}
+.domainLink {
+  color: var(--fg);
+}
+.domainLink:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+.colHead {
+  text-align: center;
+  background: var(--surface-2);
+  padding: 8px 14px;
+}
+.cell {
+  text-align: center;
+  min-width: 100px;
+}
+.zero {
+  color: var(--muted-2);
+  font-family: var(--font-mono);
+}
+
+/* details/summary trick — click the number to reveal journeys */
+.cellDetails > summary::-webkit-details-marker { display: none; }
+.cellDetails > summary { list-style: none; }
+.cellSummary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.cellSummary:hover {
+  border-color: var(--border-strong);
+}
+.tone-accent { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in oklch, var(--accent) 30%, var(--border)); }
+.tone-warn   { background: color-mix(in oklch, var(--warn)   10%, var(--surface)); color: var(--warn-text); border-color: color-mix(in oklch, var(--warn) 35%, var(--border)); }
+.tone-good   { background: color-mix(in oklch, var(--good)   10%, var(--surface)); color: var(--good-text); border-color: color-mix(in oklch, var(--good) 35%, var(--border)); }
+
+.cellList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  text-align: left;
+  font-size: 12px;
+}
+.cellList li {
+  padding: 3px 0;
+}
+.cellList a {
+  color: var(--accent);
+}
+
+.totalRow th, .totalRow td {
+  border-top: 2px solid var(--fg);
+  background: var(--surface-2);
+}
+.totalCell {
+  text-align: center;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}

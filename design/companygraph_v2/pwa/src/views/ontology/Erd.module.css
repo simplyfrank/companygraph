@@ -1,0 +1,329 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-w);
+  gap: var(--space-xl);
+}
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+.svg {
+  width: 100%;
+  height: 620px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+}
+
+/* ── Node box ─────────────────────────────────────────────────── */
+
+.node {
+  cursor: pointer;
+}
+
+.box {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1;
+  transition: stroke 0.12s linear, fill 0.12s linear;
+}
+
+/* Hover */
+.node:hover .box {
+  stroke: var(--accent);
+  fill: var(--accent-soft);
+}
+
+/* Selected */
+.node[data-selected="true"] .box {
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  fill: var(--accent-soft);
+}
+
+/* Dimmed (when another node is active) */
+.node[data-dim="true"] {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Header stripe inside each box */
+.headerStripe {
+  opacity: 0.14;
+  pointer-events: none;
+}
+.node:hover .headerStripe,
+.node[data-selected="true"] .headerStripe {
+  opacity: 0.22;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  fill: var(--fg);
+  letter-spacing: -0.01em;
+  pointer-events: none;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--muted);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.node:hover .title,
+.node[data-selected="true"] .title { fill: var(--accent); }
+.node:hover .count,
+.node[data-selected="true"] .count { fill: var(--accent); }
+
+/* Attribute rows inside the box */
+.attrName {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--fg);
+  pointer-events: none;
+}
+
+.attrType {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  fill: var(--muted);
+  pointer-events: none;
+}
+
+.noAttrs {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--muted-2);
+  font-style: italic;
+  pointer-events: none;
+}
+
+.reqDot {
+  fill: var(--accent);
+  pointer-events: none;
+}
+
+.optDot {
+  fill: transparent;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+/* ── Edges ────────────────────────────────────────────────────── */
+
+.edge line,
+.edge path {
+  transition: stroke 0.12s linear, stroke-width 0.12s linear, opacity 0.12s linear;
+}
+
+.edge[data-dim="true"] {
+  opacity: 0.18;
+}
+
+.edge[data-selected="true"] line,
+.edge[data-selected="true"] path {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.edgeLabel {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--muted);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.edgeCardinality {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  fill: var(--muted-2);
+  pointer-events: none;
+}
+
+/* ── Right panel ──────────────────────────────────────────────── */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Attribute list in right panel */
+.attrList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attrListRow {
+  display: grid;
+  grid-template-columns: 14px 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+.attrListRow:hover {
+  background: var(--surface-2);
+}
+
+.attrListDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.attrListDot[data-required="true"] {
+  background: var(--accent);
+}
+.attrListDot[data-required="false"] {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+}
+
+.attrListName {
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+
+.attrListType {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.attrListReq {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Alignments list */
+.alignList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.alignList code {
+  color: var(--accent);
+}
+
+/* Code block for usage example */
+.codeBlock {
+  display: block;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg);
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Edge list in right panel */
+.edgeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.edgeList code {
+  color: var(--fg);
+}
+
+.cardBadge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklch, var(--accent) 25%, var(--border));
+  border-radius: 10px;
+  padding: 0 6px;
+  margin-left: 6px;
+}
+
+/* Endpoint row for selected edge */
+.endpointRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.endpointBox {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg);
+}
+
+.endpointArrow {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* ── Legend ───────────────────────────────────────────────────── */
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legendDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.legendLine {
+  width: 18px;
+  height: 0;
+  border-top: 1.5px solid var(--border-strong);
+  flex: none;
+}
+
+.legendLineActive {
+  width: 18px;
+  height: 0;
+  border-top: 2px solid var(--accent);
+  flex: none;
+}

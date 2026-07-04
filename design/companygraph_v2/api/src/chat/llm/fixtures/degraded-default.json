@@ -1,0 +1,10 @@
+{
+  "turns": [
+    {
+      "stop_reason": "end_turn",
+      "tool_calls": [],
+      "text": "{\"intent\": \"in_scope\", \"role_id\": \"graph_analyst\"} Running in degraded mode — Anthropic key is unset. Ask a question to see graph data through the mock client.",
+      "usage": { "input_tokens": 0, "output_tokens": 0 }
+    }
+  ]
+}

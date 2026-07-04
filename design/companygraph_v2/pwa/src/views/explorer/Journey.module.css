@@ -1,0 +1,357 @@
+.shell {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-w);
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .shell { grid-template-columns: 1fr; }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.domainPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-lg);
+}
+
+.domainBtn {
+  height: 28px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.domainBtn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.activeDomain {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklch, var(--accent) 30%, var(--border));
+  color: var(--accent);
+}
+
+.journeyList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.journeyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--fg);
+  text-decoration: none;
+}
+.journeyRow:first-child { border-top: 0; }
+.journeyRow:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.journeyRow strong { font-weight: 500; }
+
+.chain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.step {
+  border-top: 1px solid var(--border);
+}
+.step:first-child { border-top: 0; }
+.stepLink {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 10px 12px;
+  text-decoration: none;
+  color: var(--fg);
+}
+.stepLink:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.stepActive {
+  background: var(--accent-soft);
+}
+.stepN {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.stepActive .stepN {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.stepName {
+  font-weight: 500;
+  font-size: 13.5px;
+}
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.stepMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.stepId {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* Team-tinted role pill (Journey detail) */
+.rolePill {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11px;
+  overflow: hidden;
+}
+.rolePillStripe {
+  width: 3px;
+  flex: none;
+}
+.rolePillName {
+  color: var(--fg);
+  font-weight: 500;
+  padding: 2px 8px 2px 8px;
+}
+.rolePillTeam {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px 2px 0;
+}
+
+/* ===== Inline process-flow panel ===== */
+.flowPanel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  margin: 0 0 18px;
+  overflow: hidden;
+}
+
+.flowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  min-height: 40px;
+}
+
+.flowToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: -0.01em;
+}
+
+.flowToggleIcon {
+  font-size: 10px;
+  color: var(--muted);
+  width: 10px;
+  display: inline-block;
+  text-align: center;
+}
+
+.flowActivityCount {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 400;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.flowControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.flowSeg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.flowSegBtn {
+  padding: 2px 10px;
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  color: var(--muted);
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.flowSegBtn:last-child { border-right: none; }
+.flowSegActive {
+  background: var(--fg);
+  color: var(--surface);
+}
+
+.flowLayerToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.flowLayerToggle input { accent-color: var(--fg); cursor: pointer; }
+
+.flowCanvas {
+  height: 420px;
+  overflow: hidden;
+}
+
+/* KPI/SLA banner — always visible below page title for SLA-bound journeys */
+.kpiBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 14px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* Picker row: id + chips inline */
+.journeyRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Title actions row */
+.titleActions {
+  display: flex;
+  gap: 8px;
+  margin: -8px 0 18px;
+}
+
+/* Team list (right rail) */
+.teamList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.teamRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.teamSwatch {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  flex: none;
+}
+
+/* Picker row: row layout with separate "graph →" link */
+.journeyName {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--fg);
+  text-decoration: none;
+  min-width: 0;
+}
+.journeyName:hover { text-decoration: none; }
+
+.openGraph {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  flex: none;
+}
+.openGraph:hover {
+  background: var(--accent-soft);
+  text-decoration: none;
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+.closeBtn:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+  text-decoration: none;
+}
