@@ -57,6 +57,28 @@ As-built defect pinned by `kpi-okr-governance`: `GET /roll-down/contributions`
 runs invalid Cypher and 500s. Mode is single-shot (XD-17): blueprint approval
 authorizes end-to-end build; foundation tier is already executing.
 
+## pwa-ux-conformance — governed UI remediation spec (2026-07-04)
+
+A large **conformance-remediation** spec (not a rewrite — user decision) that
+brings the existing pre-studio PWA views into full conformance with the
+blueprint's UX-01..UX-06 allowances. **Approved** (author + 2-pass adversarial
+review, verdict `approve with notes`, 0 blockers). Real baseline (tool-verified,
+198 files swept): **55 files to remediate** — 16 view `.tsx` + 10 view
+`.module.css` + 28 shared `components/**` + 1 `styles/chat.css` (auto-generated
+`tokens.css` waived). 8 FRs, 12 ACs, 8 DDs, **33 per-surface tasks**. Fixes:
+DD-01 token-alias map, DD-02 named OKLCH ramps (`--cat-1..6` / `--sev-1..5`) at
+the stitch source `.claude/stitch/design-system.yaml` (regenerated, never
+hand-edited), ARIA `ViewRegion` landmark helper, per-view state matrix.
+
+**Scope-clean:** owns pre-studio views + shared primitives only; explicitly
+excludes `pwa/src/views/model/**` and `#/exec/performance` (studio-owned, whose
+own ACs already mandate UX-01..06). No `route.ts`/`index.tsx`/`api/`/`shared/`
+edits. **Execution deferred** until the studio build lands (so the final sweep
+also confirms the finished Model views). **Must-carry (C2-01):** add
+`touch-action:none` + `overscroll-behavior-y:contain` to the three canvas
+`.module.css` (JourneyGraph, JourneyCanvas, GraphCanvas) — §9's "already present"
+claim is false; grep-gated in T-09.
+
 ## Project shape
 
 `companygraph` is a single-tenant, self-hosted platform modelling a
