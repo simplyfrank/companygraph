@@ -52,7 +52,7 @@ export function VerifyJourneyButton({
   return (
     <div className={className}>
       <Button
-        tone={isVerified ? "good" : "primary"}
+        tone={isVerified ? "default" : "primary"}
         onClick={() => void handleVerify()}
         disabled={disabled || busy || isVerified}
       >

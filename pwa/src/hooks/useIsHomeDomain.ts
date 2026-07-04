@@ -29,5 +29,5 @@ export function useIsHomeDomain(entity: { id: string; label: NodeLabel }): boole
   if (data.status !== "ok") return true; // still loading → default allow
   const rows = data.data.rows;
   if (!rows || rows.length === 0) return true;
-  return rows[0].domainId === home;
+  return rows[0]!.domainId === home;
 }

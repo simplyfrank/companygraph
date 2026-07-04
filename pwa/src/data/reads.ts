@@ -51,7 +51,7 @@ export async function read<T>(url: string, opts: ReadOptions = {}): Promise<T> {
   if (inflight.has(url)) return inflight.get(url) as Promise<T>;
 
   const p = (async (): Promise<T> => {
-    const res = await fetch(url, { signal: opts.signal });
+    const res = await fetch(url, { ...(opts.signal ? { signal: opts.signal } : {}) });
     if (!res.ok) throw await asError(res);
     const data = (await res.json()) as T;
     memCache.set(url, { data, at: Date.now() });
@@ -85,7 +85,7 @@ export async function cypherDedup<T = Record<string, unknown>>(
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ statement, params }),
-      signal: opts.signal,
+      ...(opts.signal ? { signal: opts.signal } : {}),
     });
     if (!res.ok) throw await asError(res);
     const data = (await res.json()) as { rows: T[] };

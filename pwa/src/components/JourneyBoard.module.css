@@ -1,9 +1,119 @@
 .board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: var(--space-lg);
+  align-content: start;
+}
+
+.domainSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.domainHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.domainHeader:hover {
+  background: var(--surface-2);
+}
+
+.domainToggle {
+  font-size: 12px;
+  color: var(--muted);
+  width: 16px;
+  text-align: center;
+}
+
+.domainName {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--fg);
+}
+
+.domainStats {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.domainBadges {
+  display: flex;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.subdomains {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 24px;
+}
+
+.subdomainSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subdomainHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.subdomainHeader:hover {
+  background: var(--surface-2);
+}
+
+.subdomainToggle {
+  font-size: 11px;
+  color: var(--muted);
+  width: 14px;
+  text-align: center;
+}
+
+.subdomainName {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.subdomainStats {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.subdomainBadges {
+  display: flex;
+  gap: 4px;
+  margin-left: 10px;
+}
+
+.journeyCards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 14px;
-  padding: var(--space-lg);
-  align-content: start;
+  padding-left: 24px;
 }
 
 /* Card */

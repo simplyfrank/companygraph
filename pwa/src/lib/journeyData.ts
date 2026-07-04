@@ -16,7 +16,7 @@ export function parseAttrs(json: string | undefined | null): Record<string, unkn
 }
 
 export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
-  const [precedesRes, crossPrecedesRes, executesRes, usesRes, locsRes, integrationsRes, activitiesRes] = await Promise.all([
+  const [precedesRes, crossPrecedesRes, executesRes, usesRes, locsRes, activitiesRes, crossDomainRes] = await Promise.all([
     api.cypher(
       `MATCH (j:UserJourney {id:$id})
        MATCH (a:Activity)-[:PART_OF]->(j)
@@ -60,15 +60,17 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
        RETURN a.id AS aId, l.id AS locId, l.name AS locName`,
       { id: journeyId },
     ),
+    api.getJourney(journeyId),
     api.cypher(
       `MATCH (j:UserJourney {id:$id})
        MATCH (a:Activity)-[:PART_OF]->(j)
-       MATCH (a)-[:USES_SYSTEM]->(s:System)
-       OPTIONAL MATCH (s)-[i:INTEGRATES_WITH]-(t:System)
-       RETURN s.id AS sysId, t.id AS targetId, t.name AS targetName`,
+       MATCH (a)-[:USES_SYSTEM]->(s:System)-[:PART_OF]->(d1:Domain)
+       MATCH (a)-[:USES_SYSTEM]->(t:System)-[:PART_OF]->(d2:Domain)
+       WHERE d1.id <> d2.id
+       RETURN a.id AS actId, s.id AS sysId, s.name AS sysName, d1.id AS domain1Id, d1.name AS domain1Name,
+              t.id AS targetSysId, t.name AS targetSysName, d2.id AS domain2Id, d2.name AS domain2Name`,
       { id: journeyId },
     ),
-    api.getJourney(journeyId),
   ]);
 
   const journeyActivities = activitiesRes.rows[0]?.activities ?? [];
@@ -136,7 +138,6 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
         to_col: -1, // sentinel: target is outside this journey
         target_ms: attrs.target_ms as number | undefined,
         actual_ms: attrs.actual_ms as number | undefined,
-        cross_journey: { journeyId: row.outJourneyId, journeyName: row.outJourneyName ?? "other", direction: "outbound" },
       });
     }
     if (row.inId && row.inJourneyId) {
@@ -149,7 +150,6 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
         to_col: col,
         target_ms: attrs.target_ms as number | undefined,
         actual_ms: attrs.actual_ms as number | undefined,
-        cross_journey: { journeyId: row.inJourneyId, journeyName: row.inJourneyName ?? "other", direction: "inbound" },
       });
     }
   }
@@ -199,25 +199,6 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     });
   }
 
-  // INTEGRATES_WITH edges for systems in this journey.
-  const integrations: import("../components/JourneyCanvas").IntegratesWithEdge[] = [];
-  const sysIdx = new Map<string, number>();
-  [...sysMap.keys()].forEach((id, i) => sysIdx.set(id, i));
-  const integRows = integrationsRes.rows as unknown as Array<{ sysId: string; targetId: string | null; targetName: string | null }>;
-  const seenInteg = new Set<string>();
-  for (const row of integRows) {
-    if (!row.targetId) continue;
-    const fromIdx = sysIdx.get(row.sysId);
-    if (fromIdx === undefined) continue;
-    const toIdx = sysIdx.get(row.targetId);
-    // Only draw integration when target is also used in this journey
-    if (toIdx === undefined) continue;
-    const pairKey = [fromIdx, toIdx].sort((a, b) => a - b).join("-");
-    if (seenInteg.has(pairKey)) continue;
-    seenInteg.add(pairKey);
-    integrations.push({ from_sys: fromIdx, to_sys: toIdx, to_sys_name: row.targetName ?? undefined });
-  }
-
   const locMap = new Map<string, LocationNode>();
   for (const l of locsRes.rows as unknown as Array<{ aId: string; locId: string; locName: string }>) {
     const col = colOf.get(l.aId);
@@ -230,12 +211,43 @@ export async function loadJourneyData(journeyId: string): Promise<JourneyData> {
     node.columns.push(col);
   }
 
+  // Cross-domain system relationships
+  const crossDomainRelations: Array<{
+    activityId: string;
+    systemId: string;
+    systemName: string;
+    domain1Id: string;
+    domain1Name: string;
+    targetSystemId: string;
+    targetSystemName: string;
+    domain2Id: string;
+    domain2Name: string;
+  }> = [];
+  for (const row of crossDomainRes.rows as unknown as Array<{
+    actId: string; sysId: string; sysName: string; domain1Id: string; domain1Name: string;
+    targetSysId: string; targetSysName: string; domain2Id: string; domain2Name: string;
+  }>) {
+    const col = colOf.get(row.actId);
+    if (col === undefined) continue;
+    crossDomainRelations.push({
+      activityId: row.actId,
+      systemId: row.sysId,
+      systemName: row.sysName,
+      domain1Id: row.domain1Id,
+      domain1Name: row.domain1Name,
+      targetSystemId: row.targetSysId,
+      targetSystemName: row.targetSysName,
+      domain2Id: row.domain2Id,
+      domain2Name: row.domain2Name,
+    });
+  }
+
   return {
     activities,
     roles:     [...roleMap.values()],
     systems:   [...sysMap.values()],
     locations: [...locMap.values()],
     precedes,
-    integrations,
+    crossDomainRelations,
   };
 }

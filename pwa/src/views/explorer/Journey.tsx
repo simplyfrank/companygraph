@@ -11,6 +11,7 @@ import { ViewHeader, Loading, ErrorState, SecLabel } from "../_shared";
 import { SLAchip } from "../../components/SLAchip";
 import { orderJourneyActivities } from "../../lib/journeyOrder";
 import { loadJourneyData } from "../../lib/journeyData";
+import { fetchComplianceStatus, type ComplianceStatus } from "../../lib/journeyHealth";
 import {
   JourneyCanvas,
   type LayoutMode,
@@ -28,6 +29,8 @@ export function ExplorerJourney({ route }: { route: Route }) {
   const journeyId = route.entityId ?? route.params["id"] ?? null;
   const activityId = route.params["activity"] ?? null;
   const domainId = route.params["domain"] ?? null;
+  
+  // Must call useFetch before any early return to maintain hook order
   const domains = useFetch(() => api.listDomains(), []);
 
   if (journeyId) {
@@ -70,7 +73,7 @@ function JourneyPicker({ domains, domainId }: { domains: DomainRow[]; domainId: 
       </div>
       {domain.status === "loading" && <Loading what="journeys" />}
       {domain.status === "error" && <ErrorState message={domain.error} />}
-      {domain.status === "ok" && domain.data.rows[0] && (
+      {domain.status === "ok" && domain.data?.rows?.[0] && (
         <div className={styles.journeyList}>
           {domain.data.rows[0].journeys.map((j) => (
             <div key={j.id} className={styles.journeyRow}>
@@ -96,7 +99,7 @@ function JourneyPicker({ domains, domainId }: { domains: DomainRow[]; domainId: 
   );
 }
 
-interface RoleBinding { id: string; name: string; team_id?: string; team_name?: string; team_color?: string }
+interface RoleBinding { id: string; name: string; team_id: string | undefined; team_name: string | undefined; team_color: string | undefined }
 interface ActivityRolesRow { aId: string; roleId: string; roleName: string; roleAttrs: string }
 
 interface PrecedesRow { aId: string; createdAt: string; nextIds: string[] }
@@ -126,6 +129,11 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
     [journeyId],
   );
   const neighbors = useFetch(() => api.neighbors(journeyId, 2), [journeyId]);
+  // Compliance status for the journey
+  const complianceStatus = useFetch(
+    async () => fetchComplianceStatus(journeyId),
+    [journeyId],
+  );
 
   // FR-03 / AC-02 — reorder activities by PRECEDES; on cycle, fall
   // back to createdAt ASC and surface a warning ribbon.
@@ -174,7 +182,7 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
     }
     return <ErrorState message={journey.error} />;
   }
-  const row = journey.data.rows[0];
+  const row = journey.data?.rows?.[0];
   if (!row) return <ErrorState message="journey not found" />;
 
   // Build aId → roles[] map with parsed team attributes.
@@ -209,7 +217,11 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
   return (
     <>
       <ViewHeader title={row.name} lede={row.description} />
-      <JourneyKpiBanner row={row} verification={verification} />
+      <JourneyKpiBanner 
+        row={row} 
+        verification={verification} 
+        complianceStatus={complianceStatus.status === "ok" ? complianceStatus.data : null}
+      />
       <ProcessFlowPanel journeyId={journeyId} />
       <div className={styles.titleActions}>
         <Button tone="ghost" href={`#/explorer/journey-graph?journey=${encodeURIComponent(journeyId)}`}>
@@ -401,17 +413,23 @@ function ProcessFlowPanel({ journeyId }: { journeyId: string }) {
 function JourneyKpiBanner({
   row,
   verification,
+  complianceStatus,
 }: {
   row: JourneyDetailRow;
   verification: { by: string; at: string } | null;
+  complianceStatus: ComplianceStatus | null;
 }) {
   const hasSla  = row.sla_target_hours != null;
   const hasKpi  = row.kpi_score != null;
   const hasVerif = verification != null;
-  if (!hasSla && !hasKpi && !hasVerif) return null;
+  const hasCompliance = complianceStatus != null;
+  if (!hasSla && !hasKpi && !hasVerif && !hasCompliance) return null;
 
   const slaToneVal = slaTone(row.sla_target_hours, row.p95_hours);
   const kpiToneVal = row.kpi_score != null ? slaScoreTone(row.kpi_score) : "neutral" as const;
+  const complianceToneVal = complianceStatus?.score != null 
+    ? (complianceStatus.score >= 90 ? "good" : complianceStatus.score >= 70 ? "warn" : "breach") 
+    : "neutral" as const;
 
   return (
     <div className={styles.kpiBanner} data-testid="journey-kpi-banner">
@@ -434,6 +452,20 @@ function JourneyKpiBanner({
           tone={kpiToneVal}
           label="KPI score"
           value={`${Math.round(row.kpi_score! * 100)}%`}
+        />
+      )}
+      {hasCompliance && (
+        <SLAchip
+          tone={complianceToneVal}
+          label="Compliance"
+          value={`${complianceStatus!.score}%`}
+        />
+      )}
+      {hasCompliance && complianceStatus!.violations > 0 && (
+        <SLAchip
+          tone="breach"
+          label="Violations"
+          value={complianceStatus!.violations.toString()}
         />
       )}
       {hasVerif && (
@@ -493,14 +525,14 @@ function ActivityDetail({
 
   return (
     <Card
-      title={activity.status === "ok" ? activity.data.rows[0]?.name ?? "Activity" : "Activity"}
+      title={activity.status === "ok" ? activity.data?.rows?.[0]?.name ?? "Activity" : "Activity"}
       actions={
         <a className={styles.closeBtn} href={`#/explorer/journey-detail?id=${encodeURIComponent(journeyId)}`}>×</a>
       }
     >
       {activity.status === "loading" && <Loading what="activity" />}
       {activity.status === "error" && <ErrorState message={activity.error} />}
-      {activity.status === "ok" && activity.data.rows[0] && (
+      {activity.status === "ok" && activity.data?.rows?.[0] && (
         <>
           <p style={{ color: "var(--muted)", fontSize: 12.5, margin: "0 0 12px" }}>
             {activity.data.rows[0].description}
@@ -573,8 +605,8 @@ function uniqueBy<T>(xs: T[], key: (x: T) => string): T[] {
   return out;
 }
 
-function uniqueTeams(roles: RoleBinding[]): Array<{ team_id: string; team_name: string; team_color?: string; count: number }> {
-  const map = new Map<string, { team_id: string; team_name: string; team_color?: string; count: number }>();
+function uniqueTeams(roles: RoleBinding[]): Array<{ team_id: string; team_name: string; team_color: string | undefined; count: number }> {
+  const map = new Map<string, { team_id: string; team_name: string; team_color: string | undefined; count: number }>();
   for (const r of roles) {
     if (!r.team_id) continue;
     const existing = map.get(r.team_id);

@@ -1,6 +1,6 @@
 import { api } from "../../api";
 import { useFetch } from "../../useFetch";
-import { Card } from "../../components/Card";
+import { PieChartCard, KpiCard, ENTITY_COLORS } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
 import styles from "./Overview.module.css";
 
@@ -17,6 +17,14 @@ export function AnalyticsOverview() {
   const journeys = stats.data.nodes.UserJourney ?? 0;
   const avgActivities = journeys > 0 ? (activities / journeys).toFixed(1) : "0";
 
+  const nodeDistribution = Object.entries(stats.data.nodes)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => ({ label: k, value: v, color: ENTITY_COLORS[k] ?? "var(--accent)" }));
+
+  const edgeDistribution = Object.entries(stats.data.edges)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => ({ label: k, value: v, color: ENTITY_COLORS[k] ?? "var(--accent)" }));
+
   return (
     <>
       <ViewHeader
@@ -24,24 +32,28 @@ export function AnalyticsOverview() {
         lede="Whole-graph KPIs. Deeper metrics (centrality, modularity, redundancy) live in the Complexity tab — those are owned by cto-analytics."
       />
       <div className={styles.tiles}>
-        <Tile label="Total nodes" value={totalNodes} />
-        <Tile label="Total edges" value={totalEdges} />
-        <Tile label="Density (E/N)" value={density} />
-        <Tile label="Avg activities / journey" value={avgActivities} />
-        <Tile label="Domains" value={stats.data.nodes.Domain ?? 0} />
-        <Tile label="Systems" value={stats.data.nodes.System ?? 0} />
+        <KpiCard label="Total nodes" value={totalNodes} />
+        <KpiCard label="Total edges" value={totalEdges} />
+        <KpiCard label="Density (E/N)" value={density} />
+        <KpiCard label="Avg activities / journey" value={avgActivities} />
+        <KpiCard label="Domains" value={stats.data.nodes.Domain ?? 0} />
+        <KpiCard label="Systems" value={stats.data.nodes.System ?? 0} />
+      </div>
+
+      <div style={{ height: 24 }} />
+
+      <div className={styles.dashboardGrid}>
+        <PieChartCard
+          title="Node distribution"
+          data={nodeDistribution}
+          donut
+        />
+        <PieChartCard
+          title="Edge type distribution"
+          data={edgeDistribution}
+          donut
+        />
       </div>
     </>
-  );
-}
-
-function Tile({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Card>
-      <div className={styles.tileBody}>
-        <div className={styles.label}>{label}</div>
-        <div className={styles.value}>{value}</div>
-      </div>
-    </Card>
   );
 }

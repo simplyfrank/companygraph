@@ -42,7 +42,7 @@ export function ActivityChain({ title, id, steps }: ActivityChainProps) {
               {step.slas && step.slas.length > 0 && (
                 <div className={styles.slaRow}>
                   {step.slas.map((s, j) => (
-                    <SLAchip key={j} tone={s.tone} label={s.label} value={s.value} />
+                    <SLAchip key={j} {...(s.tone !== undefined ? { tone: s.tone } : {})} label={s.label} {...(s.value !== undefined ? { value: s.value } : {})} />
                   ))}
                 </div>
               )}

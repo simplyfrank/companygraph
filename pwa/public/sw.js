@@ -8,7 +8,7 @@
 // Writes (POST/PATCH/DELETE) are NEVER cached.
 // Cache version is bumped on each deploy (keyed by SW file hash).
 
-const CACHE_VERSION = "1";
+const CACHE_VERSION = "2";
 const SHELL_CACHE = `companygraph-shell-v${CACHE_VERSION}`;
 const SCHEMA_CACHE = `companygraph-schema-v${CACHE_VERSION}`;
 const READS_CACHE = `companygraph-reads-v${CACHE_VERSION}`;
@@ -57,6 +57,19 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // Only handle http/https — skip chrome-extension://, data:, blob:, etc.
+  if (!url.protocol.startsWith("http")) return;
+
+  // Skip Vite dev server HMR/module requests (query params like ?t=, ?import, @vite, @fs).
+  if (
+    url.searchParams.has("t") ||
+    url.searchParams.has("import") ||
+    url.pathname.includes("@vite") ||
+    url.pathname.includes("@fs") ||
+    url.pathname.includes("__vite") ||
+    url.pathname.includes("node_modules/.vite")
+  ) return;
 
   // Never cache writes (POST, PATCH, DELETE, PUT).
   if (request.method !== "GET") return;

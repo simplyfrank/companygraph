@@ -62,7 +62,9 @@
   .row { grid-template-columns: 1fr; }
 }
 
-.rowLabel { }
+.rowLabel {
+  /* placeholder for label styling */
+}
 .rowBody {
   min-width: 0;
 }
@@ -105,4 +107,10 @@
   display: flex;
   gap: 6px;
   align-items: center;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-md);
 }

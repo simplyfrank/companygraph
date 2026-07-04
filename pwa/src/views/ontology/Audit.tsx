@@ -105,7 +105,7 @@ export function OntologyAudit() {
               className={`${styles.toggleBtn} ${labelFilter === l ? styles.toggleActive : ""}`}
               onClick={() => setLabelFilter(l === labelFilter ? null : l)}
             >
-              <Pill tone={LABEL_TONE[l]}>{l}</Pill>
+              <Pill tone={LABEL_TONE[l] ?? "neutral"}>{l}</Pill>
             </button>
           ))}
         </div>
@@ -158,8 +158,8 @@ export function OntologyAudit() {
   );
 }
 
-function groupByDay(events: Array<{ ts: string } & object>): Array<[string, typeof events]> {
-  const map = new Map<string, typeof events>();
+function groupByDay<T extends { ts: string }>(events: T[]): Array<[string, T[]]> {
+  const map = new Map<string, T[]>();
   for (const e of events) {
     const day = e.ts.slice(0, 10); // YYYY-MM-DD
     const list = map.get(day) ?? [];

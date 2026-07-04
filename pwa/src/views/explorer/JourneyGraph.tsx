@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "../../route";
-import { api, type DomainRow } from "../../api";
+import { api, type DomainRow, ontologyProposals, rdf, queryOntology } from "../../api";
 import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
 import { KeyValueList } from "../../components/KeyValueList";
+import { Button } from "../../components/Button";
 import {
   JourneyCanvas,
   computeSlaSummary,
@@ -21,6 +22,7 @@ import {
 import { Loading, ErrorState, SecLabel } from "../_shared";
 import { loadJourneyData, parseAttrs } from "../../lib/journeyData";
 import { loadJourneyPortfolio, type JourneyPortfolio } from "../../lib/journeyPortfolio";
+import { fetchComplianceStatus, type ComplianceStatus } from "../../lib/journeyHealth";
 import { JourneyBoard } from "../../components/JourneyBoard";
 import styles from "./JourneyGraph.module.css";
 
@@ -31,32 +33,350 @@ const TEAM_TONE: Record<string, "accent" | "good" | "warn" | "danger"> = {
   last_mile:        "warn",
 };
 
-// Static subdomain labels per journey id (mirrors the wireframe catalog).
-// These are presentation-only hints; no model change required.
-const SUBDOMAIN_OF: Record<string, string> = {
-  uj_web_browse_buy:    "Web",
-  uj_in_store_buy:      "In-store",
-  uj_loyalty_signup:    "Loyalty",
-  uj_order_fulfillment: "Outbound",
-  uj_click_collect:     "Click & collect",
-  uj_returns_intake:    "Returns",
-  uj_same_day:          "Same-day",
-  uj_inbound_receiving: "Receiving",
-  uj_replenishment:     "Planning",
-  uj_promo_planning:    "Planning",
-  uj_refund_flow:       "Refunds",
-  uj_email_triage:      "Inbound",
-  uj_phone_support:     "Inbound",
-  uj_instore_complaint: "Resolution",
-};
-
 interface JourneyBadges {
   slaBreach: number;
   slaWarn:   number;
   handoffs:  number;
   sod:       number;
+  complianceScore: number;
+  complianceViolations: number;
 }
 type BadgeMap = Record<string, JourneyBadges>;
+
+interface MultiJourneyData {
+  journeys: Array<{
+    id: string;
+    name: string;
+    domainId: string;
+    domainName: string;
+    inputJourneys: string[];
+    outputJourneys: string[];
+    collapsed: boolean;
+    depth: number;
+    visible: boolean;
+  }>;
+  crossJourneyEdges: Array<{
+    fromJourneyId: string;
+    toJourneyId: string;
+    type: string;
+  }>;
+}
+
+async function loadAllJourneysWithDependencies(domainFilter: string | null, maxVisibleDepth: number = 2): Promise<MultiJourneyData> {
+  // Fetch all journeys
+  const journeysRes = await api.cypher(
+    domainFilter
+      ? `MATCH (j:UserJourney)-[:PART_OF]->(d:Domain {id: $domainId})
+         RETURN j.id AS id, j.name AS name, d.id AS domainId, d.name AS domainName
+         ORDER BY j.name`
+      : `MATCH (j:UserJourney)-[:PART_OF]->(d:Domain)
+         RETURN j.id AS id, j.name AS name, d.id AS domainId, d.name AS domainName
+         ORDER BY j.name`,
+    domainFilter ? { domainId: domainFilter } : {}
+  );
+  
+  const journeys = journeysRes.rows as Array<{
+    id: string;
+    name: string;
+    domainId: string;
+    domainName: string;
+  }>;
+  
+  // Fetch cross-journey edges (journeys that have activities with PRECEDES relationships to activities in other journeys)
+  const crossEdgesRes = await api.cypher(
+    `MATCH (a1:Activity)-[:PART_OF]->(j1:UserJourney)
+     MATCH (a1)-[r:PRECEDES]->(a2:Activity)-[:PART_OF]->(j2:UserJourney)
+     WHERE j1.id <> j2.id
+     RETURN j1.id AS fromJourneyId, j2.id AS toJourneyId, r.type AS type`
+  );
+  
+  const crossJourneyEdges = crossEdgesRes.rows as Array<{
+    fromJourneyId: string;
+    toJourneyId: string;
+    type: string;
+  }>;
+  
+  // Build input/output relationships and dependency graph
+  const journeyMap = new Map(journeys.map(j => [j.id, { ...j, inputJourneys: [] as string[], outputJourneys: [] as string[] }]));
+  
+  crossJourneyEdges.forEach(edge => {
+    const fromJourney = journeyMap.get(edge.fromJourneyId);
+    const toJourney = journeyMap.get(edge.toJourneyId);
+    if (fromJourney && toJourney) {
+      fromJourney.outputJourneys.push(edge.toJourneyId);
+      toJourney.inputJourneys.push(edge.fromJourneyId);
+    }
+  });
+  
+  // Calculate depth for each journey using BFS from journeys with no inputs
+  const journeyDepths = new Map<string, number>();
+  const inDegree = new Map<string, number>();
+  
+  // Initialize in-degrees
+  journeyMap.forEach((_, id) => inDegree.set(id, 0));
+  crossJourneyEdges.forEach(edge => {
+    inDegree.set(edge.toJourneyId, (inDegree.get(edge.toJourneyId) || 0) + 1);
+  });
+  
+  // BFS to calculate depths starting from journeys with no inputs
+  const queue: string[] = [];
+  journeyMap.forEach((_, id) => {
+    if ((inDegree.get(id) || 0) === 0) {
+      queue.push(id);
+      journeyDepths.set(id, 0);
+    }
+  });
+  
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const currentDepth = journeyDepths.get(currentId) || 0;
+    
+    const journey = journeyMap.get(currentId);
+    if (journey) {
+      journey.outputJourneys.forEach(outputId => {
+        if (!journeyDepths.has(outputId)) {
+          journeyDepths.set(outputId, currentDepth + 1);
+          queue.push(outputId);
+        }
+      });
+    }
+  }
+  
+  // Determine visibility based on context and depth
+  const visibleJourneys = new Set<string>();
+  
+  if (domainFilter) {
+    // Domain or subdomain view: show journeys in that domain
+    journeyMap.forEach((journey, id) => {
+      if (journey.domainId === domainFilter) {
+        const depth = journeyDepths.get(id) || 0;
+        if (depth <= maxVisibleDepth) {
+          visibleJourneys.add(id);
+        }
+      }
+    });
+  } else {
+    // All domains view: show first N levels across all domains
+    journeyMap.forEach((_, id) => {
+      const depth = journeyDepths.get(id) || 0;
+      if (depth <= maxVisibleDepth) {
+        visibleJourneys.add(id);
+      }
+    });
+  }
+  
+  return {
+    journeys: Array.from(journeyMap.values()).map(j => {
+      const depth = journeyDepths.get(j.id) || 0;
+      const visible = visibleJourneys.has(j.id);
+      // Auto-collapse journeys beyond maxVisibleDepth
+      const collapsed = depth > maxVisibleDepth || !visible;
+      return { ...j, depth, visible, collapsed };
+    }),
+    crossJourneyEdges,
+  };
+}
+
+// =====================================================================
+//   Multi-journey view component
+// =====================================================================
+function MultiJourneyView({ 
+  data, 
+  badgeMap, 
+  maxVisibleDepth,
+  onDepthChange,
+  onJourneySelect, 
+  onToggleCollapse 
+}: { 
+  data: MultiJourneyData; 
+  badgeMap: BadgeMap; 
+  maxVisibleDepth: number;
+  onDepthChange: (depth: number) => void;
+  onJourneySelect: (journeyId: string) => void; 
+  onToggleCollapse: (journeyId: string) => void; 
+}) {
+  const [selectedJourney, setSelectedJourney] = useState<string | null>(null);
+  const [collapsedJourneys, setCollapsedJourneys] = useState<Set<string>>(new Set());
+  
+  // Initialize collapsed state from data
+  useEffect(() => {
+    const initialCollapsed = new Set(data.journeys.filter(j => j.collapsed).map(j => j.id));
+    setCollapsedJourneys(initialCollapsed);
+  }, [data.journeys]);
+  
+  const handleToggleCollapse = (journeyId: string) => {
+    setCollapsedJourneys(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(journeyId)) {
+        newSet.delete(journeyId);
+      } else {
+        newSet.add(journeyId);
+      }
+      return newSet;
+    });
+  };
+  
+  const handleExpandLevel = () => {
+    const newDepth = maxVisibleDepth + 1;
+    onDepthChange(newDepth);
+    // Expand journeys at the new depth level
+    const journeysToExpand = data.journeys.filter(j => j.depth === maxVisibleDepth && !collapsedJourneys.has(j.id));
+    const newCollapsed = new Set(collapsedJourneys);
+    journeysToExpand.forEach(j => newCollapsed.delete(j.id));
+    setCollapsedJourneys(newCollapsed);
+  };
+  
+  const handleCollapseLevel = () => {
+    if (maxVisibleDepth > 1) {
+      const newDepth = maxVisibleDepth - 1;
+      onDepthChange(newDepth);
+      // Collapse journeys beyond the new depth level
+      const journeysToCollapse = data.journeys.filter(j => j.depth >= maxVisibleDepth);
+      const newCollapsed = new Set(collapsedJourneys);
+      journeysToCollapse.forEach(j => newCollapsed.add(j.id));
+      setCollapsedJourneys(newCollapsed);
+    }
+  };
+  
+  // Group journeys by domain and sort by depth for hierarchical display
+  const journeysByDomain = useMemo(() => {
+    const grouped = new Map<string, typeof data.journeys>();
+    data.journeys.forEach(journey => {
+      const domain = journey.domainName;
+      if (!grouped.has(domain)) grouped.set(domain, []);
+      grouped.get(domain)!.push(journey);
+    });
+    // Sort journeys within each domain by depth
+    grouped.forEach(journeys => {
+      journeys.sort((a, b) => a.depth - b.depth);
+    });
+    return grouped;
+  }, [data.journeys]);
+  
+  const visibleJourneys = data.journeys.filter(j => j.visible);
+  const hiddenJourneys = data.journeys.filter(j => !j.visible);
+  
+  return (
+    <div className={styles.multiJourneyView}>
+      {/* Depth control */}
+      <div className={styles.depthControl}>
+        <span className={styles.depthLabel}>Showing depth: {maxVisibleDepth}</span>
+        <button
+          className={styles.depthBtn}
+          onClick={handleCollapseLevel}
+          disabled={maxVisibleDepth <= 1}
+          title="Show fewer levels"
+        >
+          −
+        </button>
+        <button
+          className={styles.depthBtn}
+          onClick={handleExpandLevel}
+          disabled={maxVisibleDepth >= 5}
+          title="Show more levels"
+        >
+          +
+        </button>
+        <span className={styles.depthInfo}>
+          ({visibleJourneys.length} visible, {hiddenJourneys.length} hidden)
+        </span>
+      </div>
+      
+      {Array.from(journeysByDomain.entries()).map(([domainName, journeys]) => (
+        <div key={domainName} className={styles.domainSection}>
+          <h3 className={styles.domainTitle}>{domainName}</h3>
+          <div className={styles.journeyGrid}>
+            {journeys.map(journey => {
+              const badges = badgeMap[journey.id] || { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0, complianceScore: 100, complianceViolations: 0 };
+              const isSelected = selectedJourney === journey.id;
+              const isCollapsed = collapsedJourneys.has(journey.id);
+              const isVisible = journey.visible;
+              
+              if (!isVisible) return null; // Skip hidden journeys
+              
+              return (
+                <div
+                  key={journey.id}
+                  className={`${styles.journeyCard} ${isSelected ? styles.selected : ''} ${!isVisible ? styles.hidden : ''}`}
+                  style={{ marginLeft: `${journey.depth * 16}px` }}
+                  onClick={() => {
+                    setSelectedJourney(journey.id);
+                    onJourneySelect(journey.id);
+                  }}
+                >
+                  <div className={styles.journeyHeader}>
+                    <h4 className={styles.journeyName}>{journey.name}</h4>
+                    <div className={styles.journeyMeta}>
+                      <span className={styles.depthBadge}>Depth {journey.depth}</span>
+                      <button
+                        className={styles.collapseBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleCollapse(journey.id);
+                        }}
+                        title={isCollapsed ? "Expand journey" : "Collapse journey"}
+                      >
+                        {isCollapsed ? '▶' : '▼'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {isCollapsed ? (
+                    <div className={styles.collapsedView}>
+                      <div className={styles.ioSection}>
+                        <div className={styles.ioLabel}>Inputs:</div>
+                        <div className={styles.ioList}>
+                          {journey.inputJourneys.length === 0 ? (
+                            <span className={styles.ioEmpty}>None</span>
+                          ) : (
+                            journey.inputJourneys.map(inputId => {
+                              const inputJourney = data.journeys.find(j => j.id === inputId);
+                              return inputJourney ? (
+                                <span key={inputId} className={styles.ioItem}>{inputJourney.name}</span>
+                              ) : null;
+                            })
+                          )}
+                        </div>
+                      </div>
+                      <div className={styles.ioSection}>
+                        <div className={styles.ioLabel}>Outputs:</div>
+                        <div className={styles.ioList}>
+                          {journey.outputJourneys.length === 0 ? (
+                            <span className={styles.ioEmpty}>None</span>
+                          ) : (
+                            journey.outputJourneys.map(outputId => {
+                              const outputJourney = data.journeys.find(j => j.id === outputId);
+                              return outputJourney ? (
+                                <span key={outputId} className={styles.ioItem}>{outputJourney.name}</span>
+                              ) : null;
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.expandedView}>
+                      <p className={styles.journeyDescription}>Full journey details would be shown here</p>
+                    </div>
+                  )}
+                  
+                  <div className={styles.journeyBadges}>
+                    {badges.slaBreach > 0 && <span className={`${styles.badge} ${styles.badgeBreach}`}>{badges.slaBreach} breach</span>}
+                    {badges.slaWarn > 0 && <span className={`${styles.badge} ${styles.badgeWarn}`}>{badges.slaWarn} warn</span>}
+                    {badges.handoffs > 0 && <span className={styles.badge}>{badges.handoffs} hand-off</span>}
+                    {badges.sod > 0 && <span className={`${styles.badge} ${styles.badgeSod}`}>{badges.sod} SoD</span>}
+                    {badges.complianceScore < 100 && <span className={`${styles.badge} ${badges.complianceScore < 70 ? styles.badgeBreach : styles.badgeWarn}`}>Compliance {badges.complianceScore}%</span>}
+                    {badges.complianceViolations > 0 && <span className={`${styles.badge} ${styles.badgeBreach}`}>{badges.complianceViolations} violation{badges.complianceViolations > 1 ? 's' : ''}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // =====================================================================
 //   Top-level view
@@ -66,7 +386,7 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
   const explicitJourney = route.params["journey"] ?? null;
   const domainFilter    = route.params["domain"] ?? null;
   const subdomainFilter = route.params["subdomain"] ?? null;
-  const layoutMode: LayoutMode = route.params["layout"] === "radial" ? "radial" : route.params["layout"] === "board" ? "board" : "chain";
+  const layoutMode: LayoutMode = route.params["layout"] === "radial" ? "radial" : route.params["layout"] === "board" ? "board" : route.params["layout"] === "multi" ? "multi" : "chain";
   const visibleLayers: VisibleLayers = {
     roles:     route.params["roles"]     !== "0",
     systems:   route.params["systems"]   !== "0",
@@ -173,21 +493,21 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
     const map: BadgeMap = {};
     if (slaBadges.status === "ok") {
       for (const r of slaBadges.data.rows as Array<{ journeyId: string; breach: number; warn: number }>) {
-        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0 };
-        map[r.journeyId].slaBreach = Number(r.breach) || 0;
-        map[r.journeyId].slaWarn   = Number(r.warn)   || 0;
+        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0, complianceScore: 100, complianceViolations: 0 };
+        map[r.journeyId]!.slaBreach = Number(r.breach) || 0;
+        map[r.journeyId]!.slaWarn   = Number(r.warn)   || 0;
       }
     }
     if (handoffBadges.status === "ok") {
       for (const r of handoffBadges.data.rows as Array<{ journeyId: string; handoffs: number }>) {
-        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0 };
-        map[r.journeyId].handoffs = Number(r.handoffs) || 0;
+        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0, complianceScore: 100, complianceViolations: 0 };
+        map[r.journeyId]!.handoffs = Number(r.handoffs) || 0;
       }
     }
     if (sodBadges.status === "ok") {
       for (const r of sodBadges.data.rows as Array<{ journeyId: string; sod: number }>) {
-        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0 };
-        map[r.journeyId].sod = Number(r.sod) || 0;
+        if (!map[r.journeyId]) map[r.journeyId] = { slaBreach: 0, slaWarn: 0, handoffs: 0, sod: 0, complianceScore: 100, complianceViolations: 0 };
+        map[r.journeyId]!.sod = Number(r.sod) || 0;
       }
     }
     return map;
@@ -196,7 +516,44 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
   const orderFulfillment = journeyList.find((j) => j.name === "Order fulfillment");
   const activeJourney = explicitJourney
     ? journeyList.find((j) => j.id === explicitJourney)
-    : orderFulfillment ?? journeyList[0];
+    : null; // Changed to null to enable "all journeys" mode when no journey selected
+
+  const updateHash = (mut: (p: URLSearchParams) => void): void => {
+    const params = new URLSearchParams();
+    if (domainFilter)            params.set("domain", domainFilter);
+    if (subdomainFilter)         params.set("subdomain", subdomainFilter);
+    if (activeJourney?.id)       params.set("journey", activeJourney.id);
+    if (layoutMode === "radial") params.set("layout", "radial");
+    if (layoutMode === "board")  params.set("layout", "board");
+    if (layoutMode === "multi")  params.set("layout", "multi");
+    if (!visibleLayers.roles)    params.set("roles", "0");
+    if (!visibleLayers.systems)  params.set("systems", "0");
+    if (!visibleLayers.locations) params.set("locations", "0");
+    mut(params);
+    window.location.hash = `#/explorer/journey-graph${params.toString() ? `?${params.toString()}` : ""}`;
+  };
+
+  // Fetch compliance status for active journey
+  const complianceStatus = useFetch(
+    async () => activeJourney ? fetchComplianceStatus(activeJourney.id, activeJourney.domainId) : null,
+    [activeJourney?.id],
+  );
+
+  // Update badge map with compliance data for active journey
+  const complianceData = complianceStatus.status === "ok" ? complianceStatus.data : null;
+  useEffect(() => {
+    if (complianceData && activeJourney) {
+      const badge = badgeMap[activeJourney.id];
+      if (badge) {
+        badge.complianceScore = complianceData.score;
+        badge.complianceViolations = complianceData.violations;
+      }
+    }
+  }, [complianceData, activeJourney?.id]);
+  
+  // Auto-switch to multi mode for domain/subdomain/all views
+  const shouldUseMultiMode = !activeJourney || domainFilter || subdomainFilter;
+  const effectiveLayoutMode: LayoutMode = shouldUseMultiMode ? "multi" : layoutMode;
 
   // Selection (lifted from the canvas to share with the right rail)
   const [selected, setSelected] = useState<SelectedRef>(null);
@@ -214,14 +571,27 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
   const [boardSelectedJourney, setBoardSelectedJourney] = useState<string | null>(null);
   useEffect(() => { setBoardSelectedJourney(null); }, [layoutMode]);
 
+  // Query panel toggle
+  const [showQueryPanel, setShowQueryPanel] = useState(false);
+  const [queryText, setQueryText] = useState("");
+  const [queryResults, setQueryResults] = useState<any[] | null>(null);
+  const [queryError, setQueryError] = useState<string | null>(null);
+
   const journeyData = useFetch(
-    async () => activeJourney && layoutMode !== "board" ? loadJourneyData(activeJourney.id) : null,
-    [activeJourney?.id, layoutMode],
+    async () => activeJourney && effectiveLayoutMode !== "board" && effectiveLayoutMode !== "multi" ? loadJourneyData(activeJourney.id) : null,
+    [activeJourney?.id, effectiveLayoutMode],
   );
 
   const portfolioData = useFetch(
-    async () => layoutMode === "board" ? loadJourneyPortfolio(domainFilter) : null,
-    [layoutMode, domainFilter],
+    async () => effectiveLayoutMode === "board" ? loadJourneyPortfolio(domainFilter) : null,
+    [effectiveLayoutMode, domainFilter],
+  );
+
+  // Multi-journey mode: fetch all journeys with their dependencies
+  const [maxVisibleDepth, setMaxVisibleDepth] = useState(2);
+  const multiJourneyData = useFetch(
+    async () => effectiveLayoutMode === "multi" ? loadAllJourneysWithDependencies(domainFilter, maxVisibleDepth) : null,
+    [effectiveLayoutMode, domainFilter, maxVisibleDepth],
   );
 
   // Apply manual order on top of the loaded data
@@ -272,9 +642,12 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
         onZoom={(action) => setZoomCmd({ action, nonce: Math.random() })}
         hasManualOrder={manualOrder !== null}
         onResetOrder={() => setManualOrder(null)}
+        showQueryPanel={showQueryPanel}
+        onToggleQueryPanel={() => setShowQueryPanel(!showQueryPanel)}
+        updateHash={updateHash}
       />
 
-      {layoutMode === "board" ? (
+      {effectiveLayoutMode === "board" ? (
         <div className={styles.layout}>
           <div className={`${styles.canvasWrap} ${styles.boardMode}`}>
             {portfolioData.status === "loading" && <Loading what="journey portfolio" />}
@@ -295,13 +668,37 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
           </div>
 
           <aside className={styles.rail}>
-            {boardSelectedJourney && portfolioData.status === "ok" && portfolioData.data && (
-              <BoardRailContent
-                journey={portfolioData.data.journeys.find((j) => j.id === boardSelectedJourney)}
-                badges={badgeMap[boardSelectedJourney]}
+            {boardSelectedJourney && portfolioData.status === "ok" && portfolioData.data && (() => {
+              const j = findJourneyInPortfolio(portfolioData.data, boardSelectedJourney);
+              const b = badgeMap[boardSelectedJourney];
+              if (!j || !b) return null;
+              return <BoardRailContent journey={j} badges={b} />;
+            })()}
+          </aside>
+        </div>
+      ) : effectiveLayoutMode === "multi" ? (
+        <div className={styles.layout}>
+          <div className={styles.canvasWrap}>
+            {multiJourneyData.status === "loading" && <Loading what="multi-journey graph" />}
+            {multiJourneyData.status === "error" && <ErrorState message={multiJourneyData.error} />}
+            {multiJourneyData.status === "ok" && multiJourneyData.data && (
+              <MultiJourneyView
+                data={multiJourneyData.data}
+                badgeMap={badgeMap}
+                maxVisibleDepth={maxVisibleDepth}
+                onDepthChange={setMaxVisibleDepth}
+                onJourneySelect={(jid) => {
+                  updateHash((p) => {
+                    p.set("journey", jid);
+                    p.delete("layout");
+                  });
+                }}
+                onToggleCollapse={(journeyId) => {
+                  // Toggle collapse state
+                }}
               />
             )}
-          </aside>
+          </div>
         </div>
       ) : (
         <div className={styles.layout}>
@@ -327,7 +724,15 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
               </>
             )}
             {journeyData.status === "ok" && !renderedData && (
-              <p style={{ color: "var(--muted)", padding: 24 }}>Pick a journey above.</p>
+              <div style={{ padding: 24, textAlign: "center" }}>
+                <p style={{ color: "var(--muted)", marginBottom: 16 }}>No journey selected</p>
+                <button
+                  className={styles.btn}
+                  onClick={() => updateHash((p) => p.set("layout", "multi"))}
+                >
+                  View all journeys
+                </button>
+              </div>
             )}
           </div>
 
@@ -350,6 +755,57 @@ export function ExplorerJourneyGraph({ route }: { route: Route }) {
       {renderedData && activeJourney && layoutMode !== "board" && (
         <StatusBar journey={activeJourney} data={renderedData} selected={selected} zoomPct={zoomPct} {...(renderMs != null ? { renderMs } : {})} />
       )}
+
+      {/* Query Panel */}
+      {showQueryPanel && (
+        <div className={styles.queryPanel}>
+          <div className={styles.queryPanelHeader}>
+            <h3>Ontology Query</h3>
+            <Button tone="ghost" onClick={() => setShowQueryPanel(false)}>×</Button>
+          </div>
+          <textarea
+            className={styles.queryEditor}
+            value={queryText}
+            onChange={(e) => setQueryText(e.target.value)}
+            placeholder="Enter Cypher query..."
+            rows={6}
+          />
+          <div className={styles.queryActions}>
+            <Button
+              tone="primary"
+              onClick={async () => {
+                try {
+                  setQueryError(null);
+                  const result = await queryOntology(queryText, {}, false, "cypher");
+                  setQueryResults(result.data || []);
+                } catch (e) {
+                  setQueryError((e as Error).message);
+                  setQueryResults(null);
+                }
+              }}
+            >
+              Execute
+            </Button>
+            <Button
+              tone="ghost"
+              onClick={() => {
+                setQueryText("MATCH (j:UserJourney)-[:PART_OF]->(d:Domain) RETURN j.name, d.name LIMIT 10");
+              }}
+            >
+              Load Example
+            </Button>
+          </div>
+          {queryError && (
+            <div className={styles.queryError}>{queryError}</div>
+          )}
+          {queryResults && (
+            <div className={styles.queryResults}>
+              <h4>Results ({queryResults.length} rows)</h4>
+              <pre>{JSON.stringify(queryResults, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -363,6 +819,8 @@ function Toolbar({
   layoutMode, visibleLayers,
   zoomPct, onZoom,
   hasManualOrder, onResetOrder,
+  showQueryPanel, onToggleQueryPanel,
+  updateHash,
 }: {
   domains: DomainRow[];
   domainFilter: string | null;
@@ -377,22 +835,11 @@ function Toolbar({
   onZoom: (action: "in" | "out" | "reset" | "fit") => void;
   hasManualOrder: boolean;
   onResetOrder: () => void;
+  showQueryPanel: boolean;
+  onToggleQueryPanel: () => void;
+  updateHash: (mut: (p: URLSearchParams) => void) => void;
 }) {
   const hasAnyFilter = Boolean(domainFilter || subdomainFilter);
-
-  const updateHash = (mut: (p: URLSearchParams) => void): void => {
-    const params = new URLSearchParams();
-    if (domainFilter)            params.set("domain", domainFilter);
-    if (subdomainFilter)         params.set("subdomain", subdomainFilter);
-    if (activeJourneyId)         params.set("journey", activeJourneyId);
-    if (layoutMode === "radial") params.set("layout", "radial");
-    if (layoutMode === "board")  params.set("layout", "board");
-    if (!visibleLayers.roles)     params.set("roles", "0");
-    if (!visibleLayers.systems)   params.set("systems", "0");
-    if (!visibleLayers.locations) params.set("locations", "0");
-    mut(params);
-    window.location.hash = `#/explorer/journey-graph${params.toString() ? `?${params.toString()}` : ""}`;
-  };
 
   return (
     <div className={styles.toolbar}>
@@ -457,22 +904,18 @@ function Toolbar({
       <div className={styles.toolbarSep} />
 
       {/* Journey picker */}
-      {layoutMode !== "board" && (
-        <>
-          <JourneyPicker
-            journeys={journeys}
-            activeJourneyId={activeJourneyId}
-            domainFilter={domainFilter}
-            subdomainFilter={subdomainFilter}
-            badgeMap={badgeMap}
-            onSelect={(jid) => updateHash((p) => {
-              if (jid) p.set("journey", jid);
-              else     p.delete("journey");
-            })}
-          />
-          <div className={styles.toolbarSep} />
-        </>
-      )}
+      <JourneyPicker
+        journeys={journeys}
+        activeJourneyId={activeJourneyId}
+        domainFilter={domainFilter}
+        subdomainFilter={subdomainFilter}
+        badgeMap={badgeMap}
+        onSelect={(jid) => updateHash((p) => {
+          if (jid) p.set("journey", jid);
+          else     p.delete("journey");
+        })}
+      />
+      <div className={styles.toolbarSep} />
 
       {/* Layout toggle */}
       <div className={styles.segGroup} role="tablist" aria-label="Layout">
@@ -484,6 +927,14 @@ function Toolbar({
           onClick={() => updateHash((p) => p.set("layout", "board"))}
           title="Board — all journeys as compact cards with cross-journey links"
         >Board</button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={layoutMode === "multi"}
+          className={`${styles.segBtn} ${layoutMode === "multi" ? styles.segActive : ""}`}
+          onClick={() => updateHash((p) => p.set("layout", "multi"))}
+          title="Multi — all journeys with collapse/expand and input/output view"
+        >Multi</button>
         <button
           type="button"
           role="tab"
@@ -506,6 +957,83 @@ function Toolbar({
         <>
           <div className={styles.toolbarSep} />
 
+      {/* Ontology proposal action */}
+      {activeJourneyId && (
+        <Button
+          tone="ghost"
+          onClick={async () => {
+            try {
+              const journey = journeys.find(j => j.id === activeJourneyId);
+              if (!journey) return;
+              
+              // Create ontology proposal from journey
+              const proposal = await ontologyProposals.createProposal({
+                name: `Proposal from ${journey.name}`,
+                description: `Auto-generated ontology proposal from journey analysis`,
+                source_scope: "JOURNEY",
+                source_id: activeJourneyId,
+                status: "DRAFT",
+                owl_content: JSON.stringify({
+                  journey_id: activeJourneyId,
+                  journey_name: journey.name,
+                  domain_id: journey.domainId,
+                  domain_name: journey.domainName,
+                }),
+              });
+              
+              alert(`Ontology proposal created: ${proposal.id}`);
+            } catch (e) {
+              console.error("Failed to create ontology proposal:", e);
+              alert("Failed to create ontology proposal");
+            }
+          }}
+        >
+          Generate Proposal
+        </Button>
+      )}
+
+      {/* RDF export action */}
+      {activeJourneyId && (
+        <Button
+          tone="ghost"
+          onClick={async () => {
+            try {
+              const journey = journeys.find(j => j.id === activeJourneyId);
+              if (!journey) return;
+              
+              // Export journey as RDF (JSON-LD format)
+              const rdfData = await rdf.export("jsonld");
+              
+              // Download as file
+              const blob = new Blob([JSON.stringify(rdfData, null, 2)], { type: "application/ld+json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${journey.name.replace(/\s+/g, "-")}-journey.jsonld`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              console.error("Failed to export RDF:", e);
+              alert("Failed to export RDF");
+            }
+          }}
+        >
+          Export RDF
+        </Button>
+      )}
+
+      {/* Query panel toggle */}
+      <Button
+        tone="ghost"
+        onClick={onToggleQueryPanel}
+      >
+        {showQueryPanel ? "Hide Query" : "Query"}
+      </Button>
+
+          <div className={styles.toolbarSep} />
+
       {/* Bind-type toggles */}
       <div className={styles.segGroup} role="group" aria-label="Show bind types">
         {(["roles", "systems", "locations"] as const).map((layer) => {
@@ -525,6 +1053,13 @@ function Toolbar({
           );
         })}
       </div>
+
+      <div className={styles.toolbarSep} />
+      <div className={styles.segGroup} role="group" aria-label="Exec overlays">
+        <button type="button" className={styles.segBtn} title="Highlight hand-off boundaries">Boundaries</button>
+        <button type="button" className={styles.segBtn} title="Show initiative-affected activities">Initiative</button>
+        <button type="button" className={styles.segBtn} title="Show SoD conflicts">SoD</button>
+      </div>
         </>
       )}
 
@@ -543,6 +1078,9 @@ function Toolbar({
         <button type="button" className={styles.segBtn} onClick={() => onZoom("in")}   title="Zoom in">+</button>
         <button type="button" className={styles.segBtn} onClick={() => onZoom("fit")}  title="Fit to canvas">⤢</button>
       </div>
+
+      <button type="button" className={styles.btn} title="Download SVG (vector)">SVG</button>
+      <button type="button" className={styles.btn} title="Download PNG @2×">PNG</button>
     </div>
   );
 }
@@ -641,8 +1179,9 @@ function JourneyPicker({
   const passesFilter = (j: JourneyRow) => {
     if (domainFilter && j.domainId !== domainFilter) return false;
     if (subdomainFilter) {
-      const sd = SUBDOMAIN_OF[j.id];
-      if (sd !== subdomainFilter) return false;
+      // Subdomain filtering not supported for simple journey list
+      // Use portfolio view for subdomain filtering
+      return false;
     }
     return true;
   };
@@ -686,7 +1225,6 @@ function JourneyPicker({
                 {rows.map((j) => {
                   const dim = (domainFilter || subdomainFilter) && !passesFilter(j);
                   const badges = badgeMap[j.id];
-                  const subdomain = SUBDOMAIN_OF[j.id];
                   return (
                     <div
                       key={j.id}
@@ -704,9 +1242,6 @@ function JourneyPicker({
                     >
                       <span className={styles.jpOptNm}>{j.name}</span>
                       <span className={styles.jpPills}>
-                        {subdomain && (
-                          <span className={styles.jpPill}>{subdomain}</span>
-                        )}
                         {badges && badges.slaBreach > 0 && (
                           <span className={`${styles.jpPill} ${styles.jpPillBreach}`}>
                             {badges.slaBreach} breach
@@ -785,7 +1320,7 @@ function Legend({ visibleLayers, data }: { visibleLayers: VisibleLayers; data: J
       {visibleLayers.roles      && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineExecutes}`} /> <strong>EXECUTES</strong></div>}
       {visibleLayers.systems    && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineUsesSystem}`} /> <strong>USES_SYSTEM</strong></div>}
       {visibleLayers.locations  && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineAtLocation}`} /> <strong>AT_LOCATION</strong></div>}
-      {visibleLayers.systems    && data && data.integrations.length > 0 && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineIntegrates}`} /> <strong>INTEGRATES_WITH</strong></div>}
+      {visibleLayers.systems    && data && (data.integrations ?? []).length > 0 && <div className={styles.legendBlock}><span className={`${styles.lline} ${styles.lineIntegrates}`} /> <strong>INTEGRATES_WITH</strong></div>}
       <div className={styles.legendDivider} />
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaOk}`} /> <strong>SLA · ok</strong></div>
       <div className={styles.legendBlock}><span className={`${styles.slaSwatch} ${styles.slaWarn}`} /> <strong>SLA · warn</strong></div>
@@ -1062,7 +1597,7 @@ function SelectedNodePanel({
     const s = data.systems.find((x) => x.id === selected.id);
     if (!s) return null;
     const sysIdx = data.systems.findIndex((x) => x.id === s.id);
-    const integrations = data.integrations.filter((i) => i.from_sys === sysIdx || i.to_sys === sysIdx);
+    const integrations = (data.integrations ?? []).filter((i) => i.from_sys === sysIdx || i.to_sys === sysIdx);
     return (
       <>
         <Card title="Selected system" actions={<CloseBtn onClick={onClear} />}>
@@ -1228,7 +1763,7 @@ function CompositionPanel({
           { label: "edges",         value: countEdges(data) },
           { label: "hand-offs",     value: handoffs },
           { label: "cross-journey", value: crossJourney },
-          { label: "integrations",  value: data.integrations.length },
+          { label: "integrations",  value: (data.integrations ?? []).length },
           { label: "critical path", value: `${Math.round(data.precedes.reduce((s, e) => s + (e.target_ms ?? 0), 0) / 1000)}s` },
         ]} />
       </Card>
@@ -1298,9 +1833,9 @@ function StatusBar({
           <span>·</span>
         </>
       )}
-      {data.integrations.length > 0 && (
+      {(data.integrations ?? []).length > 0 && (
         <>
-          <span><strong>{data.integrations.length}</strong> integrations</span>
+          <span><strong>{(data.integrations ?? []).length}</strong> integrations</span>
           <span>·</span>
         </>
       )}
@@ -1516,8 +2051,22 @@ async function _loadJourneyData_unused(journeyId: string): Promise<JourneyData> 
     systems: [...sysMap.values()],
     locations: [...locMap.values()],
     precedes,
-    integrations,
+    integrations: [],
   };
+}
+
+// Helper to find a journey in the hierarchical portfolio structure
+function findJourneyInPortfolio(
+  portfolio: JourneyPortfolio,
+  journeyId: string,
+): { id: string; name: string; domainName: string; activityCount: number; startActivity?: { name: string }; endActivity?: { name: string } } | undefined {
+  for (const domain of portfolio.domains) {
+    for (const subdomain of domain.subdomains) {
+      const journey = subdomain.journeys.find((j) => j.id === journeyId);
+      if (journey) return journey;
+    }
+  }
+  return undefined;
 }
 
 // =====================================================================
@@ -1612,8 +2161,8 @@ function BoardRailContent({
 //   Board status bar
 // =====================================================================
 function BoardStatusBar({ portfolio }: { portfolio: JourneyPortfolio }) {
-  const totalJourneys = portfolio.journeys.length;
-  const totalActivities = portfolio.journeys.reduce((sum, j) => sum + j.activityCount, 0);
+  const totalJourneys = portfolio.domains.reduce((sum, d) => sum + d.journeyCount, 0);
+  const totalActivities = portfolio.domains.reduce((sum, d) => sum + d.totalActivities, 0);
   const totalCrossEdges = portfolio.crossEdges.length;
 
   return (

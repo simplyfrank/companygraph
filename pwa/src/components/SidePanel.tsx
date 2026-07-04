@@ -34,6 +34,7 @@ export function SidePanel() {
 }
 
 function EntityDetail({ id, label }: { id: string; label: string }) {
+  // Must call useFetch before any early return to maintain hook order
   const data = useFetch(
     () => {
       if (label === "UserJourney") return api.getJourney(id);

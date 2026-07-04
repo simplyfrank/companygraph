@@ -57,7 +57,7 @@ export function renderSafeText(text: string): Segment[] {
   CITE_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = CITE_RE.exec(text)) !== null) {
-    const [whole, rawLabel, rawId] = m;
+    const [whole, rawLabel, rawId] = m as unknown as [string, string, string];
     const start = m.index;
     if (start > lastIndex) {
       out.push({ kind: "text", value: text.slice(lastIndex, start) });

@@ -18,7 +18,7 @@ export class ClientError extends Error {
     super(opts.message);
     this.name = "ClientError";
     this.code = opts.code;
-    this.details = opts.details;
+    if (opts.details !== undefined) this.details = opts.details;
     this.status = opts.status;
   }
 }
@@ -33,7 +33,7 @@ async function asClientError(res: Response): Promise<ClientError> {
   return new ClientError({
     code: body.error?.code ?? "unknown_error",
     message: body.error?.message ?? `${res.status} ${res.statusText}`,
-    details: body.error?.details,
+    ...(body.error?.details !== undefined ? { details: body.error.details } : {}),
     status: res.status,
   });
 }
@@ -47,10 +47,11 @@ export async function write<T>(
   init: RequestInit,
   opts: WriteOptions = {},
 ): Promise<T> {
+  const signal = opts.signal ?? init.signal;
   const res = await fetch(url, {
     ...init,
     headers: { "content-type": "application/json", ...(init.headers ?? {}) },
-    signal: opts.signal ?? init.signal,
+    ...(signal !== undefined ? { signal } : {}),
   });
   if (!res.ok) throw await asClientError(res);
   return (await res.json()) as T;

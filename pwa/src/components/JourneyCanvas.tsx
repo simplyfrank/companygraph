@@ -9,18 +9,30 @@ import styles from "./JourneyCanvas.module.css";
 export interface ActivityNode { id: string; name: string; column: number; }
 export interface RoleNode {
   id: string; name: string;
-  team_id?: string; team_name?: string; team_color?: string;
+  team_id?: string | undefined; team_name?: string | undefined; team_color?: string | undefined;
   columns: number[];                        // activity columns this role executes
   durations: Record<number, number>;        // column → minutes
 }
 export interface SystemNode {
-  id: string; name: string; kind?: string;
-  usages: Array<{ column: number; target_ms?: number; actual_ms?: number }>;
+  id: string; name: string; kind?: string | undefined;
+  usages: Array<{ column: number; target_ms?: number | undefined; actual_ms?: number | undefined }>;
 }
 export interface LocationNode { id: string; name: string; columns: number[]; }
 export interface PrecedesEdge {
   from_col: number; to_col: number;
-  target_ms?: number; actual_ms?: number;
+  target_ms?: number | undefined; actual_ms?: number | undefined;
+  cross_journey?: { journeyName: string } | undefined;
+}
+export interface CrossDomainRelation {
+  activityId: string;
+  systemId: string;
+  systemName: string;
+  domain1Id: string;
+  domain1Name: string;
+  targetSystemId: string;
+  targetSystemName: string;
+  domain2Id: string;
+  domain2Name: string;
 }
 export interface JourneyData {
   activities: ActivityNode[];
@@ -28,9 +40,11 @@ export interface JourneyData {
   systems: SystemNode[];
   locations: LocationNode[];
   precedes: PrecedesEdge[];
+  crossDomainRelations?: CrossDomainRelation[];
+  integrations?: Array<{ from_sys: number; to_sys: number }> | undefined;
 }
 
-export type LayoutMode = "chain" | "radial";
+export type LayoutMode = "chain" | "radial" | "board" | "multi";
 
 export interface VisibleLayers {
   roles: boolean;
@@ -121,7 +135,7 @@ export function computeSlaSummary(d: JourneyData): SlaSummary {
   };
   for (const p of d.precedes) consider(`p.${p.from_col}→${p.to_col}`, p.target_ms, p.actual_ms);
   for (const s of d.systems) for (const u of s.usages) consider(`${s.name}@${u.column}`, u.target_ms, u.actual_ms);
-  return { ok, warn, breach, total: ok + warn + breach, slowest };
+  return { ok, warn, breach, total: ok + warn + breach, ...(slowest !== undefined ? { slowest } : {}) };
 }
 
 // =====================================================================
@@ -183,7 +197,7 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
     const toX = colX(p.to_col) - 60;
     const fromNodeId = idAtCol(p.from_col);
     const toNodeId   = idAtCol(p.to_col);
-    edges.push({ fromX, fromY: CHAIN.yActivity, toX, toY: CHAIN.yActivity, tone, kind: "precedes", fromNodeId, toNodeId });
+    edges.push({ fromX, fromY: CHAIN.yActivity, toX, toY: CHAIN.yActivity, ...(tone !== undefined ? { tone } : {}), kind: "precedes", fromNodeId, toNodeId });
     if (p.target_ms != null) {
       chips.push({
         x: (fromX + toX) / 2,
@@ -223,7 +237,7 @@ function computeChainLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout 
         edges.push({
           fromX: colX(u.column), fromY: CHAIN.yActivity + 30,
           toX: x, toY: y - 22,
-          tone, kind: "uses_system",
+          ...(tone !== undefined ? { tone } : {}), kind: "uses_system",
           fromNodeId, toNodeId: s.id,
         });
         if (u.target_ms != null) {
@@ -293,7 +307,8 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
       fromY: cy + (rActivity - 4) * Math.sin(θ1),
       toX:   cx + (rActivity - 4) * Math.cos(θ2),
       toY:   cy + (rActivity - 4) * Math.sin(θ2),
-      tone, kind: "precedes", fromNodeId, toNodeId,
+      ...(tone !== undefined ? { tone } : {}),
+      kind: "precedes", fromNodeId, toNodeId,
     });
     if (p.target_ms != null) {
       const midθ = (θ1 + θ2) / 2;
@@ -343,7 +358,8 @@ function computeRadialLayout(d: JourneyData, vis: VisibleLayers): ComputedLayout
           fromY: cy + (rActivity + 6) * Math.sin(θa),
           toX:   x - 46 * Math.cos(θ),
           toY:   y - 18 * Math.sin(θ),
-          tone, kind: "uses_system",
+          ...(tone !== undefined ? { tone } : {}),
+          kind: "uses_system",
           fromNodeId, toNodeId: s.id,
         });
         if (u.target_ms != null) {
@@ -509,7 +525,7 @@ export function JourneyCanvas({
       }
       const newOrder = data.activities.map((a) => a.id);
       const [moved] = newOrder.splice(draggedIdx, 1);
-      newOrder.splice(targetCol, 0, moved);
+      if (moved !== undefined) newOrder.splice(targetCol, 0, moved);
       onReorder(newOrder);
       reorderRef.current = null;
       setDragGhost(null);

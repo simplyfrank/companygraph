@@ -1,9 +1,9 @@
-// Corrected health polling per design §6.1.
+// Health polling per design §6.1.
 //
 // The existing App.tsx polled every 30 s while visible but missed the
 // `visibilitychange → visible` immediate-fetch path. This module lifts
 // the polling out, fixes the gap, and exposes a tiny zustand store so
-// ConnectivityBanner + AC-29 inheritance tests subscribe to one source.
+// components can subscribe to one source.
 
 import { create } from "zustand";
 import { api } from "../api";
@@ -37,7 +37,7 @@ let pollHandle: ReturnType<typeof setInterval> | null = null;
 async function poll(): Promise<void> {
   try {
     const h = await api.healthz();
-    useHealthStore.getState().setHealth({ ok: h.ok, version: h.neo4j.version });
+    useHealthStore.getState().setHealth({ ok: h.ok, ...(h.neo4j.version !== undefined ? { version: h.neo4j.version } : {}) });
   } catch {
     useHealthStore.getState().setHealth({ ok: false });
   }

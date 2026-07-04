@@ -1,6 +1,7 @@
 import { api } from "../../api";
 import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
+import { HorizontalBarChartCard, CHART_COLORS } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
 import styles from "./Matrix.module.css";
 
@@ -33,12 +34,38 @@ export function AnalyticsMatrix() {
     rows.find((r) => r.domainName === d && r.systemName === s)?.count ?? 0;
   const maxCount = Math.max(1, ...rows.map((r) => r.count));
 
+  const domainTotals = domains.map((d) => ({
+    label: d,
+    value: rows.filter((r) => r.domainName === d).reduce((s, r) => s + r.count, 0),
+  }));
+
+  const systemTotals = systems.map((s) => ({
+    label: s,
+    value: rows.filter((r) => r.systemName === s).reduce((sum, r) => sum + r.count, 0),
+  }));
+
   return (
     <>
       <ViewHeader
         title="Domain ↔ system alignment"
         lede="Heatmap of how often each system is used inside each domain (sum of USES_SYSTEM edges across the domain's activities). Owned by cto-analytics — this is a graph-core preview."
       />
+
+      <div className={styles.dashboardGrid}>
+        <HorizontalBarChartCard
+          title="System usage by domain"
+          data={domainTotals.map((d, i) => ({ ...d, ...(i === 0 ? { color: CHART_COLORS.accent } : {}) }))}
+          xLabel="uses"
+        />
+        <HorizontalBarChartCard
+          title="System popularity"
+          data={systemTotals.map((d, i) => ({ ...d, ...(i === 0 ? { color: CHART_COLORS.accent } : {}) }))}
+          xLabel="uses"
+        />
+      </div>
+
+      <div style={{ height: 24 }} />
+
       <Card>
         <div className={styles.matrix}>
           <table>

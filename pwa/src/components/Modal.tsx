@@ -34,13 +34,13 @@ export function Modal({ isOpen, onClose, title, children, disableFocusTrap = fal
     <div
       className="modal-content"
       style={{
-        backgroundColor: "white",
+        backgroundColor: "var(--surface)",
         borderRadius: "8px",
         maxWidth: "500px",
         width: "90%",
         maxHeight: "90vh",
         overflow: "auto",
-        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        boxShadow: "0 1px 3px color-mix(in oklch, var(--fg) 5%, transparent)",
       }}
       onClick={(e) => e.stopPropagation()}
       role="dialog"
@@ -51,13 +51,13 @@ export function Modal({ isOpen, onClose, title, children, disableFocusTrap = fal
       <div
         style={{
           padding: "16px",
-          borderBottom: "1px solid #e5e7eb",
+          borderBottom: "1px solid var(--border)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
         }}
       >
-        <h2 id="modal-title" style={{ margin: 0, fontSize: "18px" }}>
+        <h2 id="modal-title" style={{ margin: 0, fontSize: "var(--type-h2-size)" }}>
           {title}
         </h2>
         <button

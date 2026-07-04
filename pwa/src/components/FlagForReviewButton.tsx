@@ -56,7 +56,7 @@ export function FlagForReviewButton({
   return (
     <div className={className}>
       <Button
-        tone={currentReviewStatus === "needs_review" ? "neutral" : "warn"}
+        tone="default"
         onClick={() => void handleFlag()}
         disabled={disabled || busy}
       >

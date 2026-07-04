@@ -13,6 +13,7 @@ import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
 import { Button } from "../../components/Button";
+import { PieChartCard } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
 import styles from "./Quarterly.module.css";
 
@@ -93,7 +94,7 @@ export function SmeQuarterly() {
 
       // 2. Merge _verification into each, preserving existing attributes (B-01)
       const today = new Date().toISOString().slice(0, 10);
-      const nodes = responses.map((body: { rows: Array<{ id: string; attributes: Record<string, unknown> }> }, i: number) => {
+      const nodes = responses.map((body: { rows: Array<{ id: string; name: string; attributes: Record<string, unknown> }> }, i: number) => {
         const current = body.rows[0]?.attributes ?? {};
         return {
           id: ids[i],
@@ -155,6 +156,19 @@ export function SmeQuarterly() {
       {error && (
         <div style={{ color: "var(--danger)", padding: "8px 0" }}>{error}</div>
       )}
+
+      <div className={styles.dashboardGrid}>
+        <PieChartCard
+          title="Verification status"
+          data={[
+            { label: "current", value: journeys.current.length, color: "#22c55e" },
+            { label: "overdue", value: journeys.overdue.length, color: "#ef4444" },
+          ]}
+          donut
+        />
+      </div>
+
+      <div style={{ height: 24 }} />
 
       <Card title={`Overdue (${journeys.overdue.length})`}>
         {data.status === "loading" && <Loading what="journeys" />}

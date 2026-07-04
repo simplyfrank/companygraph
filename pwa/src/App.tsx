@@ -4,7 +4,6 @@ import { SubNav } from "./components/SubNav";
 import { Button } from "./components/Button";
 import { FloatingChat } from "./components/FloatingChat";
 import { SidePanel } from "./components/SidePanel";
-import { ConnectivityBanner } from "./components/ConnectivityBanner";
 import { SchemaBootstrap } from "./components/SchemaBootstrap";
 import { useHealthStore, startHealthPolling } from "./data/health";
 import {
@@ -34,9 +33,8 @@ export function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Lifted health + stats polling (T-07 / T-17).
+  // Lifted stats polling (T-07 / T-17).
   useEffect(() => startHealthPolling(), []);
-  const health = useHealthStore((s) => s.connected);
   const stats = useHealthStore((s) => s.stats);
 
   // Global keyboard shortcuts: Alt+1..8 to jump surfaces, "/" to focus
@@ -88,22 +86,28 @@ export function App() {
           env={APP_ENV}
           surfaces={SURFACES.map((s) => ({ id: s.id, label: s.label, kbd: s.kbd, href: toHash({ surface: s.id, tab: s.tabs[0]!.id }) }))}
           activeSurface={surface.id}
-          healthy={health}
           nodeCount={totalNodes}
           edgeCount={totalEdges}
           ontologyVersion={ONTOLOGY_VERSION}
           user={{ name: "Operator", initials: "OP" }}
         />
-        <ConnectivityBanner />
         <main className={styles.main}>
           <SubNav
-            crumbs={[{ label: surface.label }]}
+            crumbs={[
+              { label: "Surface" },
+              { label: surface.label }
+            ]}
             tabs={surface.tabs}
             activeTab={route.tab}
             onTab={(t) => { window.location.hash = toHash({ surface: surface.id, tab: t }); }}
             search={{ placeholder: `Search ${surface.label}`, shortcut: "/" }}
             searchInputRef={searchInputRef}
-            actions={<Button tone="ghost" onClick={() => location.reload()}>Reload</Button>}
+            actions={
+              <>
+                <Button tone="ghost">Filters</Button>
+                <Button tone="ghost" onClick={() => location.reload()}>Reload</Button>
+              </>
+            }
           />
           <section className={styles.view} data-testid="stat-counts" data-nodes={totalNodes ?? ""} data-edges={totalEdges ?? ""}>
             {renderView(route)}

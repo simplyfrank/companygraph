@@ -81,7 +81,7 @@ export function SmeAdd() {
         },
       );
       const existingActivitiesData = await existingActivitiesRes.json();
-      const existingActivities = (existingActivitiesData.rows || []).map((r: any) => ({
+      const existingActivities: Array<{ id: string; name: string; description: string; attributes: Record<string, unknown> }> = (existingActivitiesData.rows || []).map((r: Record<string, unknown>) => ({
         id: r.id,
         name: r.name,
         description: r.description,
@@ -108,7 +108,7 @@ export function SmeAdd() {
         },
       );
       const existingEdgesData = await existingEdgesRes.json();
-      const existingEdges = (existingEdgesData.rows || []).map((r: any) => ({
+      const existingEdges: Array<{ id: string; type: string; from: string; to: string }> = (existingEdgesData.rows || []).map((r: Record<string, unknown>) => ({
         id: r.id,
         type: r.type,
         from: r.from,
@@ -291,7 +291,7 @@ export function SmeAdd() {
               required
             >
               <option value="">Select a journey…</option>
-              {(journeys.data.rows ?? []).map((j: { id: string; name: string }) => (
+              {(journeys.data.rows ?? []).map((j) => ({ id: String((j as Record<string, unknown>).id ?? ""), name: String((j as Record<string, unknown>).name ?? "") })).map((j) => (
                 <option key={j.id} value={j.id}>
                   {j.name}
                 </option>
@@ -317,7 +317,7 @@ export function SmeAdd() {
               {busy ? "Processing…" : "Import Activities"}
             </Button>
             <Button
-              tone="neutral"
+              tone="ghost"
               onClick={() => {
                 setBulkPasteText("");
                 setBulkPasteJourneyId("");
@@ -421,7 +421,7 @@ export function SmeAdd() {
             >
               {busy ? "Creating…" : "Create Journey"}
             </Button>
-            <Button tone="neutral" onClick={() => setIsModalOpen(false)} type="button">
+            <Button tone="ghost" onClick={() => setIsModalOpen(false)} type="button">
               Cancel
             </Button>
           </div>

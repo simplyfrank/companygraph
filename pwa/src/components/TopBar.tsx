@@ -12,7 +12,6 @@ interface TopBarProps {
   env?: string;
   surfaces?: Surface[];
   activeSurface?: string;
-  healthy?: boolean;
   nodeCount?: number;
   edgeCount?: number;
   ontologyVersion?: string;
@@ -25,7 +24,6 @@ export function TopBar({
   env,
   surfaces = [],
   activeSurface,
-  healthy = true,
   nodeCount,
   edgeCount,
   ontologyVersion,
@@ -83,10 +81,6 @@ export function TopBar({
         </div>
       )}
       {env && <div className={styles.env}>{env}</div>}
-      <div className={styles.health}>
-        <span className={`${styles.lamp} ${healthy ? styles.lampOk : styles.lampDown}`} />
-        <span>{healthy ? "ok" : "down"}</span>
-      </div>
       {user && (
         <div className={styles.user} aria-label={user.name}>
           {user.initials}

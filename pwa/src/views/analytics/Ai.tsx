@@ -2,6 +2,7 @@ import { Card } from "../../components/Card";
 import { GreyBlock } from "../../components/GreyBlock";
 import { Button } from "../../components/Button";
 import { Pill } from "../../components/Pill";
+import { BarChartCard } from "../../components/charts";
 import { ViewHeader, SecLabel } from "../_shared";
 import styles from "./Ai.module.css";
 
@@ -27,6 +28,20 @@ export function AnalyticsAi() {
         title="AI optimisation recommendations"
         lede="Claude-generated proposals to consolidate systems, dedupe activities, or shorten journeys. Owned by cto-analytics — this is a static preview."
       />
+      <div className={styles.dashboardGrid}>
+        <BarChartCard
+          title="Recommendations by impact"
+          data={[
+            { label: "system", value: SAMPLES.filter((s) => s.impact.includes("system")).length, color: "#3b82f6" },
+            { label: "activity", value: SAMPLES.filter((s) => s.impact.includes("activity")).length, color: "#22c55e" },
+            { label: "journey", value: SAMPLES.filter((s) => s.impact.includes("journey")).length, color: "#f59e0b" },
+            { label: "edge", value: SAMPLES.filter((s) => s.impact.includes("edge")).length, color: "#8b5cf6" },
+          ]}
+        />
+      </div>
+
+      <div style={{ height: 24 }} />
+
       <SecLabel>Pending review</SecLabel>
       <div className={styles.list}>
         {SAMPLES.map((s, i) => (

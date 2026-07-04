@@ -37,7 +37,7 @@ test.describe("SW degradation (AC-20)", () => {
     await page.context().setOffline(false);
   });
 
-  test("stale banner appears when serving from cache", async ({ page }) => {
+  test("app handles offline state gracefully", async ({ page }) => {
     // Load page normally first
     await page.goto(`${BASE}/#/explorer/domains`);
     await page.waitForSelector("[data-testid='stat-counts']");
@@ -47,13 +47,9 @@ test.describe("SW degradation (AC-20)", () => {
     await page.context().setOffline(true);
     await page.reload();
 
-    // The connectivity banner should indicate disconnected state
-    // (the exact text depends on ConnectivityBanner implementation)
-    await page.waitForTimeout(2000);
-    const banner = page.locator("[data-testid='connectivity-banner']");
-    // Banner may or may not appear depending on health check timing
-    const bannerCount = await banner.count();
-    expect(bannerCount).toBeGreaterThanOrEqual(0);
+    // The app shell should still render from cache
+    const root = page.locator("#root");
+    await expect(root).not.toBeEmpty();
 
     await page.context().setOffline(false);
   });

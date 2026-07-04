@@ -79,3 +79,37 @@ export const hydrateEdgesByIds = `
   MATCH ()-[r]->() WHERE r.id IN $ids
   RETURN r.id AS id, type(r) AS type
 `;
+
+// FR-06 — list all roles with activity counts. Used by Roles list view.
+export const listRoles = `
+  MATCH (r:Role)
+  OPTIONAL MATCH (r)-[:EXECUTES]->(a:Activity)
+  RETURN r.id AS id, r.name AS name, r.description AS description, count(a) AS activityCount
+  ORDER BY r.name ASC
+  LIMIT 1001
+`;
+
+// FR-06 — get a single role by id. Used by Roles detail view.
+export const getRole = `
+  MATCH (r:Role {id: $id})
+  RETURN r.id AS id, r.name AS name, r.description AS description
+  LIMIT 1
+`;
+
+// FR-07 — list all locations with activity counts and PART_OF hierarchy.
+// Used by Locations list view.
+export const listLocations = `
+  MATCH (l:Location)
+  OPTIONAL MATCH (l)-[:AT_LOCATION]->(a:Activity)
+  OPTIONAL MATCH (l)-[:PART_OF]->(parent:Location)
+  RETURN l.id AS id, l.name AS name, l.description AS description, count(a) AS activityCount, parent.name AS parentName
+  ORDER BY l.name ASC
+  LIMIT 1001
+`;
+
+// FR-07 — get a single location by id. Used by Locations detail view.
+export const getLocation = `
+  MATCH (l:Location {id: $id})
+  RETURN l.id AS id, l.name AS name, l.description AS description
+  LIMIT 1
+`;

@@ -72,6 +72,8 @@ export const SURFACES: Surface[] = [
       { id: "people",    label: "People" },
       { id: "transform", label: "Transform" },
       { id: "risk",      label: "Risk" },
+      { id: "kpi-management", label: "KPI Management" },
+      { id: "okr-management", label: "OKR Management" },
     ],
   },
   {
@@ -79,6 +81,14 @@ export const SURFACES: Surface[] = [
     tabs: [
       { id: "map",    label: "Map" },
       { id: "export", label: "Export" },
+    ],
+  },
+  {
+    id: "admin", label: "Admin", kbd: "9",
+    tabs: [
+      { id: "personas",   label: "Personas" },
+      { id: "rbac-roles", label: "RBAC Roles" },
+      { id: "users",      label: "User Assignments" },
     ],
   },
 ];
@@ -110,7 +120,7 @@ export interface Route {
 
 export const DEFAULT_ROUTE: Route = { surface: "explorer", tab: "domains", params: {} };
 
-const EXPLORER_VIRTUAL_TABS = new Set(["activities", "roles", "locations"]);
+const EXPLORER_VIRTUAL_TABS = new Set(["activities", "roles", "locations", "domain-detail"]);
 
 export function parseHash(hash: string): Route {
   // Strip leading "#/" then split off the optional query string.

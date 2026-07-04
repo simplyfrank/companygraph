@@ -6,6 +6,243 @@
   min-height: 0;
 }
 
+/* ===== Multi-journey view ===== */
+.multiJourneyView {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.depthControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+
+.depthLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.depthBtn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms, border-color 120ms;
+}
+
+.depthBtn:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
+.depthBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.depthInfo {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.domainSection {
+  margin-bottom: 32px;
+}
+
+.domainTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border);
+}
+
+.journeyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.journeyCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+
+.journeyCard:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px color-mix(in oklch, var(--fg) 6%, transparent);
+}
+
+.journeyCard.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 25%, transparent);
+}
+
+.journeyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.journeyName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0;
+}
+
+.journeyMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.depthBadge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.collapseBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 120ms, color 120ms;
+}
+
+.collapseBtn:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+.collapsedView {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ioSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ioLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ioList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ioItem {
+  font-size: 12px;
+  padding: 4px 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  color: var(--fg);
+}
+
+.ioEmpty {
+  font-size: 12px;
+  color: var(--muted-2);
+  font-style: italic;
+}
+
+.expandedView {
+  padding: 12px 0;
+}
+
+.journeyDescription {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.journeyBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.badgeBreach {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.badgeWarn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.badgeSod {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms;
+}
+
+.btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
 /* ===== Toolbar (header) ===== */
 .toolbar {
   display: flex;
@@ -153,6 +390,24 @@
   border-color: var(--accent);
 }
 
+.btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
 /* ===== Canvas + Rail layout ===== */
 .layout {
   display: grid;
@@ -172,9 +427,6 @@
   overflow: hidden;
   border-radius: var(--radius-lg);
   background: var(--surface-2);
-}
-.canvasWrap.boardMode {
-  overflow-y: auto;
 }
 
 .rail {
@@ -294,9 +546,9 @@
   margin: 3px 0;
 }
 
-.gActivity { width: 10px; height: 10px; background: var(--surface); border: 1px solid var(--fg); border-radius: 1px; }
-.gRole     { width: 12px; height: 7px; background: color-mix(in oklch, var(--accent) 8%, var(--surface)); border: 1px solid var(--border-strong); border-radius: 3px; }
-.gSystem   { width: 12px; height: 8px; background: color-mix(in oklch, var(--accent) 5%, var(--surface)); border: 1px solid color-mix(in oklch, var(--accent) 45%, var(--border)); border-radius: 1px; }
+.gActivity { width: 10px; height: 10px; background: var(--surface); border: 1.5px solid var(--fg); border-radius: 1px; }
+.gRole     { width: 12px; height: 7px; background: color-mix(in oklch, var(--good) 8%, var(--surface)); border: 1px solid var(--border-strong); border-radius: 3px; }
+.gSystem   { width: 12px; height: 8px; background: color-mix(in oklch, var(--accent) 18%, var(--surface)); border: 1px solid color-mix(in oklch, var(--accent) 45%, var(--border)); border-radius: 1px; }
 .gLocation { width: 10px; height: 10px; background: color-mix(in oklch, var(--warn) 6%, var(--surface)); border: 1px solid color-mix(in oklch, var(--warn) 50%, var(--border)); transform: rotate(45deg); }
 
 .lline {
@@ -687,49 +939,14 @@
 }
 
 .jpEmpty {
-  grid-column: 1 / -1;
-  padding: 20px 0;
-  text-align: center;
-  color: var(--muted);
+  padding: 12px 10px;
   font-size: 12px;
+  color: var(--muted-2);
+  text-align: center;
 }
 
-/* Board-specific styles */
-.badge {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-.badgeBreach {
-  background: color-mix(in oklch, var(--danger) 10%, var(--surface));
-  border-color: color-mix(in oklch, var(--danger) 30%, var(--border));
-  color: var(--danger-text);
-}
-.badgeWarn {
-  background: color-mix(in oklch, var(--warn) 10%, var(--surface));
-  border-color: color-mix(in oklch, var(--warn) 30%, var(--border));
-  color: var(--warn-text);
-}
-.badgeSod {
-  background: color-mix(in oklch, var(--accent) 8%, var(--surface));
-  border-color: color-mix(in oklch, var(--accent) 25%, var(--border));
-  color: var(--accent);
-}
-.actionBtn {
-  width: 100%;
-  padding: 8px 12px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in oklch, var(--accent) 25%, var(--border));
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.actionBtn:hover {
-  background: color-mix(in oklch, var(--accent) 12%, var(--accent-soft));
+.boardMode {
+  min-height: auto;
+  overflow-y: auto;
+  padding: var(--space-lg);
 }

@@ -146,8 +146,8 @@ export function diffPaste(opts: DiffPasteOptions): DiffResult {
 
   // Create new PRECEDES edges to preserve order
   for (let i = 0; i < activityIdsInOrder.length - 1; i++) {
-    const from = activityIdsInOrder[i];
-    const to = activityIdsInOrder[i + 1];
+    const from = activityIdsInOrder[i]!;
+    const to = activityIdsInOrder[i + 1]!;
 
     edges.push({
       id: uuidv7(),

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { api } from "../../api";
+import { api, complianceRules } from "../../api";
 import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
 import { KeyValueList } from "../../components/KeyValueList";
+import { QueryBuilder } from "../../components/QueryBuilder";
 import { ViewHeader, Loading, ErrorState, SecLabel } from "../_shared";
 import styles from "./Editor.module.css";
 
@@ -33,6 +34,7 @@ interface FullNode {
 export function OntologyEditor() {
   const [label, setLabel] = useState<Label>("Activity");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"inspector" | "query">("inspector");
 
   // List nodes of the selected label (live Cypher).
   const list = useFetch(
@@ -52,51 +54,86 @@ export function OntologyEditor() {
         title="Node inspector"
         lede="Pick a label, then a node, to see every attribute. graph-core only persists name + description + an open attributes map — ontology-manager will layer typed schemas on top."
       />
-      <div className={styles.layout}>
-        <Card title="Label">
-          <div className={styles.labelPicker}>
-            {LABELS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                className={`${styles.labelBtn} ${l === label ? styles.labelActive : ""}`}
-                onClick={() => setLabel(l)}
-              >
-                <Pill tone={TONE[l]}>{l}</Pill>
-              </button>
-            ))}
-          </div>
-          <SecLabel>Nodes</SecLabel>
-          {list.status === "loading" && <Loading what="nodes" />}
-          {list.status === "error" && <ErrorState message={list.error} />}
-          {list.status === "ok" && (
-            <ul className={styles.nodeList}>
-              {(list.data.rows as unknown as ListedNode[]).map((n) => (
-                <li key={n.id}>
-                  <button
-                    type="button"
-                    className={`${styles.nodeBtn} ${n.id === selectedId ? styles.nodeActive : ""}`}
-                    onClick={() => setSelectedId(n.id)}
-                  >
-                    <span>{n.name}</span>
-                    <code className={styles.id}>{n.id.slice(0, 8)}…</code>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <div className={styles.detail}>
-          {selectedId ? (
-            <NodeDetail label={label} id={selectedId} />
-          ) : (
-            <Card>
-              <p style={{ color: "var(--muted)", margin: 0 }}>Select a node on the left.</p>
-            </Card>
-          )}
-        </div>
+      <div style={{ marginBottom: 16, display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab("inspector")}
+          style={{
+            padding: "8px 16px",
+            background: activeTab === "inspector" ? "var(--accent)" : "var(--bg-subtle)",
+            color: activeTab === "inspector" ? "var(--text)" : "var(--muted)",
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            cursor: "pointer",
+          }}
+        >
+          Node Inspector
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("query")}
+          style={{
+            padding: "8px 16px",
+            background: activeTab === "query" ? "var(--accent)" : "var(--bg-subtle)",
+            color: activeTab === "query" ? "var(--text)" : "var(--muted)",
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            cursor: "pointer",
+          }}
+        >
+          Query Builder
+        </button>
       </div>
+
+      {activeTab === "inspector" ? (
+        <div className={styles.layout}>
+          <Card title="Label">
+            <div className={styles.labelPicker}>
+              {LABELS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`${styles.labelBtn} ${l === label ? styles.labelActive : ""}`}
+                  onClick={() => setLabel(l)}
+                >
+                  <Pill tone={TONE[l]}>{l}</Pill>
+                </button>
+              ))}
+            </div>
+            <SecLabel>Nodes</SecLabel>
+            {list.status === "loading" && <Loading what="nodes" />}
+            {list.status === "error" && <ErrorState message={list.error} />}
+            {list.status === "ok" && (
+              <ul className={styles.nodeList}>
+                {(list.data.rows as unknown as ListedNode[]).map((n) => (
+                  <li key={n.id}>
+                    <button
+                      type="button"
+                      className={`${styles.nodeBtn} ${n.id === selectedId ? styles.nodeActive : ""}`}
+                      onClick={() => setSelectedId(n.id)}
+                    >
+                      <span>{n.name}</span>
+                      <code className={styles.id}>{n.id.slice(0, 8)}…</code>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <div className={styles.detail}>
+            {selectedId ? (
+              <NodeDetail label={label} id={selectedId} />
+            ) : (
+              <Card>
+                <p style={{ color: "var(--muted)", margin: 0 }}>Select a node on the left.</p>
+              </Card>
+            )}
+          </div>
+        </div>
+      ) : (
+        <QueryBuilder />
+      )}
     </>
   );
 }
@@ -112,14 +149,33 @@ function NodeDetail({ label, id }: { label: Label; id: string }) {
     [label, id],
   );
 
+  const applicableRules = useFetch(() => complianceRules.list(true), []);
+
   if (node.status === "loading") return <Loading what="node" />;
   if (node.status === "error") return <ErrorState message={node.error} />;
   const n = node.data;
   const attrKeys = Object.keys(n.attributes);
 
+  // Check if any compliance rules might apply to this label
+  const matchingRules = applicableRules.status === "ok" && applicableRules.data 
+    ? applicableRules.data.filter((rule: any) => 
+        rule.rule_dsl?.toLowerCase().includes(label.toLowerCase()) || 
+        rule.description?.toLowerCase().includes(label.toLowerCase())
+      )
+    : [];
+
   return (
     <>
-      <Card title={n.name} actions={<Pill tone={TONE[label]}>{label}</Pill>}>
+      <Card title={n.name} actions={
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Pill tone={TONE[label]}>{label}</Pill>
+          {matchingRules.length > 0 && (
+            <Pill tone="warn">
+              {matchingRules.length} Rule{matchingRules.length > 1 ? 's' : ''}
+            </Pill>
+          )}
+        </div>
+      }>
         <KeyValueList rows={[
           { label: "id",          value: <code className={styles.id}>{n.id}</code> },
           { label: "description", value: n.description || "—" },

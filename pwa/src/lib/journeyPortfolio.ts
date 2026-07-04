@@ -1,5 +1,6 @@
 // Data loader for the Journey Board (portfolio) view — lightweight
-// load of all journeys with start/end activities + cross-journey edges.
+// load of all journeys with start/end activities + cross-journey edges,
+// organized hierarchically by domain/subdomain.
 
 import { api } from "../api";
 
@@ -8,13 +9,29 @@ export interface PortfolioJourney {
   name: string;
   domainId: string;
   domainName: string;
+  subdomain?: string | undefined;
   activityCount: number;
   startActivity?: { id: string; name: string };
   endActivity?:   { id: string; name: string };
-  startRole?:     { id: string; name: string; team?: string };
-  endRole?:       { id: string; name: string; team?: string };
+  startRole?:     { id: string; name: string; team?: string | undefined };
+  endRole?:       { id: string; name: string; team?: string | undefined };
   startSystem?:   { id: string; name: string };
   endSystem?:     { id: string; name: string };
+}
+
+export interface PortfolioSubdomain {
+  name: string;
+  journeys: PortfolioJourney[];
+  journeyCount: number;
+  totalActivities: number;
+}
+
+export interface PortfolioDomain {
+  id: string;
+  name: string;
+  subdomains: PortfolioSubdomain[];
+  journeyCount: number;
+  totalActivities: number;
 }
 
 export interface PortfolioCrossEdge {
@@ -26,15 +43,15 @@ export interface PortfolioCrossEdge {
   toJourneyName: string;
   toActivityId: string;
   toActivityName: string;
-  handoffType?: string;
-  target_ms?: number;
-  actual_ms?: number;
+  handoffType?: string | undefined;
+  target_ms?: number | undefined;
+  actual_ms?: number | undefined;
 }
 
 export interface JourneyPortfolio {
-  journeys: PortfolioJourney[];
+  domains: PortfolioDomain[];
   crossEdges: PortfolioCrossEdge[];
-  domainFilter?: string | null;
+  domainFilter?: string | null | undefined;
 }
 
 export async function loadJourneyPortfolio(
@@ -56,7 +73,7 @@ export async function loadJourneyPortfolio(
      OPTIONAL MATCH (firstAct)-[:USES_SYSTEM]->(ss:System)
      OPTIONAL MATCH (lastAct)<-[:EXECUTES]-(er:Role)
      OPTIONAL MATCH (lastAct)-[:USES_SYSTEM]->(es:System)
-     RETURN j.id AS id, j.name AS name,
+     RETURN j.id AS id, j.name AS name, j.attributes_json AS attributes,
             d.id AS domainId, d.name AS domainName,
             activityCount,
             firstAct{.id, .name} AS startActivity,
@@ -77,9 +94,17 @@ export async function loadJourneyPortfolio(
     } catch { return undefined; }
   };
 
+  const parseSubdomain = (json?: string): string | undefined => {
+    if (!json) return undefined;
+    try {
+      const attrs = JSON.parse(json) as Record<string, unknown>;
+      return (attrs.subdomain as string) || undefined;
+    } catch { return undefined; }
+  };
+
   const journeys: PortfolioJourney[] = (
     journeysRes.rows as unknown as Array<{
-      id: string; name: string; domainId: string; domainName: string;
+      id: string; name: string; attributes?: string; domainId: string; domainName: string;
       activityCount: number;
       startActivity: { id: string; name: string } | null;
       endActivity:   { id: string; name: string } | null;
@@ -93,6 +118,7 @@ export async function loadJourneyPortfolio(
     name: r.name,
     domainId: r.domainId,
     domainName: r.domainName,
+    subdomain: parseSubdomain(r.attributes),
     activityCount: Number(r.activityCount) || 0,
     ...(r.startActivity ? { startActivity: r.startActivity } : {}),
     ...(r.endActivity ? { endActivity: r.endActivity } : {}),
@@ -101,6 +127,53 @@ export async function loadJourneyPortfolio(
     ...(r.endRole ? { endRole: { ...r.endRole, team: parseTeam(r.endRole.attributes_json) } } : {}),
     ...(r.endSystem ? { endSystem: r.endSystem } : {}),
   }));
+
+  // Group journeys by domain and subdomain
+  const domainMap = new Map<string, PortfolioDomain>();
+  for (const j of journeys) {
+    let domain = domainMap.get(j.domainId);
+    if (!domain) {
+      domain = {
+        id: j.domainId,
+        name: j.domainName,
+        subdomains: [],
+        journeyCount: 0,
+        totalActivities: 0,
+      };
+      domainMap.set(j.domainId, domain);
+    }
+    domain.journeyCount++;
+    domain.totalActivities += j.activityCount;
+
+    // Group by subdomain
+    const subdomainName = j.subdomain || "Other";
+    let subdomain = domain.subdomains.find((s) => s.name === subdomainName);
+    if (!subdomain) {
+      subdomain = {
+        name: subdomainName,
+        journeys: [],
+        journeyCount: 0,
+        totalActivities: 0,
+      };
+      domain.subdomains.push(subdomain);
+    }
+    subdomain.journeys.push(j);
+    subdomain.journeyCount++;
+    subdomain.totalActivities += j.activityCount;
+  }
+
+  // Sort domains by name, subdomains by name, journeys by name
+  const domains: PortfolioDomain[] = [...domainMap.values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((domain) => ({
+      ...domain,
+      subdomains: domain.subdomains
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((subdomain) => ({
+          ...subdomain,
+          journeys: subdomain.journeys.sort((a, b) => a.name.localeCompare(b.name)),
+        })),
+    }));
 
   // Cross-journey PRECEDES edges.
   const crossRes = await api.cypher(
@@ -150,5 +223,5 @@ export async function loadJourneyPortfolio(
     };
   });
 
-  return { journeys, crossEdges, domainFilter };
+  return { domains, crossEdges, domainFilter };
 }

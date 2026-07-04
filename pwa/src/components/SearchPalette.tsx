@@ -63,7 +63,7 @@ export function SearchPalette({ forceOpen }: Props = {}) {
   }, [selectedIdx]);
 
   const schema = useSchemaStore((s) => s.schema);
-  const labels = useMemo(
+  const labels = useMemo<string[]>(
     () => (schema?.nodeLabels ?? []).map((l) => l.name),
     [schema],
   );

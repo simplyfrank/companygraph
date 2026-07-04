@@ -26,3 +26,9 @@
   color: var(--fg);
   font-variant-numeric: tabular-nums;
 }
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-md);
+}

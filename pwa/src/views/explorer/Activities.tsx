@@ -1,5 +1,5 @@
 import type { Route } from "../../route";
-import { api } from "../../api";
+import { api, type KPIAlignmentRow, type SLAAlignmentRow } from "../../api";
 import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
@@ -152,6 +152,8 @@ interface NeighborRow {
 function ActivityDetail({ id }: { id: string }) {
   const activity = useFetch(() => api.getActivity(id), [id]);
   const neighbors = useFetch(() => api.neighbors(id, 1), [id]);
+  const kpiAlignments = useFetch(() => api.kpi.getAlignments("activity", id), [id]);
+  const slaAlignments = useFetch(() => api.sla.getAlignments("activity", id), [id]);
 
   if (activity.status === "loading") return <Loading what="activity" />;
   if (activity.status === "error") {
@@ -161,7 +163,7 @@ function ActivityDetail({ id }: { id: string }) {
     }
     return <ErrorState message={activity.error} />;
   }
-  const row = activity.data.rows[0];
+  const row = activity.data?.rows?.[0];
   if (!row) {
     return <NotFoundPanel route={{ surface: "explorer", tab: "activities", entityId: id, params: {} }} />;
   }
@@ -171,6 +173,9 @@ function ActivityDetail({ id }: { id: string }) {
   const systems = all.filter((n) => n.label === "System");
   const locations = all.filter((n) => n.label === "Location");
   const adjacentActivities = all.filter((n) => n.label === "Activity");
+
+  const kpiData = kpiAlignments.status === "ok" ? kpiAlignments.data?.rows || [] : [];
+  const slaData = slaAlignments.status === "ok" ? slaAlignments.data?.rows || [] : [];
 
   return (
     <>
@@ -183,6 +188,7 @@ function ActivityDetail({ id }: { id: string }) {
       <BoundCard testId="activity-systems" title="Systems (USES_SYSTEM)" items={systems} tone="danger" />
       <BoundCard testId="activity-locations" title="Locations (AT_LOCATION)" items={locations} tone="accent" />
       <BoundCard testId="activity-adjacent" title="Adjacent activities (PRECEDES)" items={adjacentActivities} tone="good" />
+      <KpiSlaCard kpiAlignments={kpiData} slaAlignments={slaData} />
     </>
   );
 }
@@ -214,6 +220,55 @@ function BoundCard({
           </ul>
         )}
       </div>
+    </Card>
+  );
+}
+
+function KpiSlaCard({ kpiAlignments, slaAlignments }: { kpiAlignments: KPIAlignmentRow[]; slaAlignments: SLAAlignmentRow[] }) {
+  if (kpiAlignments.length === 0 && slaAlignments.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card title="KPIs & SLAs">
+      {kpiAlignments.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <h4 style={{ margin: "0 0 8px 0", fontSize: 14, fontWeight: 600 }}>Aligned KPIs</h4>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {kpiAlignments.map((kpi) => (
+              <li key={kpi.kpi_id} style={{ padding: "4px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <strong>{kpi.kpi_name}</strong>
+                  <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 8 }}>{kpi.kpi_category}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 12 }}>{kpi.kpi_target_value} {kpi.kpi_unit}</span>
+                  {kpi.weight != null && <Pill tone="warn">{(kpi.weight * 100).toFixed(0)}%</Pill>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {slaAlignments.length > 0 && (
+        <div>
+          <h4 style={{ margin: "0 0 8px 0", fontSize: 14, fontWeight: 600 }}>Aligned SLAs</h4>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {slaAlignments.map((sla) => (
+              <li key={sla.sla_id} style={{ padding: "4px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <strong>{sla.sla_name}</strong>
+                  <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: 8 }}>{sla.service_type}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 12 }}>{sla.target_value} {sla.target_unit}</span>
+                  {sla.is_critical && <Pill tone="danger">Critical</Pill>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Card>
   );
 }

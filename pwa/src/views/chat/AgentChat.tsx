@@ -27,9 +27,9 @@ function parseRolePrefix(input: string): {
 } {
   const m = /^\/role\s+([\w_-]+)\s*(.*)$/s.exec(input);
   if (!m) return { message: input };
-  const candidate = m[1];
+  const candidate = m[1]!;
   if (ROLE_ID_SET.has(candidate)) {
-    return { role: candidate as ChatRoleId, message: m[2] };
+    return { role: candidate as ChatRoleId, message: m[2]! };
   }
   return { message: input };
 }

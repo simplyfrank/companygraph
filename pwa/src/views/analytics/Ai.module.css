@@ -3,3 +3,9 @@
   flex-direction: column;
   gap: var(--space-md);
 }
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-md);
+}

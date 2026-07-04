@@ -10,11 +10,14 @@ import { ExplorerPath } from "./explorer/Path";
 import { ExplorerActivities } from "./explorer/Activities";
 import { ExplorerRoles } from "./explorer/Roles";
 import { ExplorerLocations } from "./explorer/Locations";
+import { DomainDetail } from "./explorer/DomainDetail";
+import { ProductDetail } from "./explorer/ProductDetail";
 
 import { ChatThread } from "./chat/Thread";
 
 import { OntologyCatalog } from "./ontology/Catalog";
 import { OntologyErd } from "./ontology/Erd";
+import { ErdErrorBoundary } from "./ontology/ErdErrorBoundary";
 import { OntologyEditor } from "./ontology/Editor";
 import { OntologyEdges } from "./ontology/Edges";
 import { OntologyVersions } from "./ontology/Versions";
@@ -39,9 +42,15 @@ import { ExecFinance } from "./exec/Finance";
 import { ExecPeople } from "./exec/People";
 import { ExecTransform } from "./exec/Transform";
 import { ExecRisk } from "./exec/Risk";
+import { ExecKpiManagement } from "./exec/KpiManagement";
+import { ExecOkrManagement } from "./exec/OkrManagement";
 
 import { DataMap } from "./data/Map";
 import { DataExport } from "./data/Export";
+
+import { AdminPersonas } from "./admin/Personas";
+import { AdminRbacRoles } from "./admin/RbacRoles";
+import { AdminUserAssignments } from "./admin/UserAssignments";
 
 type ViewMap = Record<string, Record<string, (route: Route) => ReactNode>>;
 
@@ -58,13 +67,15 @@ const VIEWS: ViewMap = {
     "activities":     (r) => <ExplorerActivities route={r} />,
     "roles":          (r) => <ExplorerRoles route={r} />,
     "locations":      (r) => <ExplorerLocations route={r} />,
+    "domain-detail":  (r) => <DomainDetail route={r} />,
+    "product-detail": (r) => <ProductDetail productId={r.entityId || ""} />,
   },
   chat: {
     thread: () => <ChatThread />,
   },
   ontology: {
     catalog:  () => <OntologyCatalog />,
-    erd:      () => <OntologyErd />,
+    erd:      () => <ErdErrorBoundary><OntologyErd /></ErdErrorBoundary>,
     editor:   () => <OntologyEditor />,
     edges:    () => <OntologyEdges />,
     versions: () => <OntologyVersions />,
@@ -88,15 +99,22 @@ const VIEWS: ViewMap = {
     import:    () => <ApiImport />,
   },
   exec: {
-    ops:       () => <ExecOps />,
-    finance:   () => <ExecFinance />,
-    people:    () => <ExecPeople />,
-    transform: () => <ExecTransform />,
-    risk:      () => <ExecRisk />,
+    ops:              () => <ExecOps />,
+    finance:          () => <ExecFinance />,
+    people:           () => <ExecPeople />,
+    transform:        () => <ExecTransform />,
+    risk:             () => <ExecRisk />,
+    "kpi-management": () => <ExecKpiManagement />,
+    "okr-management": () => <ExecOkrManagement />,
   },
   data: {
     map:    () => <DataMap />,
     export: () => <DataExport />,
+  },
+  admin: {
+    personas:   () => <AdminPersonas />,
+    "rbac-roles": () => <AdminRbacRoles />,
+    users:      () => <AdminUserAssignments />,
   },
 };
 

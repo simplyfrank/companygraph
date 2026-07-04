@@ -3,7 +3,9 @@ import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { DataTable } from "../../components/DataTable";
 import { Pill } from "../../components/Pill";
+import { BarChartCard } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
+import styles from "./Complexity.module.css";
 
 interface ComplexRow {
   journey: { id: string; name: string };
@@ -35,12 +37,41 @@ export function AnalyticsComplexity() {
     [],
   );
 
+  const histogram = data.status === "ok"
+    ? (() => {
+        const rows = data.data.rows as unknown as ComplexRow[];
+        const buckets: Record<string, number> = {};
+        rows.forEach((r) => {
+          const score = r.activities + r.fanOut + r.fanIn;
+          const bucket = score <= 3 ? "low (≤3)" : score <= 6 ? "med (4-6)" : score <= 10 ? "high (7-10)" : "very high (>10)";
+          buckets[bucket] = (buckets[bucket] ?? 0) + 1;
+        });
+        return [
+          { label: "low (≤3)", value: buckets["low (≤3)"] ?? 0, color: "#22c55e" },
+          { label: "med (4-6)", value: buckets["med (4-6)"] ?? 0, color: "#3b82f6" },
+          { label: "high (7-10)", value: buckets["high (7-10)"] ?? 0, color: "#f59e0b" },
+          { label: "very high (>10)", value: buckets["very high (>10)"] ?? 0, color: "#ef4444" },
+        ];
+      })()
+    : [];
+
   return (
     <>
       <ViewHeader
         title="Journey complexity"
         lede="Quick complexity proxy per journey — activity count + PRECEDES fan-in/out. Centrality, modularity, and redundancy live in the cto-analytics spec."
       />
+
+      <div className={styles.dashboardGrid}>
+        <BarChartCard
+          title="Complexity distribution"
+          data={histogram}
+          yLabel="journeys"
+        />
+      </div>
+
+      <div style={{ height: 24 }} />
+
       <Card>
         {data.status === "loading" && <Loading what="complexity" />}
         {data.status === "error" && <ErrorState message={data.error} />}

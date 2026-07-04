@@ -2,4 +2,74 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 14px;
+  align-items: start;
+}
+
+.domainWrapper {
+  min-width: 0;
+}
+
+.detailWrapper {
+  padding: 16px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+}
+
+.selectionBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklch, var(--accent) 25%, var(--border));
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.selectionCount {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.compareButton {
+  padding: 6px 12px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.compareButton:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.compareButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.clearButton {
+  padding: 6px 12px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clearButton:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
 }

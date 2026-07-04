@@ -5,9 +5,9 @@ import styles from "./_shared.module.css";
 
 export function ViewHeader({ title, lede }: { title: string; lede?: string }) {
   return (
-    <header className={styles.head}>
-      <h1 className={styles.h1}>{title}</h1>
-      {lede && <p className={styles.lede}>{lede}</p>}
+    <header className={styles.head} data-testid="view-header">
+      <h1 className={styles.h1} data-testid="view-header-title">{title}</h1>
+      {lede && <p className={styles.lede} data-testid="view-header-lede">{lede}</p>}
     </header>
   );
 }
@@ -21,7 +21,7 @@ export function Loading({ what }: { what: string }) {
 }
 
 export function ErrorState({ message }: { message: string }) {
-  return <div className={`${styles.state} ${styles.error}`}>Error: {message}</div>;
+  return <div className={`${styles.state} ${styles.error}`} data-testid="error-state">Error: {message}</div>;
 }
 
 // FR-14 / AC-11 — deep-link 404 panel. Mounted when an entity-detail

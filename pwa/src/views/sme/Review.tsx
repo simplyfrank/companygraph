@@ -12,6 +12,7 @@ import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
 import { Button } from "../../components/Button";
+import { PieChartCard } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
 import styles from "./Review.module.css";
 
@@ -47,12 +48,39 @@ export function SmeReview() {
     return data.data.rows;
   }, [data]);
 
+  const byLabel = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of queue) {
+      map.set(r.label, (map.get(r.label) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).map(([label, value]) => ({
+      label,
+      value,
+      color:
+        label === "UserJourney" ? "#22c55e" :
+        label === "Activity" ? "#3b82f6" :
+        label === "Role" ? "#f59e0b" :
+        label === "System" ? "#ef4444" :
+        label === "Domain" ? "#8b5cf6" :
+        "#64748b",
+    }));
+  }, [queue]);
+
   return (
     <>
       <ViewHeader
         title="Review queue"
         lede="Entities flagged for review within your home domain. Use the Open button to navigate to the detail view and verify or reject changes."
       />
+
+      {queue.length > 0 && (
+        <>
+          <div className={styles.dashboardGrid}>
+            <PieChartCard title="Queue by entity type" data={byLabel} donut />
+          </div>
+          <div style={{ height: 24 }} />
+        </>
+      )}
 
       <Card>
         {data.status === "loading" && <Loading what="queue" />}
