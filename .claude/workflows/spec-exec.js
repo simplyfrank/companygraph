@@ -68,12 +68,11 @@ const VERIFY_SCHEMA = {
 }
 
 const RD = [
-  'Honor the design §10 Resolved Decisions (RD-1..RD-6):',
-  'RD-1 — NO direct getDriver()/driver.session() anywhere under api/src/analytics/; all graph reads go through the shared read-only module api/src/neo4j/read-only-graph.ts.',
-  'RD-2 — complexity is the weighted depth × distinct-systems × distinct-roles formula (not the interim proxy).',
-  'RD-3 — keep existing short routes (matrix, ai); new tabs use FR route names (systems, consolidation, single-system, critical-paths); routes come from the design/View-Tree verbatim.',
-  'RD-4/4a — AI candidates are rule-based on the AS-BUILT vocabulary (repetition/data_richness enum "low"|"med"|"high", leverage_score ≥ 0.5); no hardcoded "medium".',
-  'RD-5 — chart colors are var(--…) tokens, never hardcoded hex (design-conformance enforces this on touched pwa views).',
+  'Honor the design decisions in this spec\'s design.md (its §10 Resolved Decisions / RD-* and its DD-* rows are binding) — read them and implement to them exactly. Load-bearing invariants that apply repo-wide:',
+  '- NO direct getDriver()/driver.session() anywhere under api/src/analytics/; all Neo4j reads go through the shared read-only module (api/src/neo4j/read-only-*.ts). The AC-11 guard test greps for this.',
+  '- pwa chart/UI colors are var(--…) tokens, never hardcoded hex (design-conformance enforces this on touched pwa views); routes come from the design/View-Tree verbatim.',
+  '- If the design states a DETERMINISM / byte-reproducibility requirement (e.g. a deterministic PDF or graph-state hash — same input must yield byte-identical output), implement it EXACTLY as the design specifies (e.g. fixed PDF metadata via the PDFDocument constructor info option, no wall-clock/Date.now() reaching the output, canonical JSON ordering). Its test asserts byte-equality — do not approximate.',
+  '- House rules (CLAUDE.md): en-US identifiers, zod-only validation, no tsc, NFR-08 error envelope, all REST under /api/v1/.',
 ].join('\n')
 
 function implPrompt(t, fixNotes) {

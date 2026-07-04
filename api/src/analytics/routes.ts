@@ -39,6 +39,15 @@ import { z } from "zod";
 import { runSystemMap } from "./system-map";
 import { ok, error } from "../routes/_helpers";
 import { parseWith } from "../routes/_helpers";
+import {
+  withCacheEnvelope,
+  getAnalyticsDbPath,
+} from "./reporting/cache";
+// NOTE: `runPrecompute` (scheduler.ts) is imported LAZILY inside the refresh
+// branch below — a top-level import would close an eager module cycle
+// (routes.ts → scheduler.ts → settings/complexity/ai-candidates.ts → routes.ts
+// for the code-default `ANALYTICS_*` constants), breaking their init order.
+// `cache.ts` has no back-import, so it stays a top-level import.
 
 // ── Code-default config (design §10.2, RD-4a / RD-6) ────────────────────
 //
@@ -91,26 +100,66 @@ const reportRouteSchema = z.enum(ANALYTICS_REPORT_ROUTES);
 
 // A report module not yet landed by its owning task returns this shape.
 // Owning task replaces the branch below with its real module call.
-function scaffoldPending(report: AnalyticsReportRoute): Response {
-  return ok({ report, scaffold_pending: true, items: [] });
+function scaffoldPendingBody(report: AnalyticsReportRoute): Record<string, unknown> {
+  return { report, scaffold_pending: true, items: [] };
+}
+
+// ── DD-10 / AC-R3: degraded-envelope + `?refresh=true` wiring ────────────
+//
+// Each of the 7 report GETs serves its body, then that body is passed through
+// `withCacheEnvelope` so a stale cache (latest `analytics_run` older than 25 h)
+// adds `{ degraded:true, last_run_at }` INSIDE the NFR-08 success envelope
+// (never an error). `?refresh=true` forces a fresh `runPrecompute()` first, so
+// the wrapped body is non-degraded. The report body SHAPES are unchanged.
+
+/**
+ * Wrap a report body in the staleness envelope (DD-10). Guarded: the analytics
+ * cache DB is initialised at server bootstrap (T-04). When it is NOT yet
+ * initialised (e.g. a driver-free unit test that never boots the cache), the
+ * body is returned untouched — the degraded flag simply does not apply, and no
+ * `getAnalyticsDb()` "not initialised" throw escapes to the caller.
+ */
+function wrapEnvelope(body: Record<string, unknown>): Record<string, unknown> {
+  if (getAnalyticsDbPath() === null) return body;
+  return withCacheEnvelope(body);
 }
 
 /**
  * Dispatches a `GET /api/v1/analytics/:report` request. `report` is the raw
  * path segment; unknown segments fall through to a 404 `not_found` envelope
  * (NFR-08 error shape). Called from `api/src/router.ts`.
+ *
+ * `refresh` (from the `?refresh=true` query flag, threaded by the router)
+ * forces a fresh `runPrecompute()` before the body is served + wrapped, so the
+ * response is non-degraded (FR-10 / AC-R3). It defaults to `false`, so the
+ * existing single-argument call sites (router, scaffold/envelope harnesses)
+ * keep their behaviour.
  */
-export async function handleAnalyticsReport(report: string): Promise<Response> {
+export async function handleAnalyticsReport(
+  report: string,
+  refresh = false,
+): Promise<Response> {
   const parsed = reportRouteSchema.safeParse(report);
   if (!parsed.success) {
     return error(404, "not_found", "unknown analytics report", { report });
   }
 
+  // FR-10: `?refresh=true` recomputes the cache before serving (single
+  // execution via the DD-07 mutex). Only meaningful once the cache is booted.
+  // Lazy import breaks the eager module cycle (see the import note above).
+  if (refresh && getAnalyticsDbPath() !== null) {
+    const { runPrecompute } = await import("./reporting/scheduler");
+    await runPrecompute();
+  }
+
+  let body: Record<string, unknown>;
   switch (parsed.data) {
     case "systems": {
       // Live via the T-20 system-map module (reads through read-only-graph).
-      const map = await runSystemMap();
-      return ok(map);
+      // `SystemMap` is an interface (no index signature) — spread into a plain
+      // record so it conforms to `withCacheEnvelope`'s `Record<string,unknown>`.
+      body = { ...(await runSystemMap()) };
+      break;
     }
     // Report modules land in their owning tasks (see file header); until
     // then the route is reachable with a well-formed 200 envelope.
@@ -120,8 +169,13 @@ export async function handleAnalyticsReport(report: string): Promise<Response> {
     case "single-system-journeys":
     case "critical-paths":
     case "ai-candidates":
-      return scaffoldPending(parsed.data);
+      body = scaffoldPendingBody(parsed.data);
+      break;
   }
+
+  // DD-10: the body rides through the staleness envelope (unchanged shape when
+  // fresh; `{...body, degraded:true, last_run_at}` when stale).
+  return ok(wrapEnvelope(body));
 }
 
 // The read-only config resource served at `GET /api/v1/analytics/config`.

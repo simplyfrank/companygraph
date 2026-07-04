@@ -1,0 +1,25 @@
+.download {
+  font: inherit;
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.6rem 1.15rem;
+  cursor: pointer;
+}
+
+.download:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+
+.download:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  margin-top: 0.75rem;
+  color: var(--danger);
+}

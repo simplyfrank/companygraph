@@ -10,6 +10,8 @@ export interface Env {
   // chat-interface (rev 3.1)
   anthropicApiKey: string | null; // null → MockLLMClient (FR-B06)
   chatDbPath: string;
+  // cto-analytics-reporting (FR-10, DD-06/NFR-R1) — isolated analytics cache DB
+  analyticsDbPath: string;
 }
 
 export function loadEnv(): Env {
@@ -21,6 +23,7 @@ export function loadEnv(): Env {
   const postgresUri = process.env.POSTGRES_URI ?? "postgresql://companygraph:companygraph_dev@127.0.0.1:5432/companygraph";
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
   const chatDbPath = process.env.CHAT_DB_PATH ?? "../data/chat.db";
+  const analyticsDbPath = process.env.ANALYTICS_DB_PATH ?? "./data/analytics.sqlite";
 
   if (!neo4jPassword) {
     throw new Error(
@@ -28,5 +31,5 @@ export function loadEnv(): Env {
     );
   }
 
-  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword, postgresUri, anthropicApiKey, chatDbPath };
+  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword, postgresUri, anthropicApiKey, chatDbPath, analyticsDbPath };
 }

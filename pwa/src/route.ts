@@ -62,6 +62,8 @@ export const SURFACES: Surface[] = [
       { id: "single-system",  label: "Single-system" },
       { id: "critical-paths", label: "Critical paths" },
       { id: "ai",             label: "AI" },
+      // cto-analytics-reporting T-08 (FR-08): exec-summary PDF launcher.
+      { id: "exec-summary",   label: "Exec summary" },
     ],
   },
   {
