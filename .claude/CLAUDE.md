@@ -203,6 +203,7 @@ REST API versioning policy (NFR-11):
 | User stories | `companygraph-user-stories.html` |
 | Spec workflow skill | `.claude/skills/spec-workflow/SKILL.md` (read before invoking `/spec`) |
 | Spec review skill | `.claude/skills/spec-review/SKILL.md` |
+| App onboarding | `.claude/skills/app-onboard/SKILL.md` (`/app-onboard <path-or-url>` — reverse-engineer an app into the process graph); artifacts under `.claude/onboarding/<slug>/` |
 | Environment template | `.env.example` (NEO4J_*, HOST, API_PORT, POSTGRES_URI, ONELOGIN_*, ANTHROPIC_API_KEY, CHAT_DB_PATH) |
 | Key ports | 7687 (Neo4j bolt), 7474 (Neo4j browser), 5432 (Postgres), 8787 (API), 5173 (PWA dev) |
 | Workspaces | `api/`, `pwa/`, `shared/` |
