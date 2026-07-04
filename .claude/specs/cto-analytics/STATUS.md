@@ -1,22 +1,63 @@
 # Spec: cto-analytics
-**Size**: medium | **Created**: 2026-05-22 | **Current Phase**: requirements:approved — ready for design
+**Size**: medium | **Created**: 2026-05-22 | **Current Phase**: design:draft — as-built reconciliation awaiting review
 
 | Phase | Status | Approved By | Date |
 |-------|--------|-------------|------|
 | Requirements | approved (revision 2 — pass-1 findings absorbed, 2 partial open-accepted) | frank | 2026-05-22 |
 | Req Review | pass-1 revise (4 blockers, 4 concerns, 5 nits, 3 open-nit-accepted) → pass-2 approve (14/14 cleanly absorbed, 2 partial open-accepted, 0 regressed) | spec-review-agent | 2026-05-22 |
-| Design | pending | - | - |
+| Design | authored (as-built reconciliation, draft — awaiting review) | - | 2026-07-04 |
 | Design Review | pending (medium specs require design review) | - | - |
-| Tasks | pending | - | - |
+| Tasks | authored (draft — awaiting design review outcome) | - | 2026-07-04 |
 | Task Review | n/a (medium spec — no task review per workflow) | - | - |
-| Execution | pending | - | - |
+| Execution | pending — built surfaces are governed by `_baseline`; this spec tracks its own remaining scope (T-07..T-18) | - | - |
 
 **Review passes**: requirements=2 (cap reached), design=0
 
-**Open-accepted for design phase** (carried from pass-2 review):
-1. Open-1: AC-06 covers `depth_cap` and `path_budget` truncation reasons but not the third enumerated reason `wall_clock` — add a manual repro or extend the test fixture.
-2. Open-2: Scope says "Ten" endpoints but the breakdown (`8 + GET/PATCH /settings + /snapshot`) reads as either 10 or 11 depending on whether GET+PATCH count as one or two — design phase should commit to the count.
-3. Open-3: N-04's FR-02 rename to `?system_id=:sid&domain_id=:did` did not propagate to AC-02's verification recipe (still reads `?system=:id&domain=:id`).
+## Changelog — 2026-07-04 reconciliation
+
+The spec stalled at "requirements approved, design pending" on 2026-05-22.
+The analytics surface was subsequently **built off-spec** and ratified on
+2026-07-04 under `.claude/specs/_baseline/` (its FR-14 / design §4 coverage
+map / task T-13). This reconciliation brings the spec to a truthful state
+without pretending a design process happened that didn't:
+
+- `requirements.md` frontmatter corrected `in-review` → `approved` (it had
+  drifted from this file's approved row).
+- `design.md` authored as an **as-built reconciliation** (status: draft):
+  DD-01..DD-08 record decisions inherited from the built code "(as-built,
+  adopted 2026-07-04)"; unbuilt FRs carry "not built — open" notes, not
+  invented designs; conflicts (NFR-02 vs the graphology engine's direct
+  driver use, route names, complexity formula, retired no-auth invariant)
+  are surfaced as Open Questions OQ-1..OQ-6.
+- `tasks.md` authored (status: draft): T-01..T-06 ratify the as-built
+  surfaces (`pwa/src/views/analytics/{Overview,Matrix,Complexity,Ai}.tsx`,
+  `api/src/routes/analytics.ts` + `api/src/ontology/analytics/graph.ts`,
+  `api/src/routes/stats.ts`); T-07..T-18 are normal pending tasks for the
+  genuinely unbuilt FRs (FR-01, FR-03, FR-05, FR-06, FR-07 live filter,
+  FR-08, FR-09 endpoints, FR-10, FR-11, FR-11a) — open scope.
+- Execution is **not** claimed: only AC-14 is closed (as-superseded per
+  `_baseline` DD-07); AC-02/AC-04 are merely advanced by as-built variants;
+  all other ACs are open.
+
+**As-built vs open scope (from design §3):**
+- Built (variants/partials, ratified via `_baseline`): FR-02 (matrix heatmap,
+  no deep-links/virtualisation), FR-04 (proxy score, no weights), FR-09
+  (`GET /api/v1/analytics/graph` only), FR-07 (static placeholder only).
+- Not built — open: FR-01, FR-03, FR-05, FR-06, FR-07 (functional), FR-08,
+  FR-10, FR-11, FR-11a.
+- Superseded: NFR-06/AC-14 (no-auth invariant retired by `_baseline`
+  DD-02/DD-07).
+
+**Verification:**
+- `verified_at`: pending
+- `verification_artifact`: pending
+
+**Artifacts:**
+- 📄 Requirements: `.claude/specs/cto-analytics/requirements.md` (approved 2026-05-22, revision 2)
+- 📄 Design: `.claude/specs/cto-analytics/design.md` (draft — as-built reconciliation, 2026-07-04)
+- 📄 Tasks: `.claude/specs/cto-analytics/tasks.md` (draft, 2026-07-04)
+- 📝 Reviews: `.claude/specs/cto-analytics/review-requirements.md`, `review-requirements-pass-2.md`
+- 🗂️ User stories: `companygraph-user-stories.html` (v0.1, 2026-05-22 — AN-1..AN-3)
 
 **User stories owned** (8):
 - **AN-1.1..AN-1.3 (System & integration overview)** — system map with degree centrality, domain↔system alignment matrix, consolidation candidates.
@@ -25,44 +66,13 @@
 
 **Persona**: P4 — Karim, CTO / Analyst. Weekly cadence with quarterly deep-dive. Success criterion: "Top 3 AI candidates surfaced with quantified evidence each quarter."
 
-**Depends on**:
-- `graph-core` — for the Cypher route (read-only) + `GET /api/v1/export` (basis for the graph-state hash).
-- `ontology-manager` — **mandatory soft dependency** for the `Activity.repetitive` (boolean) and `Activity.data_richness` (enum) attribute schemas. If those attributes are not registered, the AI-candidate filter shows the named empty-state copy in FR-07.
-- `process-explorer-ui` — soft dependency for the deep-links from matrix cells / consolidation rows / critical-path rows / AI-candidate rows into the underlying activity lists.
-
-**Sizing rationale**: 11 FRs, 16 ACs, 8 new REST endpoints under `/api/v1/analytics/*`, SQLite cache + nightly scheduler, server-side PDF generation. ~10–12 files. Classified **medium** — requires design phase + design review, no task review.
-
-**Verification:**
-- `verified_at`: pending
-- `verification_artifact`: pending
-
-**Artifacts:**
-- 📄 Requirements: `.claude/specs/cto-analytics/requirements.md`
-- 📄 Design: `.claude/specs/cto-analytics/design.md` (pending)
-- 📄 Tasks: `.claude/specs/cto-analytics/tasks.md` (pending)
-- 📝 Reviews: `.claude/specs/cto-analytics/review-*.md` (pending)
-- 🗂️ User stories: `companygraph-user-stories.html` (v0.1, 2026-05-22 — AN-1..AN-3)
-
-**Critical invariants** (these must NOT regress across reviews / execution):
+**Critical invariants** (must not regress; NFR-06's former no-auth invariant is retired per `_baseline` DD-07):
 1. **No write paths from analytics into the graph.** NFR-03 + AC-12. (Cache writes to `analytics_*` SQLite tables are permitted; graph mutations are not.)
-2. **All Cypher routes through `/api/v1/query/cypher`.** NFR-02 + AC-11. No direct driver use in `api/src/analytics/`.
+2. **Cypher routing per NFR-02 + AC-11** — subject to design OQ-1 (the as-built graphology engine reads the driver directly; needs a user decision before T-14).
 3. **Graph-state hash is deterministic** — canonical JSON ordering, including parsed-and-resorted `attributes_json`. NFR-05 + AC-09.
 4. **PDF output is byte-reproducible** — same graph-state hash → same PDF bytes (modulo embedded date). NFR-04 + AC-08.
 
-**Open design questions** (carried from requirements §Risks for the design phase to resolve):
-
-1. Critical-path algorithm on cyclic graphs — depth-limited DFS + memoization with cap ≤ 20 (Risks #1).
-2. Complexity-score weights folded into the graph-state hash so PDFs are weight-reproducible (Risks #2).
-3. Nightly precompute cron expression vs tz-aware string (Risks #3).
-4. PDF layout + page count budget (~5 pages) (Risks #4).
-5. Domain↔system matrix virtualisation strategy at 10k cells — `react-window` + pre-filter (Risks #5).
-6. Hash protocol committed in a `hash-protocol.md` artifact — sorted keys, parsed `attributes_json`, deterministic stringify (Risks #6).
-7. CSV export UTF-8 BOM (Risks #7).
-8. AI-candidate attribute schema coupling via `analytics_settings` (Risks #9).
-9. "Refresh now" button vs accept-staleness operating model (Risks #10).
-10. PDF library choice — `@react-pdf/renderer` (recommended for React stack coherence) vs `pdfkit` vs `puppeteer`.
-
 **Next**:
-1. Requirements gate (this spec) — user approval, then medium-spec review pass via the spec-review sub-agent.
-2. Sequencing note: this spec can run in parallel with `chat-interface`, but BOTH depend on `ontology-manager` being far enough along to register the `repetitive` / `data_richness` attribute schemas (FR-07).
-3. After approval → design phase. Design must commit the PDF library, the hash protocol, the critical-path algorithm, and the scheduler cadence.
+1. Design review (pass 1/2) of the as-built reconciliation `design.md`.
+2. User answers to design §10 OQ-1..OQ-6 (NFR-02 amendment, complexity formula, route naming, AI-candidates scope, chart tokens, PDF/scheduler chunk).
+3. On design approval → tasks gate, then execute pending tasks T-07..T-18 (T-01..T-06 are ratifications of already-built code).

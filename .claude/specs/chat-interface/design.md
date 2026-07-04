@@ -1300,3 +1300,47 @@ process is:
 3. Add the new id to `ChatRoleId` union in `shared/src/types.ts`.
 4. The `role-coverage.test.ts` will pass automatically (or the
    exclusion list needs an entry).
+
+## As-built reconciliation (2026-07-04)
+
+The feature shipped 2026-05-23; on 2026-07-04 the repo-wide off-spec
+drift was ratified by `.claude/specs/_baseline/`. The two DDs below
+backfill design coverage for requirements that previously never
+reached this document: the NFR block (NFR-01..NFR-11) and the four
+rev-2 carry-forward references (rev-2 FR-12/FR-13/FR-14/FR-18).
+No existing DD is renumbered.
+
+### DD-23 — NFR coverage concordance (as-built backfill 2026-07-04)
+
+How each NFR is (or is not) served by the shipped design. Statuses
+verified against the working tree on 2026-07-04.
+
+| NFR | As-built status | Serving design element / evidence |
+|-----|-----------------|-----------------------------------|
+| NFR-01 (clean transpile, no tsc) | **BUILT** | Root `package.json` `typecheck` script runs `bun build api/src/server.ts --no-bundle` + the PWA equivalent; every task gated on it during execution. |
+| NFR-02 (latency budget) | **BUILT (structural)** | DD-06 loop + DD-10 progress surface; `api/__tests__/chat/perf-smoke.integration.test.ts` asserts structural budgets against `MockLLMClient` (see tasks T-28 as-built note — real Anthropic wall-clock unverified). |
+| NFR-03 (no write paths from chat) | **BUILT** | No chat file imports `createNode`/`upsertNode`/`createEdge`/`upsertEdge`/`patchNode`; enforced by `api/__tests__/chat/no-write-imports.test.ts` (5 pass). |
+| NFR-04 (read-only Cypher routing only) | **BUILT** | Every tool routes through `runPassthrough` (`api/src/neo4j/read-only-session.ts:25`, `defaultAccessMode: "READ"` at line 30); enforced by `api/__tests__/chat/no-direct-driver.test.ts`. |
+| NFR-05 (no auth code paths) | **SUPERSEDED (2026-07-04 adoption)** | Retired by `_baseline` DD-07: the platform adopted OneLogin OAuth + RBAC at the central router gate (`api/src/router.ts`); the `api/__tests__/no-auth-grep.test.ts` guard was deleted. Chat code itself still contains no per-route auth check — auth is upstream at the router, which is the current house rule. |
+| NFR-06 (LLM output sanitisation) | **BUILT (5 of 7 vectors test-pinned)** | `pwa/src/views/chat/sanitise.ts` + `api/src/chat/sanitise.ts`; `pwa/__tests__/chat/sanitise-5-vectors.test.tsx` (8 tests) pins vectors (a)–(e) plus entity-escape and citation-id hygiene units. The two SVG vectors (f)/(g) from AC-22 rev-3.1 are covered structurally (renderer emits text nodes only, never `dangerouslySetInnerHTML`) but have no dedicated test cases — honest residual gap, tracked in tasks §Deferred scope. |
+| NFR-07 (Cypher cost caps inherited) | **BUILT** | All tool Cypher flows through `runPassthrough`, which owns graph-core's 1000-row cap / tx timeout / depth caps; chat adds no override. Sole-routing proven by `api/__tests__/chat/no-direct-driver.test.ts`. |
+| NFR-08 (envelope shape) | **BUILT** | DD-01 envelope; `api/__tests__/chat/end-to-end.integration.test.ts` "envelope shape conforms to ChatEnvelope (AC-15)". |
+| NFR-09 (tool + LLM budgets) | **BUILT** | DD-09 quota counter; `api/__tests__/chat/cost-cap.test.ts`. |
+| NFR-10 (prompt-injection defence) | **BUILT** | DD-14; `api/__tests__/chat/prompt-injection-redaction.test.ts`. |
+| NFR-11 (audit logging, hashed message) | **NOT BUILT — deferred (2026-07-04 reconciliation)** | No chat audit-log emission exists in `api/src/chat/agent.ts` or `api/src/routes/chat.ts`, and `api/src/logging.ts` has no chat hook. Deferred in requirements NFR-11 annotation + STATUS.md open scope. |
+
+### DD-24 — Rev-2 FR carry-forward concordance (as-built backfill 2026-07-04)
+
+The rev-3 requirements reference four retired rev-2 requirement ids.
+This table records where each landed and its as-built status, so the
+references are traceable end-to-end.
+
+| Rev-2 reference | Rev-3 owner | As-built status (2026-07-04) |
+|-----------------|-------------|------------------------------|
+| rev-2 FR-12 (bookmarked questions) | FR-M03 | **PARTIAL — remainder deferred.** SQLite `chat_bookmarks` table + CRUD shipped (`api/src/chat/persistence.ts:79,386-431`, covered by `api/__tests__/chat/persistence.test.ts`), but no REST endpoint is routed and `pwa/src/views/chat/BookmarkMenu.tsx` is an explicit stub (logs to console). |
+| rev-2 FR-13 (shareable conversation URLs) | FR-M04 | **PARTIAL — remainder deferred.** `pwa/src/route.ts` parses `#/chat/conversations/:id` shapes and a `conversations` tab exists, but there is no conversation-history REST endpoint and no cold-load restore of history/bound_context/highlight. |
+| rev-2 FR-14 (read-only share + Fork) | FR-M05 | **NOT BUILT — deferred.** No fork or read-only-recipient code exists in `api/` or `pwa/`. |
+| rev-2 FR-18 (schema-context provider) | FR-B05 | **BUILT.** `api/src/chat/schema-context.ts` (ontology preferred, compile-time `NODE_LABELS`/`EDGE_TYPES` fallback) + `api/src/chat/tools/describe-schema.ts`; DD-15; verified by `api/__tests__/chat/describe-schema-tool.integration.test.ts`. |
+
+Deferred items above are annotated in `requirements.md` (stable IDs
+kept, nothing deleted) and listed as open scope in `STATUS.md`.

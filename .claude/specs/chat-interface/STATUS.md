@@ -181,6 +181,25 @@
 
 ACs requiring a live Neo4j (AC-01, AC-02, AC-21, AC-30 live-mode) plus AC-17/AC-18 (browser session) carry a documented `manual: <one-line repro>` per the spec-completion hook contract; the structural envelope + refusal precedence + degraded-mode paths are all covered hermetically.
 
+## Changelog
+
+- **2026-07-04: as-built traceability reconciliation — 16 gaps backfilled, 8 gaps resolved by explicit deferral (4 requirements deferred).** `scripts/spec/spec-traceability.sh` reported 24 gaps; each was checked against the working tree (post `_baseline` drift adoption). Backfills: design.md gained DD-23 (NFR coverage concordance) + DD-24 (rev-2 FR carry-forward concordance), both marked "(as-built backfill 2026-07-04)"; tasks.md gained ratify tasks T-29 (AC-33 write-rejection chain, verified piecewise) + T-30 (NFR-01/06/07/08 + FR-B05 ratification) and honest Verification entries for T-18/T-19/T-20/T-28 (real test paths; T-18's AC-25 leg recorded as retired — `no-auth-grep.test.ts` deleted in the adoption; T-20's `ChatErrorCode` landed in `shared/src/types.ts`, not `api/src/errors.ts`). Phase statuses unchanged.
+
+### Deferred scope (2026-07-04 reconciliation — open)
+
+Verified NOT BUILT and annotated in requirements.md (stable IDs kept):
+
+| Requirement | Deferred remainder |
+|-------------|--------------------|
+| NFR-11 audit logging | Entirely unbuilt — no chat log emission in `api/src/chat/agent.ts` / `api/src/routes/chat.ts` / `api/src/logging.ts`. |
+| FR-M03 bookmarks (rev-2 carry-forward) | REST endpoint + PWA wiring (persistence CRUD exists; `BookmarkMenu.tsx` is a stub). AC-16 open. |
+| FR-M04 shareable conversation URLs | History REST endpoint + cold-load restore (route parsing exists). AC-17 open. |
+| FR-M05 read-only share + Fork | Entirely unbuilt. AC-18 open. |
+| AC-33 completions | `DELETE` sub-case + consolidated `cypher-write-rejection.integration.test.ts` (chain ratified piecewise by tasks T-29). |
+| AC-22 SVG vectors (f)/(g) | Dedicated test cases (structural text-only-rendering defence exists; 5 of 7 vectors test-pinned). |
+
+Superseded (not deferred): NFR-05 / AC-25 no-auth invariant — retired by `_baseline` DD-07; guard test deleted.
+
 ## Artifacts
 
 - 📄 Requirements: `.claude/specs/chat-interface/requirements.md` (rev 3)

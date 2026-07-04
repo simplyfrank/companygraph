@@ -2,7 +2,9 @@
 feature: "cto-analytics"
 created: "2026-05-22"
 author: "frank"
-status: "in-review"
+status: "approved"
+approved_by: "frank"
+approved_at: "2026-05-22"
 revision: 2
 size: "medium"
 depends_on: ["graph-core", "ontology-manager", "process-explorer-ui"]

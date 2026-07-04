@@ -255,7 +255,7 @@ Conventions:
 | **Files** | `api/__tests__/chat/no-direct-driver.test.ts` (AC-23); `api/__tests__/chat/no-write-imports.test.ts` (AC-24); `api/__tests__/no-auth-grep.test.ts` (modify — extend include list to chat surface) (AC-25) |
 | **AC** | AC-23, AC-24, AC-25 |
 | **DD** | NFR-03, NFR-04, NFR-05 |
-| **Verification** | each grep test runs against `api/src/chat/**` + `pwa/src/views/chat/**`; all three are CI-gating |
+| **Verification** | `api/__tests__/chat/no-direct-driver.test.ts` (AC-23) + `api/__tests__/chat/no-write-imports.test.ts` (AC-24) — both green in `bun test`. **As-built note (2026-07-04):** the AC-25 leg (`api/__tests__/no-auth-grep.test.ts`) was deleted in the 2026-07-04 `_baseline` adoption — the no-auth invariant (NFR-05) is retired per `_baseline` DD-07 and design DD-23; AC-25 no longer verifiable nor required. |
 | **Complexity** | simple |
 | **Deps** | T-16 (chat code must exist) |
 | **Parallel?** | yes (with T-19, T-20) |
@@ -267,7 +267,7 @@ Conventions:
 | **Files** | `api/__tests__/chat/seed-attrs-presence.test.ts` (DD-21); `shared/__tests__/role-coverage.test.ts` (FR-R01 CI) |
 | **AC** | DD-21 invariant, FR-R01 invariant |
 | **DD** | DD-21, FR-R01 |
-| **Verification** | both tests run in `bun test:integration`; the seed-attrs test loads `retail-mini-enriched.json` then asserts each queried attribute exists on ≥ 1 node/edge |
+| **Verification** | `api/__tests__/chat/seed-attrs-presence.test.ts` (loads `retail-mini-enriched.json`, asserts each queried attribute exists on ≥ 1 node/edge) + `shared/__tests__/role-coverage.test.ts` (every `uj_*` + cross-section id in `shared/seed/journey-catalog.json` maps to a role) — both green in `bun test` |
 | **Complexity** | simple |
 | **Deps** | T-11, T-22 |
 | **Parallel?** | yes (with T-18, T-20) |
@@ -276,10 +276,10 @@ Conventions:
 
 | Field | Value |
 |-------|-------|
-| **Files** | `api/src/errors.ts` — adds `ChatErrorCode` type (NOT extending `ERROR_CODES`); `api/src/chat/tools/dispatch.ts` uses it for `chat:tool_unauthorised_for_role`, `chat:tool_budget_exhausted`, `chat:llm_provider_error` |
+| **Files** | `api/src/errors.ts` — adds `ChatErrorCode` type (NOT extending `ERROR_CODES`); `api/src/chat/tools/dispatch.ts` uses it for `chat:tool_unauthorised_for_role`, `chat:tool_budget_exhausted`, `chat:llm_provider_error`. **As-built deviation (2026-07-04):** `ChatErrorCode` landed in `shared/src/types.ts:106` (shared with the PWA), not in `api/src/errors.ts` — `ERROR_CODES` stayed untouched, which honours the intent. |
 | **AC** | AC-06, AC-29 |
 | **DD** | DD-03 error envelope |
-| **Verification** | covered by T-04 (cost cap), T-10 (dispatch), T-16 (agent) |
+| **Verification** | `api/__tests__/chat/cost-cap.test.ts` (quota exhaustion path, green in `bun test`); plus `manual: from repo root run \`grep -rn "chat:tool_unauthorised_for_role" shared/src/types.ts api/src/chat/tools/dispatch.ts\` in a shell — expect ≥ 1 hit in each file, verifying the chat-namespace codes are typed in shared and dispatched at the tool boundary` |
 | **Complexity** | trivial |
 | **Deps** | T-02 |
 | **Parallel?** | yes (with T-18, T-19) |
@@ -363,7 +363,7 @@ Conventions:
 | **Files** | `api/__tests__/chat/perf-smoke.integration.test.ts` — measures P50/P99 latency for three flows: (1) single-tool turn, (2) 3-tool ReAct loop, (3) 5-tool budget-exhausted. Uses `MockLLMClient` with realistic per-call delay simulated (configured via fixture); tool exec measured against the live seeded Neo4j. Assertions: single-tool P50 ≤ 4 s, P99 ≤ 10 s; 3-tool P50 ≤ 12 s, P99 ≤ 30 s. **Caveat**: Mock LLM delay is configurable; the *real* Anthropic-API latency surfaces only in production. The test is a structural budget check, not a wall-clock guarantee. |
 | **AC** | NFR-02 invariant |
 | **DD** | DD-06 (loop) + DD-09 (quota inside the loop) — perf-impact paths |
-| **Verification** | the test itself is the verification (asserts measured P50/P99 against thresholds). |
+| **Verification** | `api/__tests__/chat/perf-smoke.integration.test.ts` — 2 tests green (single-turn p50 ≤ 100 ms / p99 ≤ 500 ms with `MockLLMClient`; 5-tool budget-exhausted turn ≤ 5 s wall + FR-G05 appended). **As-built note (2026-07-04):** thresholds are structural mock-LLM budgets, tighter than but not equivalent to NFR-02's Anthropic wall-clock budgets — real-provider latency remains unmeasured (caveat already declared in Files column). |
 | **Complexity** | moderate |
 | **Deps** | T-16, T-22 |
 | **Parallel?** | yes (with T-27) |
@@ -424,3 +424,48 @@ Estimate is for one experienced operator-with-agents pair. Parallel
 execution requires the orchestrator to fan out Agent subagents per
 tier, gate the merge on transpile + test, and serialize where a
 later task imports an earlier task's exports.
+
+## As-built reconciliation (2026-07-04)
+
+The feature shipped 2026-05-23; the 2026-07-04 drift adoption
+(`.claude/specs/_baseline/`) ratified the surrounding platform
+changes. The tasks below backfill task-level traceability for
+requirements that never reached this file (modelled on `_baseline`'s
+ratify tasks — they record what exists, they do not schedule new
+work). Existing task ids are untouched.
+
+Concordance for the rev-2 carry-forward references (full table in
+design DD-24): rev-2 FR-12 → FR-M03, rev-2 FR-13 → FR-M04,
+rev-2 FR-14 → FR-M05 (all three: remainder deferred, see §Deferred
+scope below); rev-2 FR-18 → FR-B05 (built — ratified by T-30).
+
+### T-29 — Ratify AC-33 write-rejection chain (as-built backfill 2026-07-04)
+
+- **Covers**: AC-33 (FR-T14 → FR-G03 chain), NFR-04
+- **Files**: `api/src/chat/tools/cypher.ts`, `api/src/chat/tools/dispatch.ts`, `api/src/neo4j/read-only-session.ts`, `api/src/chat/refusal.ts`, `api/src/chat/agent.ts`
+- **As-built status**: the chain is verified **piecewise**, not by the single `cypher-write-rejection.integration.test.ts` file AC-33 names (that file was never created). Link 1–3 (dispatch → `runPassthrough` `defaultAccessMode: "READ"` → `{ ok: false, error: { code: 'write_statement_rejected' } }`) is pinned for `CREATE`/`SET`/`MERGE`; link 4 (orchestrator emits the FR-G03 string verbatim, precedence rule 2) is pinned at the refusal-resolver unit level and wired in `agent.ts`. The `DELETE` sub-case and the consolidated 5-step end-to-end test are deferred (§Deferred scope).
+- **Verification**: `api/__tests__/chat/refusal-write-attempt.integration.test.ts` (3 tests: CREATE/SET/MERGE → `write_statement_rejected` out of dispatch; needs Neo4j, `bun test:integration`) + `api/__tests__/chat/refusal-helpers.test.ts` ("FR-G03 write-rejected string" character-exact + "rule 2 — write_statement_rejected wins over all" → `resolveAnswerBody` returns the FR-G03 string; `bun test`)
+- **Complexity**: trivial (ratification)
+- **Deps**: — (records shipped state)
+
+### T-30 — Ratify NFR + rev-2 carry-forward coverage (as-built backfill 2026-07-04)
+
+- **Covers**: NFR-01, NFR-06, NFR-07, NFR-08, and rev-2 FR-18 → FR-B05 (design DD-23 + DD-24 rows)
+- **Files**: `package.json` (typecheck script), `pwa/src/views/chat/sanitise.ts`, `api/src/chat/sanitise.ts`, `api/src/neo4j/read-only-session.ts`, `api/src/routes/chat.ts`, `api/src/chat/schema-context.ts`, `api/src/chat/tools/describe-schema.ts`
+- **Verification**: NFR-01 — `manual: run \`bun run typecheck\` in a shell from repo root — expect exit 0 (api + pwa transpile clean, no tsc)`. NFR-06 — `pwa/__tests__/chat/sanitise-5-vectors.test.tsx` (8 tests green; vectors (a)–(e) — SVG vectors (f)/(g) deferred, see below). NFR-07 — caps inherited structurally because `runPassthrough` is the sole graph path, proven by `api/__tests__/chat/no-direct-driver.test.ts`. NFR-08 — `api/__tests__/chat/end-to-end.integration.test.ts` ("envelope shape conforms to ChatEnvelope"). FR-B05 (rev-2 FR-18) — `api/__tests__/chat/describe-schema-tool.integration.test.ts` (live-ontology path + compile-time fallback + EventEmitter invalidation)
+- **Complexity**: trivial (ratification)
+- **Deps**: — (records shipped state)
+
+### Deferred scope (2026-07-04 reconciliation — open, visible in STATUS.md)
+
+Verified NOT BUILT in the working tree on 2026-07-04; kept as open
+scope under stable-ID rules (nothing deleted or renumbered):
+
+| Item | Requirement | What exists / what's missing |
+|------|-------------|------------------------------|
+| Chat audit logging | NFR-11 | Nothing — no log emission in `api/src/chat/agent.ts` or `api/src/routes/chat.ts`; no chat hook in `api/src/logging.ts`. |
+| Bookmarks end-to-end | FR-M03 (rev-2 FR-12) | `chat_bookmarks` table + CRUD shipped (`api/src/chat/persistence.ts`, tested in `persistence.test.ts`); REST endpoint not routed; `pwa/src/views/chat/BookmarkMenu.tsx` is a stub. |
+| Shareable conversation URLs | FR-M04 (rev-2 FR-13) | Hash-route parsing shipped in `pwa/src/route.ts`; no conversation-history REST endpoint; no cold-load restore (AC-17 remains `manual`-only and unmet end-to-end). |
+| Read-only share + Fork | FR-M05 (rev-2 FR-14) | Not built anywhere (AC-18 unmet). |
+| AC-33 completions | AC-33 | `DELETE` sub-case + consolidated `cypher-write-rejection.integration.test.ts` (piecewise chain ratified by T-29). |
+| AC-22 SVG vectors | NFR-06 | Test cases for vectors (f) `<use href>` and (g) `<a xlink:href>` (structural defence exists — text-only rendering). |

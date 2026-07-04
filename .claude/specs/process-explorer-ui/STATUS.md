@@ -1,5 +1,5 @@
 # Spec: process-explorer-ui
-**Size**: large | **Created**: 2026-05-22 | **Current Phase**: tasks:approved — ready for execution
+**Size**: large | **Created**: 2026-05-22 | **Current Phase**: execution:complete
 
 | Phase | Status | Approved By | Date |
 |-------|--------|-------------|------|
@@ -120,13 +120,13 @@
 **Sizing rationale**: **Largest** downstream spec by every metric — 28 FRs, 28 ACs, full PWA gesture/keyboard/touch surface (12 Native Conflicts rows), two personas, both read and write paths, interactive canvas-renderer decision, service-worker rollout. > 30 new files expected. Classified **large** by all gates.
 
 **Verification:**
-- `verified_at`: pending
-- `verification_artifact`: pending
+- `verified_at`: 2026-07-04
+- `verification_artifact`: bun --cwd pwa run test (vitest) — 81 files / 238 tests / 0 fail (re-executed 2026-07-04; was 31/171 at 2026-05-23 completion); bun test api/__tests__/search-helper.test.ts — 6 pass / 0 fail (graph-core amendment)
 
 **Artifacts:**
 - 📄 Requirements: `.claude/specs/process-explorer-ui/requirements.md`
-- 📄 Design: `.claude/specs/process-explorer-ui/design.md` (pending)
-- 📄 Tasks: `.claude/specs/process-explorer-ui/tasks.md` (pending)
+- 📄 Design: `.claude/specs/process-explorer-ui/design.md`
+- 📄 Tasks: `.claude/specs/process-explorer-ui/tasks.md`
 - 📝 Reviews: `.claude/specs/process-explorer-ui/review-*.md` (pending)
 - 🗂️ User stories: `companygraph-user-stories.html` (v0.1, 2026-05-22 — PE-1..PE-3, SME-1..SME-3)
 

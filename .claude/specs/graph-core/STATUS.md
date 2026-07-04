@@ -87,3 +87,6 @@ All test files transpile cleanly. Unit tests (`no-auth-grep`, `claude-md-content
 **Next:**
 1. **Scope decision** on the requirements Traceability gaps (FR-16..FR-20 / NFR-11). Accept → append FR rows + bump requirements to revision 4 (and design to revision 3 to map the new FRs to file changes). Decline → re-affirm out-of-scope and proceed.
 2. **Tasks phase** — break work into 1–3 files per task; trace each to FR/AC; close design pass-2 open concerns C-08..C-10 with explicit task-level decisions.
+
+**Changelog:**
+- 2026-07-04: traceability backfill (as-built) — gaps closed, no scope change. tasks.md revision 3: Verification entries added to T-03/T-05/T-06/T-20/T-25/T-26/T-27/T-28 citing shipped tests; AC-01 mapped to T-01+T-02, AC-02 to T-19+T-23; FR-19 deferral ratified via new T-32. No phase status changed; no IDs renumbered.

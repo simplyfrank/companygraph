@@ -5,11 +5,15 @@ author: "frank"
 status: "approved"
 approved_by: "frank"
 approved_at: "2026-05-22"
-revision: 2
+revision: 3
 reviewing_requirements_revision: 4
 reviewing_design_revision: 3
 size: "large"
 total_tasks: 31
+# revision 3 (2026-07-04): traceability backfill (as-built) — Verification
+# entries + AC-01/AC-02/FR-19 mappings; T-32 ratify entry added. No scope
+# change; total_tasks still counts the 31 execution-scope tasks (T-31/T-32
+# are post-completion entries).
 ---
 
 # Tasks: graph-core
@@ -44,7 +48,7 @@ Inline AC fixtures lock them.
 - `.env.example` (per design §8.3)
 - `README.md` (quickstart + runtime matrix + en-US identifier convention + **versioning policy paragraph per NFR-11/AC-28**)
 
-**Maps to**: FR-01, FR-15 (partial — README), NFR-10, NFR-11
+**Maps to**: FR-01, FR-15 (partial — README), NFR-10, NFR-11, AC-01 (jointly with T-02, which ships the `docker-compose.yml` that AC-01 also lists)
 **Complexity**: simple
 **Verification**: `manual: ls package.json tsconfig.json .gitignore .env.example README.md from repo root — all exist; cat README.md and confirm "/api/v2/" + "three months" parallel-support paragraph present`
 **Validation**: `bun install --dry-run` succeeds
@@ -58,7 +62,7 @@ Inline AC fixtures lock them.
 - `scripts/runtime-detect.sh` (per design §8.2)
 - `scripts/wait-for-neo4j.sh` (polls bolt + verifies auth per design §8.3)
 
-**Maps to**: FR-02, FR-10, Risk #7
+**Maps to**: FR-02, FR-10, Risk #7, AC-01 (the `docker-compose.yml` portion — the remaining scaffold files land in T-01)
 **Complexity**: moderate (cross-runtime probing)
 **Verification**: `manual: bun run dev with each of: Docker Desktop / OrbStack / colima / Podman 4 / Rancher Desktop installed (skip if a runtime is not present locally) — expect /healthz reachable within 60s on each; uninstall all runtimes, run bun run dev, expect "no compose runtime detected" stderr from runtime-detect.sh and exit 1`
 **Validation**: `docker compose config -q` (or runtime equivalent) on `docker-compose.yml`
@@ -72,7 +76,7 @@ Inline AC fixtures lock them.
 
 **Maps to**: FR-14 (workflow lands), AC-16 (verification deferred to T-03b)
 **Complexity**: moderate (services block + correct `NEO4J_AUTH` defaults — must avoid the literal-"neo4j" footgun called out in design §8.3)
-**Verification**: static — `actionlint` (or https://rhysd.github.io/actionlint/) passes clean on `.github/workflows/ci.yml`. The end-to-end "PR turns green" verification is deferred to T-03b once unit tests actually exist.
+**Verification**: `manual: run actionlint .github/workflows/ci.yml (or paste into https://rhysd.github.io/actionlint/) — expect zero findings`. Static check only; the end-to-end "PR turns green" verification is deferred to T-03b once unit tests actually exist.
 **Validation**: actionlint
 **Blocks**: T-03b
 **Blocked by**: T-01
@@ -110,7 +114,7 @@ Inline AC fixtures lock them.
 
 **Maps to**: FR-03, FR-04, NFR-05
 **Complexity**: simple
-**Verification**: transpile-only; types are exported and import cleanly into a test stub
+**Verification**: `api/__tests__/healthz.integration.test.ts` + `api/__tests__/stats.integration.test.ts` — both import `Health` / `Stats` from `@companygraph/shared/types` and pass, proving the types export and import cleanly into real consumers (as-built backfill 2026-07-04: this replaces the original "imports into a test stub" placeholder — the shipped integration tests are the actual consumers); plus `bun run typecheck` transpiles the module
 **Validation**: transpile
 **Blocks**: T-06, T-09, T-10, T-12..T-17
 **Blocked by**: T-04
@@ -122,8 +126,8 @@ Inline AC fixtures lock them.
 
 **Maps to**: FR-08
 **Complexity**: moderate (the only judgment call is writing realistic retail names + ensuring every edge passes `EDGE_ENDPOINTS` constraints — content is bounded)
-**Verification**: structural — parse JSON, assert exact node/edge counts match FR-08; edge endpoints all reference declared node ids; every edge's `(type, fromLabel, toLabel)` combination appears in `EDGE_ENDPOINTS`
-**Validation**: `bun test shared/__tests__/seed-shape.test.ts`
+**Verification**: `api/__tests__/import.integration.test.ts` — loads `shared/seed/retail-mini.json` and asserts the exact FR-08 node counts (4/8/32/6/6/4) plus non-zero counts for all six edge types; edge-endpoint and `EDGE_ENDPOINTS` conformance is enforced row-by-row by `validateEdge` during that import (any violation would surface in `errors[]` and fail the count assertions). As-built backfill 2026-07-04: the originally planned standalone `shared/__tests__/seed-shape.test.ts` was never shipped — the structural assertions live in the import test instead.
+**Validation**: `bun test:integration api/__tests__/import.integration.test.ts`
 **Blocks**: T-26 (seed loader), T-27 (test packs needing realistic data)
 **Blocked by**: T-04, T-05
 
@@ -286,7 +290,7 @@ Inline AC fixtures lock them.
 - `api/src/router.ts` (dispatch table mounting `/api/v1/*` — single source of truth for the §5.1 route table)
 - `api/src/server.ts` (`Bun.serve` entry + `applySchema` call + `logRequest` middleware + bind-host enforcement per NFR-02)
 
-**Maps to**: FR-06, FR-07, FR-11, FR-13, FR-16, FR-17, FR-18, FR-20, NFR-02
+**Maps to**: FR-06, FR-07, FR-11, FR-13, FR-16, FR-17, FR-18, FR-20, NFR-02, AC-02 (API half — `api/src/server.ts` is the `bun build --no-bundle` entrypoint AC-02 transpiles; the PWA half closes in T-23)
 **Complexity**: moderate (wiring everything; bind-host correctness; logging middleware shape)
 **Verification**: `bun test:integration api/__tests__/bind-host.integration.test.ts` (AC-19) + `envelope.test.ts` (AC-20 — exhaustive ERROR_CODES coverage via mocked DB)
 **Validation**: transpile + integration tests
@@ -300,7 +304,7 @@ Inline AC fixtures lock them.
 
 **Maps to**: NFR-08, AC-22
 **Complexity**: simple (test-only)
-**Verification**: this IS the verification — runs as part of `bun test`. Passes on a clean codebase; intentionally add a `req.auth` reference to a stub file → expect fail; intentionally add a comment `// authentication: intentional: no auth` → expect pass
+**Verification**: `manual: git show 12656a9^:api/__tests__/no-auth-grep.test.ts — expect the shipped guard test source (it was green in the 2026-05-23 58/58 unit run recorded in STATUS.md)`. As-built backfill 2026-07-04: the file was deleted in commit `12656a9` (the `_baseline` auth adoption — DD-07 retired NFR-08/AC-22), so no live test exists by design; while NFR-08 was in force the test ran in every `bun test` and was itself the verification (passed clean codebase; failed on an injected `req.auth` reference; passed with the `// authentication: intentional` allowlist comment)
 **Validation**: unit test runs in CI
 **Blocks**: —
 **Blocked by**: T-19
@@ -340,7 +344,7 @@ Inline AC fixtures lock them.
 - `pwa/src/App.tsx` (connectivity banner + stats summary + poll cadence per design §7.1)
 - `pwa/src/api.ts` (typed client — only `getHealthz()` + `getStats()`)
 
-**Maps to**: FR-09, AC-14
+**Maps to**: FR-09, AC-14, AC-02 (PWA half — `pwa/src/main.tsx` is the second `bun build --no-bundle` entrypoint AC-02 transpiles; the API half closed in T-19)
 **Complexity**: moderate (visibility-change poll toggle is the only judgment call; otherwise pure markup + fetch)
 **Verification**: AC-14 — `manual: bun run dev on macOS, open http://127.0.0.1:5173/ in iPhone Safari (via local IP), iPad Safari, macOS Safari (trackpad), macOS Chrome — expect "Connected" banner + node-count summary in each; then bun run stop and observe banner flips to red within 30 s without page reload`
 **Validation**: transpile
@@ -374,7 +378,7 @@ Inline AC fixtures lock them.
 
 **Maps to**: AC-05, AC-06, AC-13, design-review C-05 + C-10
 **Complexity**: moderate (the 216-combo iterator + the C-10 cross-type-id fixture + the empty-PATCH fixture from C-08)
-**Verification**: `bun test:integration` on the four files — all pass
+**Verification**: `bun test:integration api/__tests__/nodes-crud.integration.test.ts api/__tests__/edges-crud.integration.test.ts api/__tests__/url-param-guards.test.ts api/__tests__/validation.integration.test.ts` — all pass
 **Validation**: integration tests pass
 **Blocks**: —
 **Blocked by**: T-10, T-11, T-12, T-24
@@ -389,7 +393,7 @@ Inline AC fixtures lock them.
 
 **Maps to**: AC-07, AC-08, AC-27, design-review C-03 + C-09 pin
 **Complexity**: moderate (mostly fixture authoring; C-09 fixture is the one judgment-call test)
-**Verification**: `bun test:integration` on the four files — all pass
+**Verification**: `bun test:integration api/__tests__/import.integration.test.ts api/__tests__/import-idempotent.integration.test.ts api/__tests__/import-dryrun.integration.test.ts api/__tests__/import-phase-errors.integration.test.ts` — all pass
 **Validation**: integration tests pass
 **Blocks**: —
 **Blocked by**: T-06, T-14, T-21, T-24
@@ -403,7 +407,7 @@ Inline AC fixtures lock them.
 
 **Maps to**: AC-09, AC-10, AC-23
 **Complexity**: complex (the row-cap timing assertion requires instrumenting the driver to confirm only 1001 records were materialised; query-timeout test uses a contrived **Cartesian product** — e.g. `MATCH (a),(b),(c),(d),(e),(f) RETURN count(*)` against the 32-activity fixture — which produces ~10⁹ combinations and easily exceeds the 5 s tx timeout. No APOC plugin needed in CI, sidestepping the absence of `NEO4J_PLUGINS` in design §11's services block.)
-**Verification**: `bun test:integration` on the three files — all pass
+**Verification**: `bun test:integration api/__tests__/query-service.integration.test.ts api/__tests__/cypher-passthrough.integration.test.ts api/__tests__/query-caps.integration.test.ts` — all pass
 **Validation**: integration tests pass
 **Blocks**: —
 **Blocked by**: T-15, T-24
@@ -417,7 +421,7 @@ Inline AC fixtures lock them.
 
 **Maps to**: AC-24, AC-25, AC-26
 **Complexity**: moderate (the OpenAPI validation against the JSON Schema is the non-trivial step; round-trip is straightforward)
-**Verification**: `bun test:integration` on the three files — all pass
+**Verification**: `bun test:integration api/__tests__/openapi.integration.test.ts api/__tests__/export-import-roundtrip.integration.test.ts api/__tests__/export-ndjson.integration.test.ts` — all pass
 **Validation**: integration tests pass
 **Blocks**: —
 **Blocked by**: T-17, T-18, T-21, T-24, T-26
@@ -506,3 +510,25 @@ T-25 fixture).
 | ID | Task | Files | FR / AC | Complexity | Depends on | Validation |
 |----|------|-------|---------|-----------:|------------|------------|
 | **T-31** | **Add `GET /api/v1/query/search?label&q&limit` + 6 per-label fulltext indexes**. Amendment from `process-explorer-ui/FR-17` and `process-explorer-ui/AC-28`. **Filed against graph-core after `execution:complete`** — graph-core's foundation is shipped and this is a strictly-additive amendment honouring NFR-07 (one new read-only helper, no other API surface extensions). Endpoint inlines its zod `searchSchema` co-located with the handler (no separate `schemas.ts` aggregator exists). The 6 fulltext indexes (`<label_lower>_name_fulltext`) are added inside the existing `applySchema()` loop in `bootstrap.ts`, additive to the per-label range index already there. All DDLs use `IF NOT EXISTS` so the call remains idempotent (process-explorer-ui/AC-32). | `api/src/routes/query.ts` (append handler + inline searchSchema), `api/src/router.ts` (register route), `api/src/neo4j/bootstrap.ts` (append fulltext index per label), `api/src/routes/openapi.ts` (register OpenAPI path), `api/__tests__/search-helper.test.ts` (new integration test) | process-explorer-ui FR-17 / AC-28 / AC-32 | simple | T-09 (bootstrap), T-15 (query routes), T-19 (openapi) — all shipped | `bun test:integration api/__tests__/search-helper.test.ts` green; `bun run schema:apply` second-run leaves `SHOW FULLTEXT INDEXES WHERE name ENDS WITH '_name_fulltext'` count unchanged at 6; `GET /api/v1/openapi.json` includes the new path |
+
+## Traceability backfill (as-built, 2026-07-04)
+
+Documentation-only pass: no scope change, no new work, no renumbering.
+T-01/T-02 gained AC-01, T-19/T-23 gained AC-02 (the tasks that actually
+closed those criteria); T-03, T-05, T-06, T-20, T-25..T-28 gained explicit
+Verification entries citing the tests that actually shipped (or, for T-20's
+since-retired guard test, the git evidence). T-32 below is a ratify-style
+entry (modeled on `.claude/specs/_baseline/tasks.md`) recording FR-19's
+deferral so the deferred requirement is traceable in this file.
+
+### T-32 — Ratify FR-19 deferral (change feed — not built, by decision)
+
+**Files**:
+- none (ratification-only — confirms an as-built *absence*)
+
+**Maps to**: FR-19 (priority `deferred` — requirements.md "Gaps closure (revision 4)" records the owner's decision to defer user story API-2.3 to a follow-on spec `graph-core-change-feed`)
+**Complexity**: simple (no code; documentation ratification)
+**Verification**: `manual: curl -si "http://127.0.0.1:8787/api/v1/changes?since=2026-01-01T00:00:00Z" against a running stack — expect a 404 not_found error envelope, verifying no incremental-sync route was ever shipped (the unrelated /api/v1/journeys/:id/changes version-history route from a later adoption does not implement FR-19's tombstone contract)`
+**Validation**: n/a (nothing to build; `graph-core-change-feed` has not been started as of 2026-07-04)
+**Blocks**: —
+**Blocked by**: —

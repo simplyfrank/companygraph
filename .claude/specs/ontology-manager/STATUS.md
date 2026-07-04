@@ -102,3 +102,6 @@
 **Next**:
 1. Requirements gate (this spec) — user approval, then large-spec review pass via the spec-review sub-agent.
 2. After approval → design phase, which must resolve the 7 open questions above.
+
+**Changelog:**
+- 2026-07-04: traceability backfill (as-built). Two gap tokens annotated in tasks.md trace columns, no scope change: (a) T-19 now cites the `process-explorer-ui/FR-28` browser-consumer contract already named in requirements FR-17 and design §Risks (SSE endpoint shipped in `api/src/routes/ontology-events.ts`, verified by `api/__tests__/ontology-events-sse.integration.test.ts`); (b) T-15 now cites story-level `OA-1.1 AC-3` (non-retroactive attribute addition per FR-05/AC-03, verified as-built by the `"AC-03: schema patch does NOT retroactively rewrite existing rows"` case in `api/__tests__/ontology-attribute-enforcement.integration.test.ts`).
