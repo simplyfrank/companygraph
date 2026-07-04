@@ -1,0 +1,127 @@
+# Apache Airflow Helm values for batch ETL
+# Deployed via the official Airflow Helm chart
+
+# Airflow configuration
+airflow:
+  image:
+    repository: apache/airflow
+    tag: 2.8.0-python3.11
+    pullPolicy: IfNotPresent
+
+  executor: CeleryExecutor
+
+  # Fernet key for encryption (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+  fernetKey: "CHANGE_ME_IN_PRODUCTION"
+
+  # Secret for Airflow connections
+  existingSecret: "airflow-connections"
+
+  # DAGs configuration
+  dags:
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClassName: gp3
+    gitSync:
+      enabled: true
+      repo: https://github.com/companygraph/airflow-dags.git
+      branch: main
+      subPath: "dags"
+      rev: HEAD
+
+  # Logs configuration
+  logs:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClassName: gp3
+
+  # Scheduler configuration
+  scheduler:
+    replicas: 2
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 2Gi
+      limits:
+        cpu: "1"
+        memory: 4Gi
+
+  # Webserver configuration
+  webserver:
+    replicas: 2
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+
+  # Worker configuration
+  workers:
+    replicas: 4
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+      limits:
+        cpu: "2"
+        memory: 8Gi
+
+  # Redis for Celery broker
+  redis:
+    enabled: true
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+
+  # PostgreSQL for metadata
+  postgresql:
+    enabled: true
+    resources:
+      requests:
+        cpu: "500m"
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: airflow.companygraph.example.com
+        paths:
+          - path: "/"
+            pathType: Prefix
+    tls:
+      - secretName: airflow-tls
+        hosts:
+          - airflow.companygraph.example.com
+
+  # Environment variables
+  env:
+    - name: AIRFLOW__CORE__LOAD_EXAMPLES
+      value: "false"
+    - name: AIRFLOW__CORE__DAGS_FOLDER
+      value: "/opt/airflow/dags"
+    - name: AIRFLOW__CORE__BASE_LOG_FOLDER
+      value: "/opt/airflow/logs"
+    - name: AIRFLOW__CORE__UNIT_TEST_MODE
+      value: "false"
+    - name: AIRFLOW__API__AUTH_BACKEND
+      value: "airflow.api.auth.backend.basic_auth"
+    - name: AIRFLOW__WEBSERVER__EXPOSE_CONFIG
+      value: "true"
+
+  # StatsD/Prometheus metrics
+  statsd:
+    enabled: true

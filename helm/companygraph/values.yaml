@@ -1,0 +1,122 @@
+# Default values for CompanyGraph
+# This is a YAML-formatted file.
+
+replicaCount:
+  api: 6
+  pwa: 3
+  ingestWorkers: 4
+
+image:
+  api:
+    repository: companygraph/api
+    tag: latest
+    pullPolicy: IfNotPresent
+  pwa:
+    repository: companygraph/pwa
+    tag: latest
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8787
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: companygraph.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: companygraph-tls
+      hosts:
+        - companygraph.example.com
+
+resources:
+  api:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  pwa:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  ingestWorkers:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+autoscaling:
+  api:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  pwa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 60
+  ingestWorkers:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Neo4j configuration
+neo4j:
+  uri: "bolt://neo4j:7687"
+  user: "neo4j"
+  password: ""  # Set via secret
+
+# Feature flags
+features:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: true
+  rateLimiting:
+    enabled: true
+  kafka:
+    enabled: false
+  airflow:
+    enabled: false
+
+# Rate limiting
+rateLimit:
+  windowMs: 60000
+  maxRequests: 1000

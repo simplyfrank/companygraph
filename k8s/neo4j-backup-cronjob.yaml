@@ -1,0 +1,172 @@
+# Neo4j backup strategy using CronJobs
+# Daily full backups and hourly incremental backups
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: neo4j-backup-script
+  namespace: companygraph-prod
+data:
+  backup.sh: |
+    #!/bin/bash
+    set -e
+    
+    NEO4J_URI="${NEO4J_URI:-bolt://neo4j:7687}"
+    NEO4J_USER="${NEO4J_USER:-neo4j}"
+    NEO4J_PASSWORD="${NEO4J_PASSWORD}"
+    BACKUP_TYPE="${BACKUP_TYPE:-full}"
+    BACKUP_DIR="/backups"
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    
+    # Create backup directory
+    mkdir -p ${BACKUP_DIR}/${BACKUP_TYPE}
+    
+    if [ "$BACKUP_TYPE" = "full" ]; then
+      # Full backup using neo4j-admin
+      neo4j-admin database dump neo4j --to=${BACKUP_DIR}/full/neo4j_${TIMESTAMP}.dump
+      # Compress the backup
+      gzip ${BACKUP_DIR}/full/neo4j_${TIMESTAMP}.dump
+      # Keep only last 7 days of full backups
+      find ${BACKUP_DIR}/full -name "*.dump.gz" -mtime +7 -delete
+    else
+      # Incremental backup
+      neo4j-admin database backup neo4j --to=${BACKUP_DIR}/incremental/neo4j_${TIMESTAMP} --backup-dir=${BACKUP_DIR}/incremental
+      # Keep only last 24 hours of incremental backups
+      find ${BACKUP_DIR}/incremental -name "*_incremental" -mtime +1 -delete
+    fi
+    
+    # Upload to S3 (if configured)
+    if [ -n "${S3_BUCKET}" ]; then
+      aws s3 sync ${BACKUP_DIR} s3://${S3_BUCKET}/neo4j-backups/
+    fi
+    
+    echo "Backup completed: ${BACKUP_TYPE} at ${TIMESTAMP}"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: neo4j-full-backup
+  namespace: companygraph-prod
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: neo4j:5.15.0-enterprise
+            command:
+            - /bin/bash
+            - /scripts/backup.sh
+            env:
+            - name: NEO4J_URI
+              value: "bolt://neo4j:7687"
+            - name: NEO4J_USER
+              valueFrom:
+                secretKeyRef:
+                  name: companygraph-secrets
+                  key: neo4j-user
+            - name: NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: companygraph-secrets
+                  key: neo4j-password
+            - name: BACKUP_TYPE
+              value: "full"
+            - name: S3_BUCKET
+              value: "companygraph-backups"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            - name: backup-script
+              mountPath: /scripts
+            resources:
+              requests:
+                cpu: "500m"
+                memory: 2Gi
+              limits:
+                cpu: "1"
+                memory: 4Gi
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: neo4j-backup-pvc
+          - name: backup-script
+            configMap:
+              name: neo4j-backup-script
+              defaultMode: 0755
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: neo4j-incremental-backup
+  namespace: companygraph-prod
+spec:
+  schedule: "0 * * * *"  # Hourly
+  successfulJobsHistoryLimit: 24
+  failedJobsHistoryLimit: 6
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: neo4j:5.15.0-enterprise
+            command:
+            - /bin/bash
+            - /scripts/backup.sh
+            env:
+            - name: NEO4J_URI
+              value: "bolt://neo4j:7687"
+            - name: NEO4J_USER
+              valueFrom:
+                secretKeyRef:
+                  name: companygraph-secrets
+                  key: neo4j-user
+            - name: NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: companygraph-secrets
+                  key: neo4j-password
+            - name: BACKUP_TYPE
+              value: "incremental"
+            - name: S3_BUCKET
+              value: "companygraph-backups"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+            - name: backup-script
+              mountPath: /scripts
+            resources:
+              requests:
+                cpu: "250m"
+                memory: 1Gi
+              limits:
+                cpu: "500m"
+                memory: 2Gi
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: neo4j-backup-pvc
+          - name: backup-script
+            configMap:
+              name: neo4j-backup-script
+              defaultMode: 0755
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neo4j-backup-pvc
+  namespace: companygraph-prod
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3
+  resources:
+    requests:
+      storage: 1Ti

@@ -1,0 +1,82 @@
+# Kafka Connect for POS and inventory system connectors
+# Uses Strimzi Kafka Connect with custom connectors
+
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: companygraph-kafka-connect
+  namespace: companygraph-prod
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  version: 3.6.0
+  replicas: 2
+  bootstrapServers: companygraph-kafka-kafka-bootstrap:9092
+  config:
+    group.id: companygraph-connect-cluster
+    offset.storage.topic: companygraph-connect-offsets
+    offset.storage.partitions: 3
+    offset.storage.replication.factor: 3
+    config.storage.topic: companygraph-connect-configs
+    config.storage.replication.factor: 3
+    status.storage.topic: companygraph-connect-status
+    status.storage.partitions: 3
+    status.storage.replication.factor: 3
+  resources:
+    requests:
+      cpu: "1"
+      memory: 4Gi
+    limits:
+      cpu: "2"
+      memory: 8Gi
+---
+# POS System Connector (Debezium for CDC)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: pos-system-connector
+  namespace: companygraph-prod
+  labels:
+    strimzi.io/cluster: companygraph-kafka-connect
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 2
+  config:
+    database.hostname: pos-db.companygraph-prod.svc.cluster.local
+    database.port: 5432
+    database.user: ${file:secrets/pos-db-credentials.properties:username}
+    database.password: ${file:secrets/pos-db-credentials.properties:password}
+    database.dbname: pos
+    topic.prefix: pos
+    plugin.name: pgoutput
+    database.server.name: pos-db
+    slot.name: debezium_pos_slot
+    table.include.list: public.transactions,public.line_items
+    publication.autocreate.mode: filtered
+    snapshot.mode: schema_only
+    transforms: route
+    transforms.route.type: org.apache.kafka.connect.transforms.RegexRouter
+    transforms.route.regex: ([^.]+)\.([^.]+)\.([^.]+)
+    transforms.route.replacement: $3
+---
+# Inventory System Connector (JDBC for periodic sync)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: inventory-system-connector
+  namespace: companygraph-prod
+  labels:
+    strimzi.io/cluster: companygraph-kafka-connect
+spec:
+  class: io.confluent.connect.jdbc.JdbcSourceConnector
+  tasksMax: 2
+  config:
+    connection.url: jdbc:postgresql://inventory-db.companygraph-prod.svc.cluster.local:5432/inventory
+    connection.user: ${file:secrets/inventory-db-credentials.properties:username}
+    connection.password: ${file:secrets/inventory-db-credentials.properties:password}
+    mode: timestamp
+    timestamp.column.name: updated_at
+    topic.prefix: inventory
+    poll.interval.ms: 60000
+    table.whitelist: products,stock_levels,locations
+    incrementing.column.name: id

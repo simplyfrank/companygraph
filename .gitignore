@@ -26,3 +26,7 @@ data/ontology-manager/
 data/chat.db
 data/chat.db-shm
 data/chat.db-wal
+
+# Runtime artifacts + redundant design archive
+api/data/
+design/companygraph_v2.zip

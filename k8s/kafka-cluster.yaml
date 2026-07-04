@@ -1,0 +1,123 @@
+# Apache Kafka cluster for real-time data ingest
+# Uses Strimzi Kafka operator for Kubernetes deployment
+
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: companygraph-kafka
+  namespace: companygraph-prod
+spec:
+  kafka:
+    version: 3.6.0
+    replicas: 3
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      inter.broker.protocol.version: "3.6"
+      log.retention.hours: 168
+      log.segment.bytes: 1073741824
+      log.retention.check.interval.ms: 300000
+      num.partitions: 12
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        class: gp3
+    resources:
+      requests:
+        cpu: "2"
+        memory: 8Gi
+      limits:
+        cpu: "4"
+        memory: 16Gi
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      size: 50Gi
+      class: gp3
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+      limits:
+        cpu: "2"
+        memory: 8Gi
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+---
+# Kafka Topics for retail operations
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: store-transactions
+  namespace: companygraph-prod
+  labels:
+    strimzi.io/cluster: companygraph-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000  # 7 days
+    segment.ms: 86400000  # 1 day
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: inventory-updates
+  namespace: companygraph-prod
+  labels:
+    strimzi.io/cluster: companygraph-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    segment.ms: 86400000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: order-events
+  namespace: companygraph-prod
+  labels:
+    strimzi.io/cluster: companygraph-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    segment.ms: 86400000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: fulfillment-events
+  namespace: companygraph-prod
+  labels:
+    strimzi.io/cluster: companygraph-kafka
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    segment.ms: 86400000
+    cleanup.policy: delete

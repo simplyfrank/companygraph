@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: companygraph-prod
+  labels:
+    name: companygraph-prod
+    environment: production

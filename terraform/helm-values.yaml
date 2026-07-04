@@ -1,0 +1,7 @@
+# Helm values template for Terraform
+# This file is templated by Terraform with sensitive values
+
+neo4j:
+  uri: "${neo4j_uri}"
+  user: "${neo4j_user}"
+  password: "${neo4j_password}"

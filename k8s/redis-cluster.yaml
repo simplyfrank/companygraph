@@ -1,0 +1,158 @@
+# Redis cluster for caching
+# Uses Redis Cluster mode for high availability and sharding
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: companygraph-prod
+data:
+  redis.conf: |
+    cluster-enabled yes
+    cluster-config-file nodes.conf
+    cluster-node-timeout 5000
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    save 900 1
+    save 300 10
+    save 60 10000
+    maxmemory 4gb
+    maxmemory-policy allkeys-lru
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: companygraph-prod
+  labels:
+    app: redis
+spec:
+  serviceName: redis
+  replicas: 6
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        command:
+        - redis-server
+        - /etc/redis/redis.conf
+        ports:
+        - containerPort: 6379
+          name: redis
+        - containerPort: 16379
+          name: cluster
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /etc/redis
+        resources:
+          requests:
+            cpu: "500m"
+            memory: 2Gi
+          limits:
+            cpu: "1"
+            memory: 4Gi
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: gp3
+      resources:
+        requests:
+          storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: companygraph-prod
+spec:
+  clusterIP: None
+  ports:
+  - port: 6379
+    name: redis
+  - port: 16379
+    name: cluster
+  selector:
+    app: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-client
+  namespace: companygraph-prod
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app: redis
+---
+# Redis cluster initialization job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redis-cluster-init
+  namespace: companygraph-prod
+spec:
+  template:
+    spec:
+      containers:
+      - name: redis-init
+        image: redis:7.2-alpine
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Wait for all Redis pods to be ready
+          sleep 30
+          
+          # Create Redis cluster
+          redis-cli --cluster create \
+            redis-0.redis:6379 \
+            redis-1.redis:6379 \
+            redis-2.redis:6379 \
+            redis-3.redis:6379 \
+            redis-4.redis:6379 \
+            redis-5.redis:6379 \
+            --cluster-replicas 1 \
+            --cluster-yes
+          
+          echo "Redis cluster initialized"
+      restartPolicy: OnFailure
