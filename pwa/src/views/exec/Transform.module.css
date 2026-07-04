@@ -81,3 +81,47 @@
   font-weight: 600;
   font-family: var(--font-mono);
 }
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-md);
+}
+
+.quickNav {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.quickNavTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: border-color 120ms, background 120ms, box-shadow 120ms;
+}
+
+.quickNavTile:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 12%, transparent);
+}
+
+.quickNavTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  font-family: var(--font-display);
+}
+
+.quickNavLede {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  line-height: 1.4;
+}

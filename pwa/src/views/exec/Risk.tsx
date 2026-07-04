@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
+import { api } from "../../api";
+import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
-import { ViewHeader, SecLabel } from "../_shared";
+import { PieChartCard, HorizontalBarChartCard, STATUS_COLORS, SEVERITY_COLORS } from "../../components/charts";
+import { ViewHeader, SecLabel, Loading, ErrorState } from "../_shared";
 import styles from "./Risk.module.css";
 
-// Static risk register — placeholder shape that mirrors what
-// cto-analytics will surface once the schema lands. Each row carries a
-// likelihood (1-5) and an impact (1-5); the heatmap is just the
-// projection of the register onto that 5x5 grid.
+// Risk register row from PostgreSQL
 interface RiskRow {
   id: string;
   name: string;
@@ -17,22 +17,11 @@ interface RiskRow {
   impact: 1 | 2 | 3 | 4 | 5;
   status: "open" | "mitigating" | "accepted" | "resolved";
   trend: "up" | "flat" | "down";
+  description?: string;
+  mitigation_plan?: string;
+  created_at: string;
+  updated_at: string;
 }
-
-const RISKS: RiskRow[] = [
-  { id: "r-01", name: "Single-vendor lock on OMS",                       owner: "VP Ops",      domain: "Logistics",       likelihood: 3, impact: 4, status: "mitigating", trend: "down" },
-  { id: "r-02", name: "Label printer SLA breach (1500 ms p95)",          owner: "VP Ops",      domain: "Logistics",       likelihood: 4, impact: 3, status: "open",       trend: "up"   },
-  { id: "r-03", name: "Pricing System ↔ POS coupling tight",             owner: "CTO",         domain: "Merchandising",   likelihood: 3, impact: 3, status: "open",       trend: "flat" },
-  { id: "r-04", name: "Manual vendor-shipment paperwork",                owner: "Head of SC",  domain: "Supply Chain",    likelihood: 4, impact: 2, status: "mitigating", trend: "flat" },
-  { id: "r-05", name: "CRM PII export not encrypted-at-rest",            owner: "Security",    domain: "Customer/CRM",    likelihood: 2, impact: 5, status: "open",       trend: "flat" },
-  { id: "r-06", name: "POS terminal boot time > 5 min on Friday open",   owner: "Store Lead",  domain: "Store Operations",likelihood: 3, impact: 2, status: "accepted",   trend: "flat" },
-  { id: "r-07", name: "Cash-drawer reconciliation manual",               owner: "Finance",     domain: "Store Operations",likelihood: 2, impact: 2, status: "mitigating", trend: "down" },
-  { id: "r-08", name: "DC inbound truck slot overflow during peak",      owner: "Head of SC",  domain: "Supply Chain",    likelihood: 5, impact: 3, status: "open",       trend: "up"   },
-  { id: "r-09", name: "Loyalty-tier upgrade fraud vector",               owner: "Security",    domain: "Customer/CRM",    likelihood: 2, impact: 3, status: "mitigating", trend: "down" },
-  { id: "r-10", name: "Markdown rollback path untested",                 owner: "Pricing",     domain: "Merchandising",   likelihood: 2, impact: 4, status: "open",       trend: "flat" },
-  { id: "r-11", name: "Courier API rate-limit (last-mile)",              owner: "VP Ops",      domain: "Logistics",       likelihood: 3, impact: 4, status: "open",       trend: "up"   },
-  { id: "r-12", name: "ERP year-end close compute spike",                owner: "Finance",     domain: "Supply Chain",    likelihood: 5, impact: 5, status: "open",       trend: "flat" },
-];
 
 const STATUS_TONE: Record<RiskRow["status"], "good" | "accent" | "warn" | "neutral"> = {
   resolved: "good",
@@ -61,9 +50,17 @@ export function ExecRisk() {
   const [highlightedCell, setHighlightedCell] = useState<{ l: number; i: number } | null>(null);
   const [activeOwner, setActiveOwner] = useState<string | null>(null);
 
+  // Fetch risks from PostgreSQL
+  const risks = useFetch(
+    () => fetch('/api/v1/risk-register').then((r) => r.json()).then((data) => data.data),
+    []
+  );
+
+  const risksData: RiskRow[] = risks.status === 'ok' ? risks.data : [];
+
   const filtered = useMemo(() =>
-    activeOwner ? RISKS.filter((r) => r.owner === activeOwner) : RISKS,
-    [activeOwner],
+    activeOwner ? risksData.filter((r) => r.owner === activeOwner) : risksData,
+    [activeOwner, risksData],
   );
 
   const cellRisks = useMemo(() => {
@@ -77,7 +74,25 @@ export function ExecRisk() {
     return map;
   }, [filtered]);
 
-  const owners = useMemo(() => [...new Set(RISKS.map((r) => r.owner))].sort(), []);
+  const owners = useMemo(() => [...new Set(risksData.map((r) => r.owner))].sort(), [risksData]);
+
+  if (risks.status === 'loading') {
+    return (
+      <>
+        <ViewHeader title="Risk" lede="Risk register projected onto a likelihood × impact heatmap." />
+        <Loading what="risks" />
+      </>
+    );
+  }
+
+  if (risks.status === 'error') {
+    return (
+      <>
+        <ViewHeader title="Risk" lede="Risk register projected onto a likelihood × impact heatmap." />
+        <ErrorState message={risks.error} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -102,10 +117,10 @@ export function ExecRisk() {
               className={`${styles.ownerBtn} ${activeOwner === null ? styles.ownerActive : ""}`}
               onClick={() => setActiveOwner(null)}
             >
-              All <span className={styles.ownerCount}>{RISKS.length}</span>
+              All <span className={styles.ownerCount}>{risksData.length}</span>
             </button>
             {owners.map((o) => {
-              const n = RISKS.filter((r) => r.owner === o).length;
+              const n = risksData.filter((r) => r.owner === o).length;
               return (
                 <button
                   key={o}
@@ -119,6 +134,29 @@ export function ExecRisk() {
             })}
           </div>
         </Card>
+      </div>
+
+      <div style={{ height: 24 }} />
+
+      <div className={styles.dashboardGrid}>
+        <PieChartCard
+          title="Status distribution"
+          data={[
+            { label: "open", value: filtered.filter((r) => r.status === "open").length, color: STATUS_COLORS.open ?? "#f59e0b" },
+            { label: "mitigating", value: filtered.filter((r) => r.status === "mitigating").length, color: STATUS_COLORS.mitigating ?? "#3b82f6" },
+            { label: "accepted", value: filtered.filter((r) => r.status === "accepted").length, color: STATUS_COLORS.accepted ?? "#8b5cf6" },
+            { label: "resolved", value: filtered.filter((r) => r.status === "resolved").length, color: STATUS_COLORS.resolved ?? "#22c55e" },
+          ]}
+          donut
+        />
+        <HorizontalBarChartCard
+          title="Risks by owner"
+          data={owners.map((o) => ({
+            label: o,
+            value: filtered.filter((r) => r.owner === o).length,
+          }))}
+          xLabel="risks"
+        />
       </div>
 
       <div style={{ height: 24 }} />

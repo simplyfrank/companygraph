@@ -2,6 +2,7 @@ import { api } from "../../api";
 import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
+import { GroupedBarChartCard, KpiCard, CHART_COLORS } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState, SecLabel } from "../_shared";
 import styles from "./Finance.module.css";
 
@@ -83,6 +84,22 @@ export function ExecFinance() {
         <>
           <KPITiles rows={spend.data.rows as unknown as DomainSpendRow[]} />
           <div style={{ height: 24 }} />
+          <div className={styles.dashboardGrid}>
+            <GroupedBarChartCard
+              title="Spend vs budget"
+              data={(spend.data.rows as unknown as DomainSpendRow[]).map((r) => ({
+                label: r.domainName,
+                spend: Math.round(r.totalCostPerMonth),
+                budget: BUDGETS[r.domainName] ?? 0,
+              }))}
+              bars={[
+                { dataKey: "budget", color: CHART_COLORS.gray, label: "Budget" },
+                { dataKey: "spend", color: CHART_COLORS.accent, label: "Spend" },
+              ]}
+              yLabel="USD / mo"
+            />
+          </div>
+          <div style={{ height: 24 }} />
           <Card title="Per-domain budget vs spend">
             <BudgetTable rows={spend.data.rows as unknown as DomainSpendRow[]} />
           </Card>
@@ -103,44 +120,22 @@ function KPITiles({ rows }: { rows: DomainSpendRow[] }) {
   ).length;
   return (
     <div className={styles.tiles}>
-      <Tile label="Total spend / mo" value={fmtUsd(totalSpend)} caption="across all domains" />
-      <Tile label="Total runs / mo" value={fmtCount(totalRuns)} caption="∑ journey runs" />
-      <Tile label="Avg cost / run" value={`$${avgCostPerRun.toFixed(2)}`} caption="weighted" />
-      <Tile
+      <KpiCard label="Total spend / mo" value={fmtUsd(totalSpend)} caption="across all domains" />
+      <KpiCard label="Total runs / mo" value={fmtCount(totalRuns)} caption="∑ journey runs" />
+      <KpiCard label="Avg cost / run" value={`$${avgCostPerRun.toFixed(2)}`} caption="weighted" />
+      <KpiCard
         label="Utilisation"
         value={`${utilization.toFixed(0)}%`}
         caption={utilization > 100 ? "over budget" : "of $" + fmtCount(totalBudget)}
         tone={utilization > 100 ? "danger" : utilization > 85 ? "warn" : "good"}
       />
-      <Tile
+      <KpiCard
         label="Domains over"
         value={String(overBudget)}
         caption="exceeding budget"
         tone={overBudget > 0 ? "warn" : "good"}
       />
     </div>
-  );
-}
-
-function Tile({
-  label,
-  value,
-  caption,
-  tone,
-}: {
-  label: string;
-  value: string;
-  caption?: string;
-  tone?: "good" | "warn" | "danger";
-}) {
-  return (
-    <Card>
-      <div className={styles.tileBody}>
-        <div className={styles.tileLabel}>{label}</div>
-        <div className={`${styles.tileValue} ${tone ? styles[`tone-${tone}`] : ""}`}>{value}</div>
-        {caption && <div className={styles.tileCaption}>{caption}</div>}
-      </div>
-    </Card>
   );
 }
 

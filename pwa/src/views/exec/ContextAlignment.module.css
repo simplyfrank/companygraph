@@ -1,0 +1,361 @@
+/* ── Summary cards row ─────────────────────────────────────────── */
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top-width: 3px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+
+.summaryCard:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 12%, transparent);
+}
+
+.summaryCardActive {
+  border-color: var(--accent) !important;
+  background: var(--accent-soft);
+}
+
+.summaryCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.summaryCtxName {
+  font: 600 13px var(--font-display);
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  flex: 1;
+}
+
+.summaryBu {
+  font: 400 11px var(--font-body);
+  color: var(--muted);
+}
+
+.summaryStats {
+  display: flex;
+  gap: 12px;
+  font: 500 11px var(--font-mono);
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.summaryStats strong {
+  color: var(--fg);
+}
+
+/* ── Detail grid ───────────────────────────────────────────────── */
+.detailGrid {
+  display: grid;
+  grid-template-columns: 280px 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .detailGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detailMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detailValue {
+  font: 400 13px var(--font-body);
+  color: var(--fg);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.labelPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.statusRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.statusBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 20px;
+  opacity: 0.5;
+  transition: opacity 120ms;
+}
+
+.statusBtn:hover {
+  opacity: 0.8;
+}
+
+.statusBtnActive {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.notes {
+  width: 100%;
+  resize: vertical;
+  font: 400 12px var(--font-body);
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  line-height: 1.5;
+  transition: border-color 120ms;
+}
+
+.notes:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── Contract list ─────────────────────────────────────────────── */
+.contractList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contractRow {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contractHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edgeType {
+  font: 700 11px var(--font-mono);
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in oklch, var(--accent) 30%, transparent);
+}
+
+.contractFlow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 500 11px var(--font-mono);
+  flex: 1;
+}
+
+.fromLabel {
+  color: var(--fg);
+}
+
+.toLabel {
+  color: var(--fg);
+}
+
+.arrow {
+  color: var(--muted);
+}
+
+.contractDesc {
+  font: 400 12px var(--font-body);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.contractExample {
+  font: 400 11px var(--font-mono);
+  color: var(--muted);
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.empty {
+  font: 400 13px var(--font-body);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Dependency matrix ─────────────────────────────────────────── */
+.matrixLede {
+  font: 400 12px var(--font-body);
+  color: var(--muted);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.matrixWrap {
+  overflow-x: auto;
+}
+
+.matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+
+.matrix th,
+.matrix td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.matrixCorner {
+  font: 600 10px var(--font-mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.matrixColHead {
+  font: 600 11px var(--font-display);
+  background: var(--surface-2);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.matrixRowHead {
+  font: 600 11px var(--font-display);
+  background: var(--surface-2);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.matrixCell {
+  background: var(--surface);
+  transition: background 120ms;
+}
+
+.matrixSelf {
+  background: var(--surface-2);
+}
+
+.matrixHit {
+  background: color-mix(in oklch, var(--accent) 8%, var(--surface));
+  cursor: default;
+}
+
+.matrixHit:hover {
+  background: color-mix(in oklch, var(--accent) 14%, var(--surface));
+}
+
+.matrixCount {
+  font: 700 13px var(--font-mono);
+  color: var(--accent);
+}
+
+.matrixSelfMark {
+  color: var(--border-strong);
+}
+
+.matrixZero {
+  color: var(--border-strong);
+  font-size: 16px;
+}
+
+/* ── Contract registry table ───────────────────────────────────── */
+.registryTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.registryTable th {
+  font: 600 10px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  background: var(--surface-2);
+}
+
+.registryTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.registryTable tr:last-child td {
+  border-bottom: none;
+}
+
+.registryTable tr:hover td {
+  background: var(--surface-2);
+}
+
+.labelCell {
+  font: 500 12px var(--font-mono);
+  color: var(--fg);
+}
+
+.ctxBadge {
+  font: 600 10px var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid currentColor;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.contractDescCell {
+  font: 400 12px var(--font-body);
+  color: var(--muted);
+  line-height: 1.4;
+  max-width: 280px;
+}
+
+.muted {
+  color: var(--muted);
+}

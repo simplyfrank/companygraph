@@ -2,7 +2,9 @@ import { api } from "../../api";
 import { useFetch } from "../../useFetch";
 import { Card } from "../../components/Card";
 import { DataTable } from "../../components/DataTable";
+import { HorizontalBarChartCard } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
+import styles from "./People.module.css";
 
 interface RoleRow { role: { id: string; name: string }; activities: number }
 
@@ -20,12 +22,30 @@ export function ExecPeople() {
       `),
     [],
   );
+  const chartData = data.status === "ok"
+    ? (data.data.rows as unknown as RoleRow[]).map((r) => ({
+        label: r.role.name,
+        value: r.activities,
+      }))
+    : [];
+
   return (
     <>
       <ViewHeader
         title="People"
         lede="Roles in the organisation and the count of activities each EXECUTES."
       />
+
+      <div className={styles.dashboardGrid}>
+        <HorizontalBarChartCard
+          title="Activities by role"
+          data={chartData}
+          xLabel="activities"
+        />
+      </div>
+
+      <div style={{ height: 24 }} />
+
       <Card>
         {data.status === "loading" && <Loading what="roles" />}
         {data.status === "error" && <ErrorState message={data.error} />}
