@@ -39,3 +39,18 @@ if (typeof localStorage === "undefined" || typeof localStorage.setItem !== "func
     configurable: true,
   });
 }
+
+// ResizeObserver polyfill — jsdom doesn't provide ResizeObserver which is
+// used by React Flow and other canvas-based components. Replace with a minimal
+// implementation that satisfies the interface so tests don't crash.
+if (typeof ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    callback: ResizeObserverCallback;
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
