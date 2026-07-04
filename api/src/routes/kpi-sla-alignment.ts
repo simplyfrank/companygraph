@@ -7,27 +7,22 @@
 // GET /api/v1/sla-alignments - list SLA alignments for a target
 
 import type { Driver } from "neo4j-driver";
+import {
+  kpiAlignmentCreateRequestSchema,
+  slaAlignmentCreateRequestSchema,
+} from "@companygraph/shared/schema/kpi-sla";
 import { getDriver } from "../neo4j/driver";
-import { ok, error, parseId } from "./_helpers";
+import { ok, error, parseWith, readJson } from "./_helpers";
+
+// NOTE (design §3.1): alignment ids are Neo4j elementId(r) strings, NOT
+// UUIDs — the DELETE path params stay opaque strings, no UUID guard.
 
 // POST /api/v1/kpi-alignments - create KPI alignment
 export async function handleKpiAlignmentPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const { kpi_id, target_type, target_id, weight, attribution_type, alignment_notes } = body;
-
-  if (!kpi_id || !target_type || !target_id || weight === undefined || !attribution_type) {
-    return error(400, "invalid_payload", "missing required fields", {
-      required: ["kpi_id", "target_type", "target_id", "weight", "attribution_type"]
-    });
-  }
-
-  if (!["journey", "activity", "domain"].includes(target_type)) {
-    return error(400, "invalid_payload", "target_type must be 'journey', 'activity', or 'domain'", { target_type });
-  }
-
-  if (!["direct", "indirect", "leading", "lagging"].includes(attribution_type)) {
-    return error(400, "invalid_payload", "attribution_type must be 'direct', 'indirect', 'leading', or 'lagging'", { attribution_type });
-  }
+  // FR-11a — zod replaces the hand-rolled ladder. The weight [0,1] bound
+  // is the single sanctioned tightening (DD-01 rule ii, AC-06).
+  const { kpi_id, target_type, target_id, weight, attribution_type, alignment_notes } =
+    parseWith(kpiAlignmentCreateRequestSchema, await readJson(req));
 
   const now = new Date().toISOString();
 
@@ -180,18 +175,8 @@ export async function handleKpiAlignmentsGet(req: Request): Promise<Response> {
 
 // POST /api/v1/sla-alignments - create SLA alignment
 export async function handleSlaAlignmentPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const { sla_id, target_type, target_id, is_critical, alignment_notes } = body;
-
-  if (!sla_id || !target_type || !target_id) {
-    return error(400, "invalid_payload", "missing required fields", {
-      required: ["sla_id", "target_type", "target_id"]
-    });
-  }
-
-  if (!["journey", "activity"].includes(target_type)) {
-    return error(400, "invalid_payload", "target_type must be 'journey' or 'activity'", { target_type });
-  }
+  const { sla_id, target_type, target_id, is_critical, alignment_notes } =
+    parseWith(slaAlignmentCreateRequestSchema, await readJson(req));
 
   const now = new Date().toISOString();
 

@@ -61,12 +61,12 @@
     {"label": "Role", "id": "018f0000-0003-7000-8000-000000000005", "name": "DC Operator", "description": "Distribution-centre warehouse operator."},
     {"label": "Role", "id": "018f0000-0003-7000-8000-000000000006", "name": "Customer Service Agent", "description": "Multi-channel CS contact-centre agent."},
 
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000001", "name": "Merchandising System", "description": "Assortment + category planning."},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000002", "name": "Pricing System", "description": "Price + promotion lifecycle."},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000003", "name": "POS", "description": "Point of sale + payments."},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000004", "name": "WMS", "description": "Warehouse management system."},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000005", "name": "ERP", "description": "Financial + master-data backbone."},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000006", "name": "CRM", "description": "Customer profile + loyalty."},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000001", "name": "Merchandising System", "description": "Assortment + category planning.", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000002", "name": "Pricing System", "description": "Price + promotion lifecycle.", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000003", "name": "POS", "description": "Point of sale + payments.", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000004", "name": "WMS", "description": "Warehouse management system.", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000005", "name": "ERP", "description": "Financial + master-data backbone.", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000006", "name": "CRM", "description": "Customer profile + loyalty.", "attributes": {"systemKind": "functional"}},
 
     {"label": "Location", "id": "018f0000-0005-7000-8000-000000000001", "name": "HQ", "description": "Corporate headquarters."},
     {"label": "Location", "id": "018f0000-0005-7000-8000-000000000002", "name": "Central DC", "description": "Primary distribution centre."},

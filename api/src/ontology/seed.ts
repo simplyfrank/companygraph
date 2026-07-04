@@ -23,6 +23,10 @@ import type { Driver } from "neo4j-driver";
 import type { Operation } from "fast-json-patch";
 import { NODE_LABELS } from "@companygraph/shared/schema/nodes";
 import { EDGE_TYPES, EDGE_ENDPOINTS } from "@companygraph/shared/schema/edges";
+// Legal import — `ontology-no-frozen-import.test.ts` guards only the
+// NODE_LABELS / EDGE_TYPES / EDGE_ENDPOINTS const tuples, not the
+// system-kind vocabulary module (system-augmentation-model §4.2).
+import { SYSTEM_ATTRIBUTES_JSON_SCHEMA_DOC } from "@companygraph/shared/schema/system-kind";
 import { generateId } from "../ids";
 import { writeAudit, writeVersion } from "./storage/audit";
 import { writeEvent } from "./storage/events";
@@ -140,6 +144,15 @@ export async function seedBoundedContexts(driver: Driver): Promise<void> {
   }
 }
 
+// system-augmentation-model T-03 (FR-02 / FR-07 fresh-DB path): per-label
+// attribute docs for the bootstrap seed. Labels absent from this map get
+// the permissive default. A fresh DB therefore NEVER holds a permissive
+// System doc — the tightened doc is written before any route serves, so
+// the attribute-zod cache compiles the tightened validator from first read.
+const SEED_ATTRIBUTE_DOCS: Record<string, unknown> = {
+  System: SYSTEM_ATTRIBUTES_JSON_SCHEMA_DOC,
+};
+
 export async function seedRegistryFromConstTuples(driver: Driver): Promise<{
   version_id: string;
   event_id: string;
@@ -169,7 +182,9 @@ export async function seedRegistryFromConstTuples(driver: Driver): Promise<{
             name: label,
             description: `Base label seeded by graph-core (${label}).`,
             usage_example: `e.g. POST /api/v1/nodes/${label}`,
-            jsd: JSON.stringify({ type: "object", additionalProperties: true }),
+            jsd: JSON.stringify(
+              SEED_ATTRIBUTE_DOCS[label] ?? { type: "object", additionalProperties: true },
+            ),
             now,
           },
         );

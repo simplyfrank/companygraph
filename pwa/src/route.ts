@@ -50,10 +50,18 @@ export const SURFACES: Surface[] = [
   {
     id: "analytics", label: "Analytics", kbd: "5",
     tabs: [
-      { id: "overview",   label: "Overview" },
-      { id: "matrix",     label: "Matrix" },
-      { id: "complexity", label: "Complexity" },
-      { id: "ai",         label: "AI" },
+      { id: "overview",       label: "Overview" },
+      { id: "systems",        label: "Systems" },
+      { id: "matrix",         label: "Matrix" },
+      // cto-analytics T-09 (FR-03/FR-05/FR-06, RD-3): the new report tabs use
+      // the FR route names verbatim. `consolidation` renders now (T-09);
+      // `single-system` + `critical-paths` register here but render their
+      // pending seam until their owning tasks (T-11/T-12) land the views.
+      { id: "consolidation",  label: "Consolidation" },
+      { id: "complexity",     label: "Complexity" },
+      { id: "single-system",  label: "Single-system" },
+      { id: "critical-paths", label: "Critical paths" },
+      { id: "ai",             label: "AI" },
     ],
   },
   {
@@ -89,6 +97,23 @@ export const SURFACES: Surface[] = [
       { id: "personas",   label: "Personas" },
       { id: "rbac-roles", label: "RBAC Roles" },
       { id: "users",      label: "User Assignments" },
+    ],
+  },
+  // model-workspace-core T-17 (FR-14, UX-06): the Model surface owns
+  // ALL seven blueprint View-Tree tabs VERBATIM — this feature owns the
+  // route.ts registration for every #/model tab (one feature owns a
+  // file); sibling tabs render ModelTabPlaceholder until their owning
+  // specs land. kbd "0" → Alt+0 (10th surface; App.tsx maps "0" → index 9).
+  {
+    id: "model", label: "Model", kbd: "0",
+    tabs: [
+      { id: "models",         label: "Models" },
+      { id: "canvas",         label: "Canvas" },
+      { id: "stories",        label: "Stories" },
+      { id: "key-activities", label: "Key Activities" },
+      { id: "kpi-impact",     label: "KPI Impact" },
+      { id: "systems",        label: "Systems" },
+      { id: "export",         label: "Export" },
     ],
   },
 ];

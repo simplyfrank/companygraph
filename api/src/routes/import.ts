@@ -3,8 +3,9 @@ import {
   nodeCreateSchema,
 } from "@companygraph/shared/schema/nodes";
 import { edgeCreateSchema } from "@companygraph/shared/schema/edges";
+import { DEFAULT_SYSTEM_KIND } from "@companygraph/shared/schema/system-kind";
 import { getDriver } from "../neo4j/driver";
-import { upsertNode } from "../storage/nodes";
+import { upsertNode, checkAttributesAgainstSchema } from "../storage/nodes";
 import { upsertEdge } from "../storage/edges";
 import { error, ok, readJson } from "./_helpers";
 import { ValidationError } from "../errors";
@@ -48,13 +49,16 @@ interface RowError {
 }
 
 // POST /api/v1/import — two-phase collect-and-continue.
-// ?dryRun=true runs schema-only validation (no DB writes). This is the
-// correct dryRun contract: the storage helpers each open their own
-// sessions so a wrapping transaction cannot roll them back. A tx-scoped
-// dryRun would require every storage helper to accept an injected
-// ManagedTransaction. For the import use-case pure schema validation is
-// the right semantic: callers learn exactly which rows would fail before
-// committing, without touching the graph.
+// ?dryRun=true runs row validation with ZERO DB writes: zod row shape +
+// (system-augmentation-model T-09 / DD-04) the same registry attribute
+// check the real write path runs, for ALL labels — so dry-run per-row
+// verdicts match real import. Two documented limitations remain:
+//   • edge rows stay envelope-only — edge endpoint EXISTENCE needs DB
+//    state and is out of dry-run's contract;
+//   • dry-run is no longer pure: the attribute check is a registry READ
+//    per node row, so it requires a reachable registry — a connection
+//    error mid-loop 500s the request exactly as real import would on a
+//    down DB (design-review N-03).
 //
 // Per pinned decision C-09: response is **200** even when 100 % of phase
 // 1 fails — row-level failures are reported via `errors[]`, the HTTP
@@ -70,27 +74,63 @@ export async function handleImport(req: Request): Promise<Response> {
   }
 
   if (dryRun) {
-    // Schema-only validation — zero DB writes. See comment above.
-    return ok(dryRunPasses(envelope.data));
+    // Row validation with zero DB writes (registry READS only) — see
+    // the route header comment.
+    return ok(await dryRunPasses(envelope.data));
   }
 
   const result = await realImport(getDriver(), envelope.data);
   return ok(result);
 }
 
-function dryRunPasses(
+// system-augmentation-model T-09 (DD-03, OQ-1 closed): System rows lacking
+// the `systemKind` key get `"functional"` injected — legacy exports and
+// pre-migration payloads keep loading, and the graph-core export→import
+// round-trip holds. Present-but-invalid values (`systemKind: 42`) are
+// deliberately left untouched so validation fails them into `errors[]`
+// (collect-and-continue). Applied per raw node row inside BOTH
+// `dryRunPasses` and `realImport` — after `handleImport`'s envelope-level
+// parse, before per-row `nodeWithLabelSchema` parsing (N-02 call-site pin;
+// do not move this into `handleImport`).
+function injectSystemKindDefault(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw;
+  const row = raw as Record<string, unknown>;
+  if (row.label !== "System") return raw;
+  const attrs = row.attributes;
+  if (attrs !== undefined && (typeof attrs !== "object" || attrs === null)) return raw; // let validation fail it
+  const map = (attrs ?? {}) as Record<string, unknown>;
+  if ("systemKind" in map) return raw; // present (even if invalid) → untouched
+  return { ...row, attributes: { ...map, systemKind: DEFAULT_SYSTEM_KIND } };
+}
+
+async function dryRunPasses(
   data: z.infer<typeof importPayloadSchema>,
-): { imported: { nodes: number; edges: number }; errors?: RowError[] } {
+): Promise<{ imported: { nodes: number; edges: number }; errors?: RowError[] }> {
   const errors: RowError[] = [];
   let nodeOk = 0, edgeOk = 0;
 
   for (let i = 0; i < data.nodes.length; i++) {
-    const r = nodeWithLabelSchema.safeParse(data.nodes[i]);
+    const r = nodeWithLabelSchema.safeParse(injectSystemKindDefault(data.nodes[i]));
     if (!r.success) {
       errors.push({
         section: "nodes", index: i, code: "invalid_payload",
         message: "node row failed validation",
         details: { fieldErrors: r.error.flatten().fieldErrors },
+      });
+      continue;
+    }
+    // DD-04 parity: the same non-throwing registry attribute check the
+    // real write path runs (a registry READ — zero writes). Unregistered
+    // labels stay permissive in both modes.
+    const violation = await checkAttributesAgainstSchema(
+      r.data.label,
+      r.data.attributes,
+    );
+    if (violation !== null) {
+      errors.push({
+        section: "nodes", index: i, code: "attribute_violation",
+        message: "attribute_violation",
+        details: violation,
       });
     } else {
       nodeOk++;
@@ -134,9 +174,10 @@ async function realImport(
     }
   };
 
-  // Phase 1: nodes.
+  // Phase 1: nodes. Injection (T-09) runs per raw row, before the zod
+  // row parse — same call site as dryRunPasses (N-02 pin).
   for (let i = 0; i < data.nodes.length; i++) {
-    const parsed = nodeWithLabelSchema.safeParse(data.nodes[i]);
+    const parsed = nodeWithLabelSchema.safeParse(injectSystemKindDefault(data.nodes[i]));
     if (!parsed.success) {
       errors.push({
         section: "nodes", index: i, code: "invalid_payload",

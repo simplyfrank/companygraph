@@ -1,245 +1,197 @@
 ---
 feature: "story-spec-core"
 reviewing: "requirements"
-artifact: ".claude/specs/story-spec-core/requirements.md (draft, rev 1)"
+reviewing_revision: 3
+artifact: ".claude/specs/story-spec-core/requirements.md (rev 3 — responds to the pass-2 review of rev 2)"
 reviewer: "spec-review-agent"
-verdict: "revise"
+verdict: "approve"
+review_pass: 2
 reviewed_at: "2026-07-04"
-review_pass: "1 of 2"
 ---
 
-# Review: story-spec-core / requirements.md
+# Review: story-spec-core / requirements (confirming re-review of rev 3 — final pass)
 
-Reviewed cold against the governing skill (`.claude/skills/spec-review/SKILL.md`),
-the app blueprint (`.claude/specs/blueprint.md`), `.claude/CLAUDE.md`, the declared
-dependency `model-workspace-core` (requirements + design), and the live codebase
-(`pwa/src/lib/userStories.ts`, `pwa/src/components/JourneyCanvas.tsx`,
-`api/src/ontology/storage/{node-labels,edge-types}.ts`, `api/src/storage/edges.ts`,
-`api/src/errors.ts`, `api/src/auth/rbac-permissions.ts`, `shared/src/schema/`).
+Reviewed cold against `.claude/skills/spec-review/SKILL.md`,
+`.claude/specs/blueprint.md` (View Tree line 102/113: `#/model/stories` →
+`StoryCatalog`, owner `story-spec-core`; XD-01/02/06/08/09/10/18; UX-01..06),
+`.claude/CLAUDE.md`, `.claude/specs/model-workspace-core/requirements.md`
+(FR-08/FR-11/FR-12/FR-15/FR-17/FR-18, DEC-01(a) closed), and the live codebase:
 
-This is a strong, house-format-fluent requirements doc: it correctly routes both
-new labels + all four edges through the runtime registry (XD-01), keeps the
-compile-time consts off-limits (NFR-01/AC-18), enforces structured Given/When/Then
-at the boundary (XD-10/NFR-03), takes the route verbatim from the View Tree
-(`#/model/stories` → `StoryCatalog`), specs all four view states, and populates the
-Platforms/Native-Conflicts tables with a defensible "no new gesture" justification.
-Naming was checked: no collision on the two labels, four edges, error codes, or the
-`/stories*` routes.
+- `api/src/storage/model-scope.ts` — `scopedNodeIds(driver, modelId)` +
+  `scopedWhereFragment` on disk with the exact signature cited; its header (mwc
+  N-04) confirms the C-07 pinned-module premise verbatim ("for a NON-forked
+  instance the pinned journey content is not a set of live nodes … resolve it
+  from the version's snapshot_json").
+- `pwa/src/lib/userStories.ts` — 53 lines as stated; `formulateUserStories(data,
+  journeyName)`, `goalPhrase` = `` `the ${journeyName.toLowerCase()} workflow
+  completes` ``, primary role/location = column-membership `[0]`-order,
+  `persona = primaryRole?.name ?? "user"` — FR-08's formulation and NFR-04's
+  "cannot literally share one input object" framing are both accurate.
+- `api/src/ontology/storage/{node-labels,edge-types}.ts` — `createNodeLabel` /
+  `createEdgeType` exist; endpoint pairs written as `_OntologyEdgeEndpoint`
+  rows; **both are strict CREATE → `409 name_conflict`** (see C-08 below).
+- `api/src/scripts/register-model-labels.ts` — the mwc precedent this spec's
+  registration path mirrors; idempotency there is swallow-409, not MERGE.
+- `api/src/errors.ts` — zero collisions for the five new + one reserved code.
+- `api/src/auth/rbac-permissions.ts` — `ROUTE_PERMISSIONS` with
+  `models/:modelId/*` rows and specific-before-parameterized ordering, as FR-11
+  assumes; `api/src/scripts/seed-rbac-roles.ts` on disk.
+- `pwa/src/views/index.tsx:158` — `stories: () => <ModelTabPlaceholder
+  tab="Stories" spec="story-spec-core" />` is exactly the slot FR-12 replaces;
+  `pwa/src/context/ActiveModelContext.tsx`, `ModelTabPlaceholder.tsx`, catalog
+  `Card/DataTable/Modal/SidePanel`, `pwa/src/styles/companygraph/tokens.css`,
+  and `scripts/design-conformance.ts --view` all on disk as cited.
+- `shared/src/schema/{nodes,edges}.ts` — no `UserStory` / `AcceptanceCriterion`
+  / `DESCRIBES_ACTIVITY` / `STORY_FOR_ROLE` / `ACCEPTANCE_OF` collisions.
 
-It has, however, **two blocking traceability gaps** where the spec over-claims what
-its dependency's helper actually delivers, plus concerns around parity feasibility
-and an undecided cardinality dressed as decided-with-default.
+## Verdict
 
----
+**approve** — zero open blockers. Rev 3 lands every pass-2 finding exactly as
+prescribed and each resolution verifies against the blueprint and the shipped
+code. Two new concerns and one nit are recorded for the design/tasks phases;
+none rises to blocker level because the requirement outcomes they touch are
+correct and testable as written — only a mechanism description and downstream
+phase-sync need attention.
+
+## Resolved prior findings
+
+Pass 1 (rev 1 → rev 2): ~~B-01~~, ~~B-02~~, ~~C-01~~..~~C-05~~,
+~~N-01~~..~~N-03~~ — all confirmed resolved in the pass-2 review; still intact
+in rev 3.
+
+Pass 2 (rev 2 → rev 3):
+
+- ~~B-03~~ → **resolved.** XD-18 is now cited in the Source column of FR-05,
+  FR-09, and FR-11; the UX/XD conformance table carries an explicit XD-18 row
+  naming AC-19 as the closing AC with AC-06/AC-07/AC-09/AC-11 as supporting
+  coverage; and **AC-19** is the explicit end-to-end AC the mandate demands:
+  seeded `(:Role)-[:EXECUTES]->(:Activity)` structure (≥2 activities, distinct
+  roles), a **real `business_architect` session through the central router
+  gate** (not a synthetic permission stub), bootstrap → one `derived:true`
+  story per activity with `DESCRIBES_ACTIVITY` + `STORY_FOR_ROLE` to the
+  executing role + a starter G/W/T AC, then a same-session PATCH clearing
+  `derived` — with a named integration test
+  (`api/__tests__/story-xd18-role-path.integration.test.ts`). This matches the
+  blueprint XD-18 text (line 173) for the story-surface half; the
+  `EXECUTES`-core half remains with `business-model-authoring` as XD-18 itself
+  assigns. Traceable into design/tasks now that requirements states it.
+- ~~C-06~~ → **resolved.** FR-05 now requires the write-side scope check on
+  `POST` create and `PATCH` re-point (`activityId` ∈
+  `scopedNodeIds(driver, :modelId)`, else `404 story_activity_not_in_model`);
+  the code is added to FR-10's additive set (distinct from
+  `story_activity_required` = missing); AC-08 gained the negative-write
+  assertions (create with a model-B-only activity id **and** a re-point, both
+  rejected, model B's list unchanged). No collision in `api/src/errors.ts`.
+  `roleId` correctly exempted per mwc DEC-01(a) (shared reference nodes —
+  verified closed in mwc requirements Risk 1).
+- ~~C-07~~ → **resolved.** Scope Boundaries now states the pinned-module
+  boundary as intended behavior: stories/ACs attach only to materialized
+  (in-model or forked) activities; pinned non-forked module content is out of
+  story reach until forked (fork surface = mwc FR-08, verified that FR owns the
+  fork trigger); bootstrap reports such activities in neither `created` nor
+  `skipped`; design is directed to hint "fork first, then generate" in the
+  empty state. Matches the shipped `model-scope.ts` header exactly.
+- ~~N-04~~ → **resolved.** FR-12/NFR-06 cite the real path
+  `pwa/src/styles/companygraph/tokens.css` (file exists).
+- ~~N-05~~ → **resolved.** Frontmatter is now `status: "revised", revision: 3`
+  — no longer anticipates the review outcome.
 
 ## Blockers
 
-### B-01 — Model-scoping via `scopedNodeIds` does not reach `UserStory`/`AcceptanceCriterion` nodes as claimed
-FR-05, NFR-02, FR-14, and AC-08 all assert that story/AC list isolation is
-"server-enforced by FR-05's `scopedNodeIds`" and that "a read for model A never
-returns a story/AC that belongs to model B (via `scopedNodeIds`)."
-
-But the dependency's helper (`model-workspace-core` design §4.2, FR-18) is defined
-to return **structural** nodes only:
-
-```
-MATCH (m:BusinessModel {id:$modelId})
-OPTIONAL MATCH (d:Domain)-[:IN_MODEL]->(m)
-OPTIONAL MATCH (d)<-[:PART_OF*0..]-(desc)   // journeys, activities, forked subtrees
-OPTIONAL MATCH (mi:ModuleInstance)-[:INSTANCE_IN]->(m)
-RETURN collect(...) AS ids
-```
-
-A `UserStory` attaches to its `Activity` via `DESCRIBES_ACTIVITY` (UserStory→Activity,
-FR-03) and an `AcceptanceCriterion` via `ACCEPTANCE_OF` (AC→UserStory) — **neither is
-`PART_OF` a Domain**, and neither is a `ModuleInstance`. So a story/AC id will
-**never** appear in the `scopedNodeIds(driver, modelId)` set. Filtering stories by
-`story.id IN scopedNodeIds(modelId)` therefore returns the empty set, not model A's
-stories.
-
-The isolation the spec wants is real and achievable, but the mechanism is
-mis-stated: the story list must resolve **stories whose `DESCRIBES_ACTIVITY` target
-`Activity` is in `scopedNodeIds(modelId)`** — i.e. the helper scopes the *activities*,
-and the story query joins through the edge. That is a different (and more subtle)
-query than "the story id is in the scoped set."
-
-**Recommendation:** Restate FR-05/NFR-02/AC-08 so the isolation invariant is
-"a story is in model A iff its `DESCRIBES_ACTIVITY` activity ∈ `scopedNodeIds(modelA)`;
-an AC is in model A iff its parent story is." Add a note that stories/ACs are *not*
-themselves members of `scopedNodeIds`. This also affects the cascade transaction
-(FR-07) and bootstrap scope (FR-09), which likewise resolve through activities, not
-through story-id membership. Leaving the current wording would send design down a
-query that returns nothing.
-
-### B-02 — AC-06 parity test compares two functions with structurally incompatible inputs, with no shared-fixture contract
-AC-06 (and NFR-04) require a test where `deriveStories(fixture)` and
-`formulateUserStories(fixture, journeyName)` run against **the same shared fixture**
-and yield equal `narrative` strings.
-
-Verified against source: `pwa/src/lib/userStories.ts::formulateUserStories(data:
-JourneyData, journeyName)` consumes a **column-indexed** `JourneyData`
-(`pwa/src/components/JourneyCanvas.tsx`): roles/systems/locations attach to
-activities by shared **`column` numbers**, and "primary role" is
-`roles.filter(r => r.columns.includes(activity.column))[0]` — order determined by
-column membership. The server derivation (FR-08) reads a **Neo4j structural** shape
-(`EXECUTES`/`USES_SYSTEM`/`AT_LOCATION`/`PART_OF` edges) that has **no column
-concept** and no inherent role ordering.
-
-These two functions cannot literally share one fixture object: one takes
-`JourneyData{activities,roles[columns],...}`, the other takes a graph-read shape.
-Risk #3 acknowledges the ordering hazard and defers "define a deterministic ordering"
-to design — good — but AC-06 as written asserts a mechanism (one shared fixture fed
-to both) that is not achievable until design defines (a) the deterministic
-primary-role/location selection on the server side and (b) an explicit
-fixture-mapping contract (how a `JourneyData` fixture projects to the graph read
-shape, or vice versa) so "equal narratives" is a well-defined assertion.
-
-**Recommendation:** Reword AC-06/NFR-04 to require a **parity harness with a defined
-projection**: a single canonical structural fixture, a documented mapping to each
-function's input shape, and a **specified deterministic tiebreak** (e.g. primary role
-= lowest `createdAt` then `id`) that both sides honor. Without that, "faithful port"
-and "equal narrative strings" are untestable, and NFR-04 becomes a promise design
-cannot cash. (Note also: the client "primary role" is column-order-dependent and may
-not be stable — the spec should state that *bit-for-bit* parity is against a fixture
-constructed to make client column-order and server tiebreak agree, not against
-arbitrary client input.)
-
----
+None.
 
 ## Concerns
 
-### C-01 — OQ-1 ("exactly one story per activity") is an undecided cardinality dressed as decided; it drives an error code, an FR, and bootstrap idempotency
-FR-03 says a story has "exactly one `DESCRIBES_ACTIVITY`" (story→activity side).
-FR-10 lists `story_duplicate_for_activity` "if enforced — see FR-03." FR-09
-idempotency ("never double-creates a story for an activity that already has one")
-depends on the *reverse* cardinality (activity→story), which OQ-1 leaves open with a
-"proceed default: manual create allows multiple stories per activity." This is the
-kind of undecided dependency the review skill flags: whether the reverse is 1:1
-changes (a) whether `story_duplicate_for_activity` is a live error path on `POST`
-(FR-05) or dead code, (b) what AC-03/AC-07 assert, and (c) how the bootstrap
-"skip if any story exists" is phrased.
-**Recommendation:** Elevate OQ-1 to a decision recorded in the FR (not the risk
-table). If the default (multiple manual stories per activity, bootstrap skips if
-≥1 exists) stands, drop `story_duplicate_for_activity` from FR-10's *required* set or
-mark it explicitly "reserved, not thrown under the default," and make FR-03 say
-"exactly one *per story*, activity→story is 1..* " so FR-09's idempotency rule reads
-against a defined cardinality.
-
-### C-02 — `scopedNodeIds` / `scopedWhereFragment` / `ActiveModelContext` / `seed-rbac-roles` are consumed but do not yet exist on disk
-The Dependencies section cites `api/src/storage/model-scope.ts`,
-`pwa/src/context/ActiveModelContext.tsx`, and `ModelTabPlaceholder` as reused
-surfaces. Confirmed against the codebase: none of these files exist yet — they are
-**new** files owned by `model-workspace-core` (its design lists them as "new").
-That is correct sequencing for foundation wave 2, and `model-workspace-core`'s
-requirements FR-11/FR-15/FR-18 do promise them. But the spec should state the
-**hard build-order dependency** explicitly (this spec cannot start implementation
-until `model-workspace-core` lands those three surfaces + the `stories` placeholder
-in `renderView`), since none is verifiable at author time.
-**Recommendation:** Add a one-line "unblocked-by" note in Dependencies naming the
-exact `model-workspace-core` FRs/files that must be merged first (FR-18 →
-`model-scope.ts`; FR-15 → `ActiveModelContext.tsx`; FR-11 → `seed-rbac-roles.ts`
-`business_architect`; FR-17 → `ModelTabPlaceholder` + `renderView` `stories` slot).
-
-### C-03 — `formulateUserStories` requires a `journeyName` the server must resolve per-activity; FR-08 assumes one journey
-FR-08 computes `benefit = "the <journeyName lower-cased> workflow completes"` and
-the client signature is `formulateUserStories(data, journeyName)` — a **single**
-journey name for the whole `JourneyData`. On the server an activity reaches its
-journey via `PART_OF` (Activity→UserJourney), and a model has *many* journeys, so
-`journeyName` is **per-activity**, not per-model. FR-08 says it reads "the parent
-`UserJourney` via `PART_OF`" (good), but the parity claim (AC-06/NFR-04) passes a
-single `journeyName` to the client — so the fixture must be one-journey to make the
-strings agree. Also: what `benefit` results when an activity has **no** parent
-journey (orphan activity)? Undefined here.
-**Recommendation:** State the per-activity journey resolution in FR-08 and specify
-the fallback benefit when an activity has no `PART_OF` journey (e.g. `"the workflow
-completes"`), so derivation is total and the parity fixture's single-journey
-constraint is explicit.
-
-### C-04 — Pre-existing `userStoryKPI` link schema keys off "user story" but no `UserStory` label existed until now
-`shared/src/schema/kpi-sla.ts` already defines a `userStoryKPI` link ("Links KPIs to
-user stories"). Story↔KPI is correctly out of scope (→ `kpi-impact-mapping`), but the
-existing link schema presumably references a story identity. This spec introduces the
-first real `UserStory` node label. Whoever picks up `kpi-impact-mapping` will need
-this spec's `UserStory.id` to be the join key.
-**Recommendation:** Add a scope-boundary note that this spec's `UserStory.id` is the
-identity `kpi-impact-mapping`'s existing `userStoryKPI` link will attach to; no change
-here, but flag it so the downstream spec does not invent a parallel story id.
-
-### C-05 — Cascade delete atomicity (FR-07) vs. the registry-backed edge validator's cross-type id-uniqueness scan
-FR-07 requires deleting a story to remove its ACs + all four edge types "in a single
-write transaction." That is achievable with `DETACH DELETE` over the story + its ACs.
-No blocker — but the spec should confirm the delete path uses graph-core's
-`DETACH DELETE`-style primitive (not per-edge `DELETE /api/v1/edges/:id` calls, which
-would be N round-trips and non-atomic).
-**Recommendation:** Note in FR-07 that the cascade is one Cypher `DETACH DELETE`
-transaction over `(story)` + `(:AcceptanceCriterion)-[:ACCEPTANCE_OF]->(story)`,
-matching the graph-core cascade pattern, so "single transaction / no orphans" is a
-storage-primitive guarantee, not a route-orchestration hope.
-
----
+- **C-08 — FR-01/FR-02 misstate the registry idempotency mechanism.** Both FRs
+  claim idempotent registration via "MERGE-on-name semantics of the registry
+  path". That is not what the dependency provides: `createNodeLabel`
+  (`api/src/ontology/storage/node-labels.ts:126` — "strict CREATE. 409
+  name_conflict on duplicate") and `createEdgeType` (`edge-types.ts:206`) are
+  strict CREATEs. The mwc precedent this spec mirrors
+  (`api/src/scripts/register-model-labels.ts`) achieves idempotency by
+  **swallowing `409 name_conflict`** on re-run — "every createNodeLabel /
+  createEdgeType call swallows `409 name_conflict` (already registered) so
+  re-runs are no-ops". The requirement outcome (idempotent, no duplicate rows —
+  AC-01) is correct and testable regardless, so this is not a blocker, but the
+  feature brief requires citing dependencies' **real** interfaces.
+  **Recommendation:** design must specify the swallow-409 registration pattern
+  (per `register-model-labels.ts`) and not inherit the "MERGE-on-name" wording;
+  if requirements is touched again for any reason, fix the parenthetical in
+  FR-01/FR-02.
+- **C-09 — Rev-3 deltas post-date the approved design and the tasks draft;
+  downstream phases must absorb them.** STATUS.md shows design already approved
+  and a 16-task draft covering "all 18 ACs" — requirements now has **19** ACs.
+  The rev-3 additions that must ripple: (1) AC-19 + its named integration test
+  (one new task or an extension of the RBAC/bootstrap test tasks); (2) the
+  `story_activity_not_in_model` code in the errors task (T-03) and the FR-05
+  create/re-point scope check in the routes task; (3) the AC-08 negative-write
+  assertions in the isolation test task (T-10); (4) the "fork first, then
+  generate" empty-state hint (Scope Boundaries directive to design).
+  **Recommendation:** land these as design/tasks errata before task review
+  closes; the task reviewer should verify all 19 ACs are covered, not 18.
 
 ## Nits
 
-### N-01 — FR-08 module path
-FR-08 places the derivation at `api/src/storage/story-derive.ts`. The dependency's
-scope helper lives at `api/src/storage/model-scope.ts`, so `api/src/storage/` is an
-established home — consistent. Just confirm in design whether pure derivation belongs
-under `storage/` (it does no I/O) or a `derive/`/`lib/` sibling; minor.
-
-### N-02 — AC-15 verification is `manual:` for a CLI check that could be a test
-AC-15 runs `scripts/design-conformance.ts` as a manual repro. Since it is a
-deterministic CLI with exit code, it could be an automated check in CI rather than
-manual. Not required at requirements stage; flag for tasks.
-
-### N-03 — "four edge types it participates in" (FR-07) counts three types
-FR-07 says a story participates in "all four edge types" but lists three
-(`DESCRIBES_ACTIVITY`, `STORY_FOR_ROLE`, `ACCEPTANCE_OF`) — the "four" counts each
-AC's `ACCEPTANCE_OF` as separate but there are only three *types*. Wording nit:
-"all edges across its three participating types (`DESCRIBES_ACTIVITY`,
-`STORY_FOR_ROLE`, and the `ACCEPTANCE_OF` from each AC)."
-
----
+- **N-06** — FR-09's optional `{activityIds}` says each id "must be a scoped
+  activity of `:modelId`" but names no rejection code for a violation, while
+  the analogous FR-05 check names `story_activity_not_in_model`. Design should
+  state that the bootstrap body check reuses the same code (or names its own);
+  FR-10's "at minimum" leaves room either way.
 
 ## Completeness / Traceability
 
-Every FR maps to ≥1 AC and every AC back to ≥1 FR; view states are all covered.
-Gaps flagged inline above.
+| Check | Result |
+|-------|--------|
+| Every FR reaches ≥1 AC (and vice versa) | pass — table below; no orphan FRs/ACs |
+| Routes/views match the blueprint View Tree verbatim | pass — `#/model/stories` → `StoryCatalog` (blueprint lines 102, 113), no invented/renamed routes; `route.ts` untouched (mwc owns it); replacement happens at the designated `renderView` `stories` slot (`pwa/src/views/index.tsx:158`) |
+| UX-* allowances covered in ACs | pass — UX-01 (AC-10/12/13/14), UX-02 (AC-15, real conformance CLI), UX-03 (n/a with populated Platforms & Input-Modes + Native Conflicts tables and justification), UX-04 (NFR-06), UX-05 (AC-16), UX-06 (FR-12/FR-14, AC-17) |
+| XD-* cross-cutting decisions honoured | **pass** — XD-01 (registry-only labels/edges, AC-01/02/18 guard), XD-02 (Neo4j only, no new store), XD-06 (activity-join scoping, AC-08), XD-08 (`business_architect` write path, FR-11), XD-09 (generate-then-edit, FR-08/09, AC-06/07), XD-10 (structured G/W/T, FR-02/06, NFR-03, AC-04), **XD-18 (AC-19 + conformance row — B-03 closed)** |
+| House rules (CLAUDE.md) honoured | pass — zod-only, no tsc, loopback, central router gate + `api/src/auth/` only (FR-11 explicit), all routes under `/api/v1/`, en-US identifiers |
+| No ownership conflict with another spec | pass — mwc surfaces consumed not re-specced; out-of-scope owners named (kpi-impact-mapping, ddd-system-modeling, business-model-authoring, key-activity-optimizer, requirements-export); `UserStory.id` join-key boundary flagged for kpi-impact-mapping |
+| Dependencies list real files/modules | pass — every cited file verified on disk with matching interface (one mechanism mis-description → C-08) |
+| No naming collisions (labels/edges/error codes/routes) | pass — grep-verified against `shared/src/schema/*`, `api/src/errors.ts`, `rbac-permissions.ts` |
 
-| FR | Covered by AC | Notes |
-|----|---------------|-------|
-| FR-01 UserStory label (registry) | AC-01, AC-18 | OK — registry path verified in codebase |
-| FR-02 AcceptanceCriterion label (G/W/T) | AC-01, AC-04, AC-18 | OK — NFR-03 enforcement point clear |
-| FR-03 story→structure edges | AC-02 | **C-01**: reverse cardinality undecided |
-| FR-04 AC→story edge | AC-02, AC-04 | OK |
-| FR-05 Story CRUD | AC-03, AC-08 | **B-01**: scoping mechanism mis-stated |
+### FR/NFR → AC coverage
+
+| Requirement | Covered by | Notes |
+|-------------|-----------|-------|
+| FR-01 UserStory label (registry) | AC-01, AC-18 | OK; **C-08** wording (mechanism) |
+| FR-02 AcceptanceCriterion label (G/W/T) | AC-01, AC-04, AC-18 | OK; **C-08** wording |
+| FR-03 story→structure edges + cardinality | AC-02 | OK — cardinality decided in-FR |
+| FR-04 ACCEPTANCE_OF edge | AC-02, AC-04, AC-05 | OK |
+| FR-05 Story CRUD + write-side scope check | AC-03, AC-08, AC-19 | OK — C-06 closed |
 | FR-06 AC CRUD | AC-04 | OK |
-| FR-07 cascade + integrity | AC-05 | **C-05** atomicity note; **N-03** wording |
-| FR-08 server derivation | AC-06 | **B-02** parity feasibility; **C-03** journeyName |
-| FR-09 bootstrap endpoint | AC-07, AC-13 | idempotency depends on **C-01** |
-| FR-10 API contract / error codes | AC-04, AC-09 | `story_duplicate_for_activity` gated on **C-01** |
-| FR-11 route-permission mapping | AC-09 | OK — `ROUTE_PERMISSIONS` + `seed-rbac-roles` verified |
-| FR-12 StoryCatalog view + 4 states | AC-10, AC-12, AC-13, AC-14, AC-15 | OK — route verbatim from View Tree |
-| FR-13 detail + edit + AC editing | AC-11, AC-16 | OK |
-| FR-14 model-scoped catalog + reload | AC-10, AC-17 | **B-01**: "no cross-model leakage … via scopedNodeIds" |
-| NFR-01 registry-only, no const edits | AC-01, AC-02, AC-18 | OK |
-| NFR-02 model isolation | AC-08 | **B-01** |
+| FR-07 cascade + detached indicator | AC-05, AC-11 | OK — single-tx DETACH DELETE |
+| FR-08 server derivation | AC-06 | OK — projection + tiebreak well-defined |
+| FR-09 bootstrap | AC-07, AC-13, AC-19 | OK; **N-06** (bootstrap body rejection code unnamed) |
+| FR-10 API contract / error codes | AC-04, AC-08, AC-09 | OK — reserved code handled honestly |
+| FR-11 route permissions + business_architect | AC-09, AC-19 | OK — XD-18 cited |
+| FR-12 StoryCatalog + 4 states | AC-10, AC-12, AC-13, AC-14, AC-15 | OK — route verbatim |
+| FR-13 detail/edit/AC editing | AC-11, AC-16 | OK |
+| FR-14 model-scoped catalog + reload | AC-10, AC-17 | OK |
+| NFR-01 registry-only | AC-01, AC-02, AC-18 | OK |
+| NFR-02 model isolation (read + write side) | AC-08 | OK — both sides now asserted |
 | NFR-03 structured-AC invariant | AC-04 | OK |
-| NFR-04 derivation fidelity | AC-06 | **B-02** |
-| NFR-05 house rules | AC-18 | OK — loopback/zod/no-tsc/central-gate all honored |
-| NFR-06 tokens-only styling | AC-15 | OK |
+| NFR-04 derivation fidelity | AC-06 | OK |
+| NFR-05 house rules | AC-18 | OK |
+| NFR-06 tokens-only styling | AC-15 | OK — real path |
+| Blueprint XD-18 mandate | **AC-19** (+ AC-06/07/09/11 supporting) | **closed — was B-03** |
 
-Well done: XD-01/XD-02/XD-08/XD-09/XD-10 all honored; UX-01..UX-06 each mapped in the
-UX conformance table; Platforms & Native-Conflicts tables present and justified;
-routes taken verbatim from the frozen View Tree; no compile-time schema edits; no
-per-route auth (central gate + `api/src/auth/` only).
+## Summary
 
----
-
-## Verdict: revise
-
-Two blockers (B-01 mechanism mis-statement on model scoping; B-02 untestable parity
-assertion) must be corrected before design — both would send design down an
-unimplementable path (an empty-set story query; a two-shapes-one-fixture parity test).
-The five concerns are addressable in the same revision. On re-review (pass 2 of 2)
-I will confirm B-01/B-02 are reworded and C-01's cardinality is decided in an FR;
-the remaining concerns/nits can carry into design as recorded items.
+- Rev 3 is a precise, minimal revision: it lands the pass-2 blocker exactly as
+  prescribed (XD-18 citations + AC-19 + conformance row) and both concerns and
+  both nits, and every claim it adds checks out against the blueprint and the
+  code on disk — including the subtle ones (pinned-module snapshot boundary,
+  `scopedNodeIds` membership semantics, the client derivation's `[0]`-order
+  primary).
+- What's done well: the model-scoping mechanism note (stories resolved through
+  the activity join, with AC-08 asserting story-id **non**-membership) and the
+  NFR-04 parity-harness framing are unusually rigorous requirements writing —
+  they close off the two easiest ways this feature could have shipped subtly
+  wrong.
+- Remaining work is downstream: fix the "MERGE-on-name" mechanism wording in
+  design (C-08), and reconcile the already-drafted design/tasks with the rev-3
+  deltas — 19 ACs, one new error code, negative-write assertions, and the
+  fork-first empty-state hint (C-09). Neither requires another requirements
+  pass; the review cap for this phase is now consumed.

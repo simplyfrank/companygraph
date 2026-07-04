@@ -1,0 +1,114 @@
+/* kpi-okr-governance T-16 — tokens-only styling (UX-02): every value is
+ * a var(--…) declared in pwa/src/styles/companygraph/tokens.css. */
+
+.tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.tab {
+  display: inline-flex;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-line-height);
+  color: var(--fg);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+  color: var(--muted);
+  font-size: var(--type-body-size);
+}
+
+.meta {
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: var(--type-body-size);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  color: var(--muted);
+  font-size: var(--type-caption-mono-size);
+  font-family: var(--type-caption-mono-family);
+  letter-spacing: var(--type-caption-mono-letter-spacing);
+  text-transform: uppercase;
+}
+
+.input {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.formError {
+  color: var(--danger-text);
+  font-size: var(--type-body-size);
+}
+
+.assignInput {
+  width: 6rem;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+}
+
+.hint {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--accent-soft);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  font-size: var(--type-body-size);
+}

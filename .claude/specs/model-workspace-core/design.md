@@ -2,7 +2,7 @@
 feature: "model-workspace-core"
 created: "2026-07-04"
 author: "spec-author"
-status: "revised"
+status: "approved"
 revision: 4
 reviewing_requirements_revision: 4
 dec_01: "closed — option (a), shared reference nodes (requirements rev 4, C-07; silent-accept per XD-17)"

@@ -31,6 +31,9 @@ import {
   seedBoundedContexts,
 } from "../ontology/seed";
 import { ontologyEvents } from "../ontology/events";
+import { runSystemKindMigration } from "../ontology/system-kind-migration";
+import { registerModelSchema } from "../scripts/register-model-labels";
+import { registerStorySchema } from "../scripts/register-story-labels";
 
 export async function applySchema(driver: Driver): Promise<void> {
   // Step 1: meta-schema for the registry itself.
@@ -51,6 +54,25 @@ export async function applySchema(driver: Driver): Promise<void> {
   // Step 3: seed bounded contexts from specification file.
   // This runs every bootstrap but is idempotent (checks if already seeded).
   await seedBoundedContexts(driver);
+
+  // Step 3b (model-workspace-core T-03 / FR-01–04, NFR-01): register the
+  // four model-workspace lifecycle labels + five edges through the runtime
+  // registry (never the compile-time consts). Idempotent — name_conflict
+  // is swallowed inside registerModelSchema. Runs BEFORE step 4 so the
+  // registry iteration below creates the per-label id constraints for the
+  // new labels on the same boot.
+  await registerModelSchema(driver);
+
+  // Step 3c (story-spec-core T-02 / FR-01–04, NFR-01): register the two
+  // story-spec labels (UserStory, AcceptanceCriterion) + three edges
+  // (DESCRIBES_ACTIVITY, STORY_FOR_ROLE, ACCEPTANCE_OF) through the
+  // runtime registry (never the compile-time consts). Idempotent —
+  // name_conflict is swallowed inside registerStorySchema. Runs BEFORE
+  // step 4 so the registry iteration below creates the per-label id
+  // constraints for the new labels on the same boot, and AFTER the
+  // core-label seed + step 3b so Activity/Role exist when the edge
+  // endpoints are checked (assertEndpointLabelsExist).
+  await registerStorySchema(driver);
 
   // Step 4: iterate the registry and ensure per-label / per-type data
   // constraints exist. All statements use `IF NOT EXISTS` so re-running
@@ -82,7 +104,43 @@ export async function applySchema(driver: Driver): Promise<void> {
          FOR ()-[r:\`${type}\`]-() REQUIRE r.id IS UNIQUE`,
       );
     }
+
+    // model-workspace-core T-03 (design §4.3): BusinessModel.ordinal
+    // uniqueness (server-assigned max+1; concurrent double-create loses
+    // one side → bounded retry in storage/models.ts), plus the two
+    // forkLocalKey lookup indexes backing the §3.4 B-02 instance anchor
+    // (equality + STARTS WITH resolutions are index-backed). All
+    // IF NOT EXISTS → re-run is a no-op.
+    await session.run(
+      `CREATE CONSTRAINT business_model_ordinal_unique IF NOT EXISTS
+       FOR (m:BusinessModel) REQUIRE m.ordinal IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE INDEX user_journey_fork_local_key IF NOT EXISTS
+       FOR (n:UserJourney) ON (n.forkLocalKey)`,
+    );
+    await session.run(
+      `CREATE INDEX activity_fork_local_key IF NOT EXISTS
+       FOR (n:Activity) ON (n.forkLocalKey)`,
+    );
   } finally {
     await session.close();
+  }
+
+  // Step 5 (system-augmentation-model T-05 / FR-07): tighten the System
+  // attribute doc + backfill legacy Systems to systemKind:"functional".
+  // Idempotent + event-quiet on re-run. Own try/catch (DD-15) so a
+  // transient failure logs a distinct, actionable line before rethrowing
+  // into server.ts's existing warn-and-start catch — the every-boot
+  // re-run is the self-healing mitigation, and the migration's drift
+  // backfill repairs Systems written during a failure window.
+  try {
+    await runSystemKindMigration(driver);
+  } catch (e) {
+    console.error(
+      "[system-kind-migration] FAILED — System writes are UNVALIDATED until 'bun run migrate:system-kind' succeeds (or restart the server; the migration re-runs on every boot)",
+      e,
+    );
+    throw e;
   }
 }

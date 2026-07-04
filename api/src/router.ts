@@ -29,6 +29,7 @@ import { handleStats } from "./routes/stats";
 import { handleExportJson, handleExportNdjson } from "./routes/export";
 import { handleOpenapi } from "./routes/openapi";
 import { handleGraphAnalytics } from "./routes/analytics";
+import { handleAnalyticsReport, handleAnalyticsConfig } from "./analytics/routes";
 import {
   handleCreateNodeLabel,
   handleListNodeLabels,
@@ -139,6 +140,7 @@ import {
   handleDomainPatch,
   handleDomainArchive,
   handleDomainAuditLog,
+  handleDomainList,
 } from "./routes/domain-crud";
 import {
   handleJourneyPost,
@@ -150,6 +152,7 @@ import {
   handleOkrDirectivePost,
   handleOkrDirectiveGet,
   handleOkrDirectiveGetByProduct,
+  handleOkrDirectiveList,
   handleOkrDirectivePatch,
   handleOkrDirectiveDelete,
   handleKeyResultPost,
@@ -190,12 +193,16 @@ import {
 } from "./routes/journey-versions";
 import {
   handleKpiPost,
+  handleKpiList,
+  handleKpiGet,
   handleKpiPatch,
   handleKpiArchive,
   handleKpiAuditLog,
 } from "./routes/kpi-crud";
 import {
   handleSlaPost,
+  handleSlaList,
+  handleSlaGet,
   handleSlaPatch,
   handleSlaArchive,
   handleSlaAuditLog,
@@ -239,8 +246,12 @@ import {
   handlePersonaAssignmentList,
   handlePersonaAssignmentDelete,
 } from "./routes/persona";
+import { registerModelRoutes } from "./routes/models";
+import { registerModuleRoutes } from "./routes/modules";
+import { registerStoryRoutes } from "./routes/stories";
 import { error, fromValidationError } from "./routes/_helpers";
 import { ValidationError } from "./errors";
+import { ZodError } from "zod";
 import { logRequest } from "./logging";
 import { metrics } from "./metrics";
 
@@ -262,6 +273,12 @@ export async function route(req: Request): Promise<Response> {
   } catch (e) {
     if (e instanceof ValidationError) {
       res = fromValidationError(e);
+    } else if (e instanceof ZodError) {
+      // kpi-okr-governance §4.2 backstop — a direct .parse() call must
+      // never escape as a 500; mirror parseWith's issues[] envelope.
+      res = error(400, "invalid_payload", "invalid_payload", {
+        issues: e.issues.map((i) => ({ path: i.path.join("."), message: i.message, code: i.code })),
+      });
     } else {
       console.error("unhandled error", e);
       res = error(500, "neo4j_unreachable", "internal error", {
@@ -371,6 +388,27 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   if (sub === "auth/callback" && method === "GET") return handleAuthCallback(req);
   if (sub === "auth/logout" && method === "POST") return handleAuthLogout();
   if (sub === "auth/me" && method === "GET") return handleAuthMe(req);
+
+  // model-workspace-core T-13 — /api/v1/models* + /api/v1/modules*
+  // dispatch blocks (design §5). Specific sub-routes resolve before the
+  // parameterized :id matches inside each delegate. The generic node /
+  // edge handlers below additionally carry the T-10 lifecycle guards.
+  if (sub === "models" || sub.startsWith("models/")) {
+    const res = await registerModelRoutes(method, sub, req);
+    if (res) return res;
+  }
+  // story-spec-core T-09 — /api/v1/models/:modelId/stories* dispatch
+  // block (design §4.7), AFTER model-workspace-core's models* block.
+  // Specific sub-routes (bootstrap, acceptance-criteria) resolve before
+  // the parameterized :storyId matches inside the delegate.
+  if (sub.startsWith("models/")) {
+    const res = await registerStoryRoutes(method, sub, req);
+    if (res) return res;
+  }
+  if (sub === "modules" || sub.startsWith("modules/")) {
+    const res = await registerModuleRoutes(method, sub, req);
+    if (res) return res;
+  }
 
   if (sub === "edges" && method === "POST") return handleEdgePost(req);
   const edgeDelete = sub.match(/^edges\/([^/]+)$/);
@@ -615,6 +653,7 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
 
   // Domain CRUD routes (US-DM-05)
   if (sub === "domains" && method === "POST") return handleDomainPost(req);
+  if (sub === "domains" && method === "GET") return handleDomainList(req); // kpi-okr-governance FR-10d
   const domainOne = sub.match(/^domains\/([^/]+)$/);
   if (domainOne) {
     const id = decodeURIComponent(domainOne[1]!);
@@ -641,24 +680,35 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   const journeyChanges = sub.match(/^journeys\/([^/]+)\/changes$/);
   if (journeyChanges && method === "GET") return handleJourneyChanges(req, journeyChanges[1]!);
 
-  // KPI CRUD routes (KPI-SLA-02)
+  // KPI CRUD routes (KPI-SLA-02) — kpi-okr-governance FR-10a/FR-13.
+  // Subpath regexes matched BEFORE the :id regex; the old POST /kpis/:id
+  // (archive) and GET /kpis/:id (audit) overloads are retired (DEC-01).
   if (sub === "kpis" && method === "POST") return handleKpiPost(req);
+  if (sub === "kpis" && method === "GET") return handleKpiList(req);
+  const kpiArchive = sub.match(/^kpis\/([^/]+)\/archive$/);
+  if (kpiArchive && method === "POST") return handleKpiArchive(req, decodeURIComponent(kpiArchive[1]!));
+  const kpiAudit = sub.match(/^kpis\/([^/]+)\/audit$/);
+  if (kpiAudit && method === "GET") return handleKpiAuditLog(req, decodeURIComponent(kpiAudit[1]!));
   const kpiOne = sub.match(/^kpis\/([^/]+)$/);
   if (kpiOne) {
     const id = decodeURIComponent(kpiOne[1]!);
+    if (method === "GET") return handleKpiGet(req, id);
     if (method === "PATCH") return handleKpiPatch(req, id);
-    if (method === "POST") return handleKpiArchive(req, id);
-    if (method === "GET") return handleKpiAuditLog(req, id);
   }
 
-  // SLA CRUD routes (KPI-SLA-03)
+  // SLA CRUD routes (KPI-SLA-03) — kpi-okr-governance FR-10b/FR-13
+  // mirror of the KPI block; overloads retired per DEC-01.
   if (sub === "slas" && method === "POST") return handleSlaPost(req);
+  if (sub === "slas" && method === "GET") return handleSlaList(req);
+  const slaArchive = sub.match(/^slas\/([^/]+)\/archive$/);
+  if (slaArchive && method === "POST") return handleSlaArchive(req, decodeURIComponent(slaArchive[1]!));
+  const slaAudit = sub.match(/^slas\/([^/]+)\/audit$/);
+  if (slaAudit && method === "GET") return handleSlaAuditLog(req, decodeURIComponent(slaAudit[1]!));
   const slaOne = sub.match(/^slas\/([^/]+)$/);
   if (slaOne) {
     const id = decodeURIComponent(slaOne[1]!);
+    if (method === "GET") return handleSlaGet(req, id);
     if (method === "PATCH") return handleSlaPatch(req, id);
-    if (method === "POST") return handleSlaArchive(req, id);
-    if (method === "GET") return handleSlaAuditLog(req, id);
   }
 
   // KPI alignment routes (KPI-SLA-04)
@@ -674,6 +724,10 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
     const productId = new URL(req.url).searchParams.get("product_id");
     if (domainId) return handleOkrDirectiveGet(req, domainId);
     if (productId) return handleOkrDirectiveGetByProduct(req, productId);
+    // kpi-okr-governance FR-10c — unfiltered list (was a 404 fallthrough).
+    // No RBAC edit: P("GET","okr-directives","okr:read") already covers
+    // this form (design §4.10).
+    return handleOkrDirectiveList(req);
   }
   const okrDirectiveOne = sub.match(/^okr-directives\/([^/]+)$/);
   if (okrDirectiveOne) {
@@ -758,6 +812,13 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
 
   // Graph analytics routes
   if (sub === "analytics/graph" && method === "GET") return handleGraphAnalytics();
+
+  // cto-analytics FR-09 (T-14) — read-only config + the 7 BUILD-set report GETs
+  // under /api/v1/analytics/. `analytics/graph` above is matched first, so the
+  // parameterized report match never shadows it.
+  if (sub === "analytics/config" && method === "GET") return handleAnalyticsConfig();
+  const analyticsReport = sub.match(/^analytics\/([^/]+)$/);
+  if (analyticsReport && method === "GET") return handleAnalyticsReport(analyticsReport[1]!);
 
   // Metrics endpoint for Prometheus scraping
   if (sub === "metrics" && method === "GET") return handleMetrics();

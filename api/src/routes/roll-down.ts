@@ -26,13 +26,13 @@ import { z } from "zod";
 import { uuidv7 } from "@companygraph/shared/schema/nodes";
 import { getDriver } from "../neo4j/driver";
 import { generateId } from "../ids";
-import { ok, error, parseId } from "./_helpers";
+import { ok, error, parseId, parseWith, readJson } from "./_helpers";
 
 // =============================================================================
 // Schemas
 // =============================================================================
 
-const kpiRollDownSchema = z.object({
+export const kpiRollDownSchema = z.object({
   kpi_id: uuidv7,
   domain_assignments: z.array(
     z.object({
@@ -43,7 +43,7 @@ const kpiRollDownSchema = z.object({
   ),
 });
 
-const okrRollDownSchema = z.object({
+export const okrRollDownSchema = z.object({
   okr_directive_id: uuidv7,
   domain_assignments: z.array(
     z.object({
@@ -68,14 +68,14 @@ const okrRollDownSchema = z.object({
   ),
 });
 
-const rollDownCommitSchema = z.object({
+export const rollDownCommitSchema = z.object({
   roll_down_id: uuidv7,
   domain_id: uuidv7,
   status: z.enum(["committed", "rejected"]),
   notes: z.string().optional(),
 });
 
-const rollDownAdjustmentSchema = z.object({
+export const rollDownAdjustmentSchema = z.object({
   roll_down_id: uuidv7,
   domain_id: uuidv7,
   requested_adjustments: z.array(
@@ -94,8 +94,7 @@ const rollDownAdjustmentSchema = z.object({
 // =============================================================================
 
 export async function handleKpiRollDownPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = kpiRollDownSchema.parse(body);
+  const input = parseWith(kpiRollDownSchema, await readJson(req));
   const rollDownId = uuidv7.parse(generateId());
   const now = new Date().toISOString();
 
@@ -238,8 +237,7 @@ export async function handleKpiRollDownByDomainGet(req: Request, domainId: strin
 // =============================================================================
 
 export async function handleOkrRollDownPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = okrRollDownSchema.parse(body);
+  const input = parseWith(okrRollDownSchema, await readJson(req));
   const rollDownId = uuidv7.parse(generateId());
   const now = new Date().toISOString();
 
@@ -456,8 +454,7 @@ export async function handleOkrRollDownByDomainGet(req: Request, domainId: strin
 // =============================================================================
 
 export async function handleRollDownCommitPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = rollDownCommitSchema.parse(body);
+  const input = parseWith(rollDownCommitSchema, await readJson(req));
   const now = new Date().toISOString();
 
   const driver: Driver = getDriver();
@@ -479,8 +476,7 @@ export async function handleRollDownCommitPost(req: Request): Promise<Response> 
 }
 
 export async function handleRollDownAdjustmentPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = rollDownAdjustmentSchema.parse(body);
+  const input = parseWith(rollDownAdjustmentSchema, await readJson(req));
   const now = new Date().toISOString();
 
   const driver: Driver = getDriver();
@@ -592,7 +588,7 @@ export async function handleRollDownContributionsByDomainGet(req: Request, domai
 // Domain to Product Roll-Down Handlers
 // =============================================================================
 
-const kpiProductRollDownSchema = z.object({
+export const kpiProductRollDownSchema = z.object({
   kpi_id: uuidv7,
   domain_id: uuidv7,
   product_assignments: z.array(
@@ -604,7 +600,7 @@ const kpiProductRollDownSchema = z.object({
   ),
 });
 
-const okrProductRollDownSchema = z.object({
+export const okrProductRollDownSchema = z.object({
   okr_directive_id: uuidv7,
   domain_id: uuidv7,
   product_assignments: z.array(
@@ -631,8 +627,7 @@ const okrProductRollDownSchema = z.object({
 });
 
 export async function handleKpiProductRollDownPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = kpiProductRollDownSchema.parse(body);
+  const input = parseWith(kpiProductRollDownSchema, await readJson(req));
   const rollDownId = uuidv7.parse(generateId());
   const now = new Date().toISOString();
 
@@ -737,8 +732,7 @@ export async function handleKpiProductRollDownGet(req: Request, domainId: string
 }
 
 export async function handleOkrProductRollDownPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = okrProductRollDownSchema.parse(body);
+  const input = parseWith(okrProductRollDownSchema, await readJson(req));
   const rollDownId = uuidv7.parse(generateId());
   const now = new Date().toISOString();
 
@@ -885,7 +879,7 @@ export async function handleOkrProductRollDownGet(req: Request, domainId: string
 // Program to Product Roll-Down Handlers
 // =============================================================================
 
-const kpiProgramRollDownSchema = z.object({
+export const kpiProgramRollDownSchema = z.object({
   kpi_id: uuidv7,
   program_id: uuidv7,
   product_assignments: z.array(
@@ -897,7 +891,7 @@ const kpiProgramRollDownSchema = z.object({
   ),
 });
 
-const okrProgramRollDownSchema = z.object({
+export const okrProgramRollDownSchema = z.object({
   okr_directive_id: uuidv7,
   program_id: uuidv7,
   product_assignments: z.array(
@@ -924,8 +918,7 @@ const okrProgramRollDownSchema = z.object({
 });
 
 export async function handleKpiProgramRollDownPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = kpiProgramRollDownSchema.parse(body);
+  const input = parseWith(kpiProgramRollDownSchema, await readJson(req));
   const rollDownId = uuidv7.parse(generateId());
   const now = new Date().toISOString();
 
@@ -1030,8 +1023,7 @@ export async function handleKpiProgramRollDownGet(req: Request, programId: strin
 }
 
 export async function handleOkrProgramRollDownPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = okrProgramRollDownSchema.parse(body);
+  const input = parseWith(okrProgramRollDownSchema, await readJson(req));
   const rollDownId = uuidv7.parse(generateId());
   const now = new Date().toISOString();
 
@@ -1178,21 +1170,20 @@ export async function handleOkrProgramRollDownGet(req: Request, programId: strin
 // Approval Workflow Handlers
 // =============================================================================
 
-const approveRollDownSchema = z.object({
+export const approveRollDownSchema = z.object({
   assignment_id: uuidv7,
   approver_id: z.string(),
   notes: z.string().optional(),
 });
 
-const rejectRollDownSchema = z.object({
+export const rejectRollDownSchema = z.object({
   assignment_id: uuidv7,
   rejecter_id: z.string(),
   reason: z.string().min(1).max(1000),
 });
 
 export async function handleRollDownApprove(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = approveRollDownSchema.parse(body);
+  const input = parseWith(approveRollDownSchema, await readJson(req));
   const now = new Date().toISOString();
 
   const driver: Driver = getDriver();
@@ -1218,8 +1209,7 @@ export async function handleRollDownApprove(req: Request): Promise<Response> {
 }
 
 export async function handleRollDownReject(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = rejectRollDownSchema.parse(body);
+  const input = parseWith(rejectRollDownSchema, await readJson(req));
   const now = new Date().toISOString();
 
   const driver: Driver = getDriver();
@@ -1248,7 +1238,7 @@ export async function handleRollDownReject(req: Request): Promise<Response> {
 // Notification Handlers
 // =============================================================================
 
-const notifyRollDownSchema = z.object({
+export const notifyRollDownSchema = z.object({
   assignment_id: uuidv7,
   recipient_id: z.string(),
   message: z.string().min(1).max(500),
@@ -1256,8 +1246,7 @@ const notifyRollDownSchema = z.object({
 });
 
 export async function handleRollDownNotify(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = notifyRollDownSchema.parse(body);
+  const input = parseWith(notifyRollDownSchema, await readJson(req));
   const notificationId = uuidv7.parse(generateId());
   const now = new Date().toISOString();
 
@@ -1297,7 +1286,7 @@ export async function handleRollDownNotify(req: Request): Promise<Response> {
 // SLA Roll-Down Handlers (Domain to Products)
 // =============================================================================
 
-const slaDomainRollDownSchema = z.object({
+export const slaDomainRollDownSchema = z.object({
   domain_id: uuidv7,
   sla_ids: z.array(uuidv7),
   product_assignments: z.array(z.object({
@@ -1309,15 +1298,13 @@ const slaDomainRollDownSchema = z.object({
 });
 
 export async function handleSlaDomainRollDownPost(req: Request): Promise<Response> {
-  const body = await req.json().catch(() => null);
-  if (!body) return error(400, "invalid_payload", "invalid JSON body", {});
-
-  let input: z.infer<typeof slaDomainRollDownSchema>;
-  try {
-    input = slaDomainRollDownSchema.parse(body);
-  } catch (e) {
-    return error(400, "invalid_payload", "schema validation failed", e instanceof z.ZodError ? e.flatten() : {});
-  }
+  // DD-01 rule (iii) — the pre-existing try/catch flatten mapper was the
+  // one handler already mapping ZodError to 400, with details:
+  // e.flatten() and message "schema validation failed". Standardized to
+  // the parseWith details.issues[] shape + "invalid_payload" message —
+  // the third sanctioned contract change, pinned in
+  // roll-down.integration.test.ts (req-review pass-2 C-01).
+  const input = parseWith(slaDomainRollDownSchema, await readJson(req));
 
   if (input.sla_ids.length === 0) {
     return error(400, "invalid_payload", "sla_ids must not be empty", {});

@@ -175,6 +175,7 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
 
   // ── Domains ──
   P("POST", "domains", "domain:write"),
+  P("GET", "domains", "domain:read"), // kpi-okr-governance FR-10d list
   P("PATCH", "domains/:id", "domain:write"),
   P("POST", "domains/:id", "domain:write"),
   P("GET", "domains/:id", "domain:read"),
@@ -188,16 +189,23 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   P("POST", "journeys/:id/rollback/:versionId", "journey:write"),
   P("GET", "journeys/:id/changes", "journey:read"),
 
-  // ── KPIs ──
+  // ── KPIs ── (kpi-okr-governance §4.10 — list + subpaths added; the
+  // stale POST kpis/:id row for the DEC-01-retired archive overload is
+  // removed so a permission mapping never points at a 404 route)
   P("POST", "kpis", "kpi:write"),
+  P("GET", "kpis", "kpi:read"),
+  P("POST", "kpis/:id/archive", "kpi:write"),
+  P("GET", "kpis/:id/audit", "kpi:read"),
   P("PATCH", "kpis/:id", "kpi:write"),
-  P("POST", "kpis/:id", "kpi:write"),
   P("GET", "kpis/:id", "kpi:read"),
 
-  // ── SLAs ──
+  // ── SLAs ── (kpi-okr-governance §4.10 — mirror of the KPI section;
+  // stale POST slas/:id overload row removed per DEC-01)
   P("POST", "slas", "sla:write"),
+  P("GET", "slas", "sla:read"),
+  P("POST", "slas/:id/archive", "sla:write"),
+  P("GET", "slas/:id/audit", "sla:read"),
   P("PATCH", "slas/:id", "sla:write"),
-  P("POST", "slas/:id", "sla:write"),
   P("GET", "slas/:id", "sla:read"),
 
   // ── KPI alignments ──
@@ -245,6 +253,49 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
 
   // ── OKR performance ──
   P("GET", "okr-performance", "okr:read"),
+
+  // ── Business models + modules (model-workspace-core T-13 / FR-12) ──
+  // Specific before parameterized (matchSegments rejects on segment
+  // count first, so ordering only bites same-length literal-vs-param
+  // rows — kept as forward-proofing). SECURITY-CRITICAL property: every
+  // new route has a row — an unmapped route returns null from
+  // getRoutePermission and the router then SKIPS the RBAC check
+  // entirely (silent open write). No route here is `public`.
+  P("POST", "models", "model:write"),
+  P("GET", "models", "model:read"),
+  P("POST", "models/:id/domains", "model:write"),
+  P("POST", "models/:id/archive", "model:write"),
+  P("POST", "models/:modelId/module-instances", "module:write"),
+  P("GET", "models/:modelId/module-instances", "module:read"),
+  P("PATCH", "models/:modelId/module-instances/:instanceId/nodes/:nodeId", "module:write"),
+  P("POST", "models/:modelId/module-instances/:instanceId/edges", "module:write"),
+  P("DELETE", "models/:modelId/module-instances/:instanceId/edges", "module:write"),
+  P("POST", "models/:modelId/module-instances/:instanceId/fork", "module:write"),
+  P("POST", "models/:modelId/module-instances/:instanceId/upgrade", "module:write"),
+  // ── User stories + acceptance criteria (story-spec-core T-11 / FR-11) ──
+  // Ten rows, one per route (design §4.8) — specific (bootstrap +
+  // acceptance-criteria) before the parameterized :storyId rows, and all
+  // BEFORE model-workspace-core's models/:id rows per the house
+  // convention. GETs → story:read; POST/PATCH/DELETE/bootstrap →
+  // story:write. No route is public; auth stays in the central gate
+  // (NFR-05 — never a per-route check).
+  P("GET", "models/:modelId/stories", "story:read"),
+  P("POST", "models/:modelId/stories", "story:write"),
+  P("POST", "models/:modelId/stories/bootstrap", "story:write"),
+  P("GET", "models/:modelId/stories/:storyId/acceptance-criteria", "story:read"),
+  P("POST", "models/:modelId/stories/:storyId/acceptance-criteria", "story:write"),
+  P("PATCH", "models/:modelId/stories/:storyId/acceptance-criteria/:acId", "story:write"),
+  P("DELETE", "models/:modelId/stories/:storyId/acceptance-criteria/:acId", "story:write"),
+  P("GET", "models/:modelId/stories/:storyId", "story:read"),
+  P("PATCH", "models/:modelId/stories/:storyId", "story:write"),
+  P("DELETE", "models/:modelId/stories/:storyId", "story:write"),
+  P("GET", "models/:id", "model:read"),
+  P("PATCH", "models/:id", "model:write"),
+  P("DELETE", "models/:id", "model:write"),
+  P("POST", "modules", "module:write"),
+  P("GET", "modules", "module:read"),
+  P("POST", "modules/:id/versions", "module:write"),
+  P("GET", "modules/:id/versions", "module:read"),
 
   // ── Roll-down — specific paths before parameterized ──
   P("POST", "roll-down/kpi", "kpi:write"),

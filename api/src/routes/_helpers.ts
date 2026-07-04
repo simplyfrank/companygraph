@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { UUIDV7_REGEX } from "../ids";
 import type { ErrorEnvelope } from "@companygraph/shared/types";
 import { ValidationError, type ErrorCode } from "../errors";
@@ -73,4 +74,17 @@ export async function parseEdgeTypeName(s: unknown): Promise<string | null> {
 export function parseQueryBool(url: URL, param: string): boolean {
   const v = url.searchParams.get(param);
   return v === "true" || v === "1";
+}
+
+// kpi-okr-governance FR-11b / DD-02 — one shared zod → 400 channel.
+// Converts any schema failure into the existing
+// `ValidationError → fromValidationError` 400 envelope with a
+// `details.issues[]` array. Rides the router's ValidationError catch —
+// no new ERROR_CODES entry.
+export function parseWith<S extends z.ZodTypeAny>(schema: S, input: unknown): z.infer<S> {
+  const r = schema.safeParse(input);
+  if (r.success) return r.data;
+  throw new ValidationError("invalid_payload", {
+    issues: r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message, code: i.code })),
+  });
 }

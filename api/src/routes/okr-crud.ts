@@ -4,13 +4,14 @@ import { uuidv7 } from "@companygraph/shared/schema/nodes";
 import { ValidationError } from "../errors";
 import { generateId } from "../ids";
 import { getDriver } from "../neo4j/driver";
-import { ok, error } from "./_helpers";
+import { ok, error, parseWith, readJson } from "./_helpers";
 
 // =============================================================================
-// Schemas
+// Schemas — exported so openapi-kpi-okr.ts can register them
+// (kpi-okr-governance FR-12)
 // =============================================================================
 
-const okrDirectiveCreateSchema = z.object({
+export const okrDirectiveCreateSchema = z.object({
   id: uuidv7.optional(),
   name: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
@@ -25,7 +26,7 @@ const okrDirectiveCreateSchema = z.object({
   }),
 });
 
-const objectiveCreateSchema = z.object({
+export const objectiveCreateSchema = z.object({
   id: uuidv7.optional(),
   name: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
@@ -38,7 +39,7 @@ const objectiveCreateSchema = z.object({
   }),
 });
 
-const keyResultCreateSchema = z.object({
+export const keyResultCreateSchema = z.object({
   id: uuidv7.optional(),
   name: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
@@ -58,8 +59,7 @@ const keyResultCreateSchema = z.object({
 // =============================================================================
 
 export async function handleOkrDirectivePost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = okrDirectiveCreateSchema.parse(body);
+  const input = parseWith(okrDirectiveCreateSchema, await readJson(req));
   const id = input.id || uuidv7.parse(generateId());
   const now = new Date().toISOString();
   const attrs = JSON.stringify(input.attributes);
@@ -109,6 +109,40 @@ export async function handleOkrDirectiveGet(req: Request, domainId: string): Pro
   }
 }
 
+// GET /api/v1/okr-directives (no filter params) — kpi-okr-governance
+// FR-10c. Returns top-level directives (OKR cycles): the predicate is
+// BYTE-FOR-BYTE the string-contains Cypher OkrManagement.tsx ran through
+// the passthrough, kept bug-compatible on purpose (req-review pass-2
+// C-02; parse-based filtering rejected in design §9). A directive whose
+// attribute VALUE merely contains the string '"domain_id"' is excluded —
+// pinned by an AC-21 decoy fixture. NOTE: :OKRDirective stores camelCase
+// createdAt (graph-core convention) — there is no created_at here.
+// Returns {rows:[mapped]} — the filtered GETs keep their bare-array
+// shape (asymmetry pinned, NOT harmonized: harmonizing breaks OkrCrud.tsx).
+export async function handleOkrDirectiveList(req: Request): Promise<Response> {
+  const driver: Driver = getDriver();
+  const session = driver.session({ defaultAccessMode: "READ" });
+  try {
+    const result = await session.run(
+      `MATCH (n:OKRDirective) WHERE NOT n.attributes_json CONTAINS '"domain_id"' RETURN n ORDER BY n.createdAt DESC`,
+    );
+    const rows = result.records.map((r) => {
+      const node = r.get("n");
+      return {
+        id: node.properties.id,
+        name: node.properties.name,
+        description: node.properties.description,
+        attributes: JSON.parse(node.properties.attributes_json || "{}"),
+        createdAt: node.properties.createdAt,
+        updatedAt: node.properties.updatedAt,
+      };
+    });
+    return ok({ rows });
+  } finally {
+    await session.close();
+  }
+}
+
 export async function handleOkrDirectiveGetByProduct(req: Request, productId: string): Promise<Response> {
   const driver: Driver = getDriver();
   const session = driver.session();
@@ -138,8 +172,7 @@ export async function handleOkrDirectiveGetByProduct(req: Request, productId: st
 }
 
 export async function handleOkrDirectivePatch(req: Request, id: string): Promise<Response> {
-  const body = await req.json();
-  const input = okrDirectiveCreateSchema.partial().parse(body);
+  const input = parseWith(okrDirectiveCreateSchema.partial(), await readJson(req));
   const now = new Date().toISOString();
   const attrs = input.attributes ? JSON.stringify(input.attributes) : undefined;
 
@@ -187,8 +220,7 @@ export async function handleOkrDirectiveDelete(req: Request, id: string): Promis
 // =============================================================================
 
 export async function handleKeyResultPost(req: Request): Promise<Response> {
-  const body = await req.json();
-  const input = keyResultCreateSchema.parse(body);
+  const input = parseWith(keyResultCreateSchema, await readJson(req));
   const id = input.id || uuidv7.parse(generateId());
   const now = new Date().toISOString();
   const attrs = JSON.stringify(input.attributes);
@@ -234,8 +266,7 @@ export async function handleKeyResultGet(req: Request, directiveId: string): Pro
 }
 
 export async function handleKeyResultPatch(req: Request, id: string): Promise<Response> {
-  const body = await req.json();
-  const input = keyResultCreateSchema.partial().parse(body);
+  const input = parseWith(keyResultCreateSchema.partial(), await readJson(req));
   const now = new Date().toISOString();
   const attrs = input.attributes ? JSON.stringify(input.attributes) : undefined;
 

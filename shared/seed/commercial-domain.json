@@ -79,13 +79,13 @@
     ,{"label": "Role", "id": "01920000-0003-7000-8000-00000000000b", "name": "Finance Liaison", "description": "Cross-domain finance coordination, reconciliation, and settlement support."}
     ,{"label": "Role", "id": "01920000-0003-7000-8000-00000000000c", "name": "AP Analyst", "description": "Accounts payable processing, three-way matching, and payment approvals."}
 
-    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000001", "name": "Oracle RPM", "description": "Oracle Retail Price Management — regular pricing and price changes."}
-    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000002", "name": "Oracle RMS", "description": "Oracle Retail Merchandising System — assortment, item master, and buying."}
-    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000003", "name": "ReIM", "description": "Retail Invoice Matching — PO-to-invoice matching and settlements."}
-    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000004", "name": "AutoCN", "description": "Auto-consignment — consignment stock tracking and settlement."}
-    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000005", "name": "SSPOG", "description": "Space Planning / Planogram — assortment layout and fixture planning."}
-    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000006", "name": "Supplier Portal", "description": "Vendor self-service portal for POs, invoices, and compliance."}
-    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000007", "name": "EDI Gateway", "description": "Electronic data interchange for PO and invoice exchange with vendors."}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000001", "name": "Oracle RPM", "description": "Oracle Retail Price Management — regular pricing and price changes.", "attributes": {"systemKind": "functional"}}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000002", "name": "Oracle RMS", "description": "Oracle Retail Merchandising System — assortment, item master, and buying.", "attributes": {"systemKind": "functional"}}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000003", "name": "ReIM", "description": "Retail Invoice Matching — PO-to-invoice matching and settlements.", "attributes": {"systemKind": "functional"}}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000004", "name": "AutoCN", "description": "Auto-consignment — consignment stock tracking and settlement.", "attributes": {"systemKind": "functional"}}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000005", "name": "SSPOG", "description": "Space Planning / Planogram — assortment layout and fixture planning.", "attributes": {"systemKind": "functional"}}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000006", "name": "Supplier Portal", "description": "Vendor self-service portal for POs, invoices, and compliance.", "attributes": {"systemKind": "functional"}}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000007", "name": "EDI Gateway", "description": "Electronic data interchange for PO and invoice exchange with vendors.", "attributes": {"systemKind": "functional"}}
 
     ,{"label": "Location", "id": "01920000-0005-7000-8000-000000000001", "name": "Commercial HQ", "description": "Corporate headquarters for commercial planning and pricing."}
     ,{"label": "Location", "id": "01920000-0005-7000-8000-000000000002", "name": "Buying Office", "description": "Buying team office for vendor meetings and negotiation."}

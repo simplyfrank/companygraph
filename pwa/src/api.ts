@@ -194,8 +194,19 @@ export const api = {
     },
   },
 
+  // kpi-okr-governance FR-10d/FR-15 — resource-shaped domain list for
+  // the exec views (name-ordered; replaces the KpiManagement cypher call).
+  domains: {
+    list: (signal?: AbortSignal) =>
+      json<{ rows: DomainRow[] }>("/api/v1/domains", withSignal(signal)),
+  },
+
   // KPI/SLA management (KPI-SLA-01 through KPI-SLA-12)
   kpi: {
+    // kpi-okr-governance FR-10a/FR-15 — REST list (rows carry snake_case
+    // created_at; ?include_archived=true|1 adds archived KPIs).
+    list: (signal?: AbortSignal) =>
+      json<{ rows: KPI[] }>("/api/v1/kpis", withSignal(signal)),
     create: (data: KPICreate) =>
       json<KPI>("/api/v1/kpis", {
         method: "POST",
@@ -971,6 +982,12 @@ export interface SLABreachUpdate {
 
 // OKR API functions
 export const okr = {
+  // kpi-okr-governance FR-10c/FR-15 — unfiltered top-level directive
+  // list ({rows:[mapped]}, createdAt DESC); replaces the OkrManagement
+  // cypher call. The filtered getDirectives keeps its bare-array shape.
+  listDirectives: () =>
+    json<{ rows: OKRDirective[] }>("/api/v1/okr-directives"),
+
   createDirective: (data: OKRDirectiveCreate) =>
     json<OKRDirective>("/api/v1/okr-directives", {
       method: "POST",
@@ -1017,4 +1034,59 @@ export const okr = {
 
   getPerformance: (domainId: string) =>
     json<OKRPerformance>(`/api/v1/okr-performance?domain_id=${domainId}`),
+};
+
+// ---------------------------------------------------------------------------
+// model-workspace-core T-19 (design §4.9, FR-16) — business-model client.
+// Typed against the shared T-01 zod schemas. No instantiate method here:
+// instance AUTHORING is downstream (design §3.4); listInstances backs
+// the read-only instance count/detail surfaces.
+// ---------------------------------------------------------------------------
+
+import type {
+  ModelRead,
+  ModelCreateInput,
+  ModelPatchInput,
+  InstanceRead,
+} from "@companygraph/shared/schema/model-workspace";
+
+export type { ModelRead, InstanceRead };
+
+export const models = {
+  list: (signal?: AbortSignal) => json<ModelRead[]>("/api/v1/models", withSignal(signal)),
+
+  get: (id: string, signal?: AbortSignal) =>
+    json<ModelRead>(`/api/v1/models/${encodeURIComponent(id)}`, withSignal(signal)),
+
+  create: (data: ModelCreateInput) =>
+    json<ModelRead>("/api/v1/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  patch: (id: string, data: ModelPatchInput) =>
+    json<ModelRead>(`/api/v1/models/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  archive: (id: string) =>
+    json<ModelRead>(`/api/v1/models/${encodeURIComponent(id)}/archive`, { method: "POST" }),
+
+  remove: async (id: string): Promise<void> => {
+    const res = await fetch(`/api/v1/models/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      let detail = "";
+      try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+      throw new Error(`${res.status} ${res.statusText} /api/v1/models/${id} ${detail}`);
+    }
+  },
+
+  listInstances: (modelId: string, signal?: AbortSignal) =>
+    json<InstanceRead[]>(
+      `/api/v1/models/${encodeURIComponent(modelId)}/module-instances`,
+      withSignal(signal),
+    ),
 };

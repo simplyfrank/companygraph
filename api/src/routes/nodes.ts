@@ -18,6 +18,7 @@ import {
   parseRegistryLabel,
   readJson,
 } from "./_helpers";
+import { assertNotLifecycleLabel } from "../storage/model-lifecycle-guard";
 
 // graph-core's contract (per its FR-06 / AC-05) is `400 unknown_label`
 // when the URL `:label` segment doesn't resolve to a registered node
@@ -31,6 +32,9 @@ import {
 export async function handleNodePost(req: Request, labelParam: string): Promise<Response> {
   const label = await parseRegistryLabel(labelParam);
   if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
+  // model-workspace-core T-10 (design §4.6): lifecycle labels are
+  // written only by their dedicated routes → 409.
+  assertNotLifecycleLabel(label);
   const body = await readJson(req);
   const input = parseOrThrow(nodeCreateSchema, body);
   const node = await createNode(getDriver(), label, input);
@@ -49,6 +53,7 @@ export async function handleNodeGet(_req: Request, labelParam: string, idParam: 
 export async function handleNodePatch(req: Request, labelParam: string, idParam: string): Promise<Response> {
   const label = await parseRegistryLabel(labelParam);
   if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
+  assertNotLifecycleLabel(label); // T-10 — see handleNodePost
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const body = await readJson(req);
@@ -60,6 +65,7 @@ export async function handleNodePatch(req: Request, labelParam: string, idParam:
 export async function handleNodeDelete(req: Request, labelParam: string, idParam: string): Promise<Response> {
   const label = await parseRegistryLabel(labelParam);
   if (!label) return error(400, "unknown_label", "unknown node label", { label: labelParam });
+  assertNotLifecycleLabel(label); // T-10 — see handleNodePost
   const id = parseId(idParam);
   if (!id) return error(400, "invalid_payload", "malformed id", { id: idParam });
   const cascade = new URL(req.url).searchParams.get("cascade") === "true";

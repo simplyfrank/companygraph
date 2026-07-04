@@ -2,12 +2,12 @@
 feature: "model-workspace-core"
 created: "2026-07-04"
 author: "spec-author"
-status: "revised"
-revision: 3
-reviewing_requirements_revision: 2   # rev-3 errata pending — see "Execution preconditions"
-reviewing_design_revision: 3
+status: "approved"
+revision: 4
+reviewing_requirements_revision: 4
+reviewing_design_revision: 4
 review_pass_1: "approve (0 blockers, 3 concerns, 3 nits) — all folded into rev 2"
-review_pass_2: "revise (4 blockers, 3 concerns, 3 nits) — all folded into rev 3"
+review_pass_2: "revise of rev 2 (4 blockers, 3 concerns, 3 nits) folded into rev 3; final on-disk re-review: approve of rev 3 (0 blockers, 3 concerns, 2 nits; cap 2/2) — residuals + the requirements rev-4 C-10 sync folded into rev 4 (post-approval sync, not a new review pass)"
 size: "large"
 total_tasks: 22
 ---
@@ -18,8 +18,18 @@ total_tasks: 22
 
 - **Order**: tasks execute top-to-bottom. Dependencies are explicit (`Blocked by`
   / `Blocks`); no out-of-order execution. **T-22 is physically slotted between
-  T-08 and T-09** (its dependency position); its ID is out of numeric sequence
-  because stable IDs are never renumbered.
+  T-08 and T-09**, and **T-19 is physically slotted before T-18** (T-18's steps
+  consume T-19's `api.ts` methods — resolves final-review C-01); IDs are out of
+  numeric sequence because stable IDs are never renumbered.
+- **Deferred-green rule (resolves final-review C-02)**: integration tests
+  `fetch` a running API on `127.0.0.1:8787`, so **HTTP-level** assertions
+  (status codes; fixtures via `POST /models/:id/domains`,
+  `PATCH …/nodes/:nodeId`, `POST …/edges`) authored in T-04…T-09/T-22 cannot
+  run green until router **dispatch** lands in **T-13**. At each storage task's
+  checkpoint run `bun run typecheck` + the storage-level assertions that need
+  no route surface; the full test files run green at the **T-13** checkpoint.
+  Guard-dependent assertions (the D-4 generic-route 409s) run green when
+  **T-10** lands — T-10's verification claims them.
 - **Verification**: every task declares a concrete test path or
   `manual: <one-line repro with input mode + observable outcome>`. The completion
   hook blocks STATUS.md updates without one.
@@ -35,7 +45,14 @@ total_tasks: 22
 - Integration tests (`*.integration.test.ts`) need Neo4j (`bun test:integration`
   after `bun run dev`); unit/component tests run under `bun test`.
 
-## Design-basis pins (design rev 3 — §2.1 Deviations Register + resolved findings)
+## Design-basis pins (design rev 4 — §2.1 Deviations Register + resolved findings)
+
+> **Rev-4 basis note.** Requirements rev 4 and design rev 4 are now on disk;
+> design rev 4 is a reconciliation of approved rev 3 against the user-approved
+> requirements rev 4 (design §2.1 is a landed ledger). The **only** tasks-visible
+> contract rev 4 adds is §4.7's `--down` **`--force` refusal** (requirements
+> rev-4 C-10) — synced into T-16 in this revision. Everything else in this
+> section carries over from rev 3 unchanged.
 
 > **Correction (resolves review B-04(b)).** The rev-2 version of this section
 > claimed design review pass 2 ended **revise** with B-02/C-06/C-07 left open
@@ -53,7 +70,7 @@ total_tasks: 22
 | Design decision (rev 3) | Binding for execution | Locked in task |
 |-------------------------|-----------------------|----------------|
 | **§3.4 (B-02 resolution)** — every materialized fork node carries `forkLocalKey = "<instanceId>::<localKey>"` (the **full instance-qualified synthetic id**, never the bare snapshot key). Membership of a raw UUID = `forkLocalKey STARTS WITH "<instanceId>::"`; synthetic-id resolution = exact `forkLocalKey` equality; the forked read anchors on `{forkLocalKey: "<instanceId>::journey"}`. Index-backed (§4.3). | Fork writes the instance-qualified value; all three resolutions query that one property; the two lookup indexes exist. | T-08 (fork + resolution) + T-03 (indexes) + `module-fork.integration.test.ts` fixture (two instances of one module under one Domain → distinct subtrees) |
-| **D-4** — requirements AC-06's "generic write on a version-owned node → `409 module_version_immutable`" arm is unreachable under the blob-snapshot model. A generic write to a `BusinessModuleVersion` node returns `409 model_lifecycle_route_required`; `module_version_immutable` is reachable **only** through the explicit-version publish collision (§4.4). | The AC-06 test asserts exactly this single reading. | T-06 + T-08 + T-10 + `module-fork.integration.test.ts` |
+| **D-4** — requirements AC-06's "generic write on a version-owned node → `409 module_version_immutable`" arm is unreachable under the blob-snapshot model. A generic write to a `BusinessModuleVersion` node returns `409 model_lifecycle_route_required`; `module_version_immutable` is reachable **only** through the explicit-version publish collision (§4.4). | The AC-06 test asserts exactly this single reading. | T-06 (explicit-version collision — proven in `module-publish.integration.test.ts`) + T-08 + T-10 (generic-write 409s — proven in `module-fork.integration.test.ts` + `model-crud.integration.test.ts`) — crediting fixed per final-review N-02 |
 | **D-1** — no `?model=<id>` query param on any GET in this spec; scope resolves from the `:modelId` **path** param. | No GET gains a `?model=` param; isolation proven by the `scopedNodeIds` test + the path-scoped instance list. | T-04 (helper + test) + T-11 (instance list route) + `model-scope.integration.test.ts` |
 | **D-2** — instantiate body carries a **required `targetDomainId`** (FR-07's `{moduleId, version?}` is superseded). | `instanceCreateSchema` requires it; bad/foreign domain → 400. | T-01 + T-07 |
 | **D-3** — optional explicit-version publish mode (`{version?}`); collision → `409 module_version_immutable`. | Default stays auto-increment `max+1`. | T-06 |
@@ -66,21 +83,25 @@ Full rationale for every row: design §2.1 and the resolution notes at §3.3,
 pointers; this file has no Open Questions section. Cross-references point at
 design §2.1 and `STATUS.md`.)
 
-### Execution preconditions (orchestrator actions — resolves review B-04(d), N-02)
+### Execution preconditions (orchestrator actions — resolves review B-04(d), N-02; status per final-review C-03)
 
-Before T-01 starts, the orchestrator must:
+**Both preconditions are LANDED as of rev 4** (final-review C-03 actioned):
 
-1. **Land the requirements rev-3 errata** for D-1…D-5 (design §2.1) — no ID
-   renumbering — including the additive `POST /api/v1/models/:id/domains` route
-   for traceability and the design-review N-10 label-count fix (**four**
-   lifecycle labels, not five). `requirements.md` is still rev 2; its frozen
-   AC-06/AC-16/AC-21/FR-06/FR-07 text contradicts the tests below, and
-   executing against it invites the completion hook and the AC sweep to
-   disagree (B-04(d)).
-2. **Correct STATUS.md** (N-02): it records the design review as
-   "revise (2/2 cap; B-02 + C-06/C-07 pinned in tasks.md)", but the on-disk
-   `review-design.md` is an **approve of revision 3**. The execution agent must
-   not inherit the stale-upstream state that produced review B-01…B-04.
+1. ~~Land the requirements rev-3 errata~~ — **landed.** `requirements.md` is
+   now **rev 4** (approved by the user 2026-07-04): D-1…D-5, the additive
+   `POST /api/v1/models/:id/domains` route, and the four-label count (N-10)
+   are folded into the body — plus the new **C-10** `--down --force` contract
+   this revision syncs into T-16. This artifact's frontmatter pins
+   `reviewing_requirements_revision: 4`.
+2. ~~Correct STATUS.md~~ — **landed.** STATUS.md now records the design review
+   as approve (of rev 3; cap 2/2) and design rev 4 as a post-approval
+   reconciliation.
+
+**One orchestrator item remains before further source edits**: gate design
+rev 4 (`design.md` frontmatter `status: revised` → `approved`) without a new
+review pass — the cap is 2/2, the review approved rev 3, and rev 4 adds no
+contract beyond the requirements-mandated `--force`. `spec-gate-check` blocks
+source-file edits on design-named files while design status is not `approved`.
 
 ## Task-review pass 1 — resolutions (rev 2)
 
@@ -116,6 +137,24 @@ exhausted (2/2); every finding below is landed as written.
 | N-01 — dangling "(see Open Questions)" pointers | Removed — the pins section points at design §2.1 / STATUS.md. | pins section |
 | N-02 — STATUS.md contradicts the on-disk design review | Recorded as orchestrator precondition #2 (this artifact does not edit STATUS.md). | preconditions |
 | N-03 — reading-guide checkpoint wording still singular | Reading-guide sentence aligned with the checkpoints-table rule (every touched file gets its own invocation). | reading guide |
+
+## Task-review final pass (approve of rev 3) + design rev-4 sync — resolutions (rev 4)
+
+The final on-disk `review-tasks.md` (pass 2/2) verdict is **approve of rev 3** —
+0 blockers, 3 concerns, 2 nits, all flagged as execution-time discipline. Rev 4
+folds them into the artifact anyway (a revision was required regardless, for the
+requirements rev-4 C-10 sync STATUS.md pinned), so the executed artifact and the
+executed order agree on paper. Review budget stays exhausted (2/2); this is a
+post-approval sync, not a new review pass.
+
+| Finding | Resolution | Where |
+|---------|------------|-------|
+| **STATUS.md "Next" #1 — T-16 out of sync with requirements rev-4 C-10 / design §4.7 rev 4** | T-16 `--down` gains the refusal guard: while any non-reference `BusinessModel` exists, `--down` refuses and writes nothing unless `--force` is also passed; verification adds "second model survives a forced down-migration with its `IN_MODEL` edges + subgraph intact". Documented-limitation wording synced to "re-apply after a **forced** `--down`". | T-16 |
+| **C-01** — PWA-chain ordering metadata internally inconsistent | T-19 physically slotted before T-18 (top-to-bottom execution now honest); T-17 no longer claims `Blocks: T-19` (`api.ts` needs only T-01 — asymmetry reconciled in T-17's favor of the `Blocked by` fields); T-18's Files list now counts `pwa/src/App.tsx` (2 files, still ≤3). | reading guide, T-17, T-19, T-18 |
+| **C-02** — per-task checkpoint timing over-stated for T-05…T-09/T-22 | Deferred-green rule added to the reading guide (HTTP-level assertions green at the **T-13** dispatch checkpoint; D-4 guard assertions green at **T-10**); T-04's green point corrected T-11 → T-13; T-05…T-09/T-22 verifications carry the deferral marker; T-08's D-4 assertion explicitly tagged as landing with T-10. | reading guide, T-04…T-09, T-22 |
+| **C-03** — preconditions recorded but not actioned on disk | Actioned: requirements rev 4 + STATUS.md correction are landed; preconditions section updated to reflect it; the one remaining orchestrator item (gate design rev 4) is named there. | preconditions |
+| N-01 — T-10's test-edit ownership implicit | Explicit step: T-10 **adds** the two generic-route 409 assertions to the existing test files. | T-10 |
+| N-02 — D-4 pins-row credit imprecise | Row now credits T-06's half to `module-publish.integration.test.ts` and T-10's generic-write half to the fork/crud files. | pins table |
 
 ## Task list
 
@@ -218,9 +257,10 @@ exhausted (2/2); every finding below is landed as written.
   `System`/`Role`/`Location` (AC-21 part 1). **Fixture is API-only (resolves
   review B-02 setup path; design §8 AC-21)**: both models' domains are created
   through `POST /api/v1/models` + `POST /api/v1/models/:id/domains` — no
-  direct-driver seeding. Because that route lands in T-11 (which also owns
-  part 2 of this same file), the T-04 checkpoint is `bun run typecheck` + the
-  test compiling; the file runs green at the T-11 checkpoint.
+  direct-driver seeding. Because the route handlers land in T-11 and router
+  **dispatch** lands in T-13, the T-04 checkpoint is `bun run typecheck` + the
+  test compiling; the file runs green at the **T-13** checkpoint (deferred-green
+  rule, final-review C-02 — the rev-3 "green at T-11" pin was too early).
 
 ### T-05 — Model CRUD storage (ordinal, count, cascade delete, domain attach)
 
@@ -256,6 +296,8 @@ exhausted (2/2); every finding below is landed as written.
   `409 model_reference_immutable` (drives AC-03); **`attachDomain` creates the
   `Domain` + `IN_MODEL` edge in one tx and the domain then appears in
   `scopedNodeIds(model)`; absent model → `model_not_found` (B-02)**.
+  Deferred-green (C-02): HTTP-level assertions run green at the T-13 checkpoint;
+  run the storage-level halves (direct function calls) at this checkpoint.
 
 ### T-06 — Module publish: snapshot + canonical checksum
 
@@ -281,7 +323,8 @@ exhausted (2/2); every finding below is landed as written.
   immutable; version auto-increments (v2 not a mutation of v1); versions list DESC;
   **explicit-version publish of an existing version → 409 `module_version_immutable`**;
   re-publishing an **unchanged** subtree is **checksum-identical** (canonical
-  serialization) (AC-04).
+  serialization) (AC-04). Deferred-green (C-02): route-surface assertions run
+  green at the T-13 checkpoint; storage-level halves run at this checkpoint.
 
 ### T-07 — Module instantiate + instance read
 
@@ -312,7 +355,8 @@ exhausted (2/2); every finding below is landed as written.
   construction — compare names, descriptions, attributes, and `precedes`/ref
   structure; design N-12, **resolves review C-02**); neither read-path mutates
   the shared version (AC-05). **Model-B setup goes through
-  `POST /models/:id/domains` (API-only, design §8 — B-02).**
+  `POST /models/:id/domains` (API-only, design §8 — B-02).** Deferred-green
+  (C-02): HTTP-level assertions run green at the T-13 checkpoint.
 
 ### T-08 — Module fork + synthetic-id resolution (B-02 anchor)
 
@@ -364,6 +408,10 @@ exhausted (2/2); every finding below is landed as written.
   write → 404 `module_instance_node_not_member`**. Test fixtures build model
   domains through `POST /models/:id/domains` (API-only, design §8 — B-02).
   AC-06's **edge** coverage lands in T-22 (same test file, extended there).
+  Deferred-green (C-02): HTTP-level assertions run green at the **T-13**
+  checkpoint; the **D-4 generic-PATCH 409 assertion runs green when T-10 ships
+  the guard** (T-10 is not in this task's `Blocked by` — T-10's verification
+  claims that assertion; do not expect it green here).
 
 ### T-22 — Instance edge routes: storage + handlers (fork trigger for edges)
 
@@ -417,6 +465,9 @@ IDs are never renumbered.)*
   (first-edit-is-an-edge-edit path); non-member subtree endpoint → `404
   module_instance_node_not_member`; re-POST of the same `(type,from,to)` → `200`
   (idempotent MERGE); `DELETE …/edges` of it → `204`, absent → `404`.
+  Deferred-green (C-02): these are HTTP-level assertions — green at the T-13
+  checkpoint; exercise `createInstanceEdge`/`deleteInstanceEdge` directly at
+  this checkpoint.
 
 ### T-09 — Module upgrade
 
@@ -433,7 +484,8 @@ IDs are never renumbered.)*
   touches other instances).
 - **Verification**: `api/__tests__/module-upgrade.integration.test.ts` — re-pin M≥N;
   downgrade → 400; missing → 404; forked → 409; publishing v(N+1) leaves existing
-  instances pinned (AC-07).
+  instances pinned (AC-07). Deferred-green (C-02): HTTP-level assertions run
+  green at the T-13 checkpoint; call `upgradeInstance` directly at this one.
 
 ### T-10 — Generic-route lifecycle guard
 
@@ -449,6 +501,10 @@ IDs are never renumbered.)*
   `handleNodeDelete` (after `parseRegistryLabel`) and `assertNotLifecycleEdge` in
   `handleEdgePost`/`handleEdgeDelete` (after edge-type resolution). **Storage primitives
   untouched** (no `_baseline` contract change) — additive route-boundary rejection only.
+  **Test-edit ownership (final-review N-01): T-10 adds the two generic-route 409
+  assertions to the existing test files** (`model-crud.integration.test.ts` and
+  `module-fork.integration.test.ts`) — the assertions land with this task, not
+  with the tasks that created those files.
 - **Verification**: covered in `api/__tests__/model-crud.integration.test.ts` (generic
   `DELETE /api/v1/nodes/BusinessModel/:id` → `409 model_lifecycle_route_required`, AC-03)
   and `module-fork.integration.test.ts` (generic PATCH on `BusinessModuleVersion` → 409,
@@ -477,9 +533,11 @@ IDs are never renumbered.)*
 - **Verification**: `api/__tests__/model-scope.integration.test.ts` part 2 —
   `GET /api/v1/models/:modelId/module-instances` for model A returns only A's
   instances/forked nodes, never B's (AC-21 part 2); both models' domains created
-  through `POST /models/:id/domains` (API-only, design §8 — B-02; this checkpoint
-  also turns the T-04 part-1 fixture green); CRUD/domains/fork/upgrade behaviour
-  exercised transitively by T-05/T-08/T-22/T-09 integration tests.
+  through `POST /models/:id/domains` (API-only, design §8 — B-02); CRUD/domains/
+  fork/upgrade behaviour exercised transitively by T-05/T-08/T-22/T-09
+  integration tests. Deferred-green (C-02): the whole file — including the T-04
+  part-1 fixture — runs green at the **T-13** checkpoint (router dispatch), not
+  here.
 
 ### T-12 — Module routes handlers
 
@@ -561,7 +619,8 @@ IDs are never renumbered.)*
 ### T-16 — Retail → Business Model #1 migration
 
 - **Files** (1): `api/src/scripts/migrate-retail-to-model.ts` (new)
-- **Implements**: design §4.7 (rev 3) — closes AC-08; supports FR-10, NFR-02
+- **Implements**: design §4.7 (rev 4 — incl. the requirements rev-4 C-10
+  `--down --force` refusal) — closes AC-08; supports FR-10, NFR-02
 - **Complexity**: complex
 - **Blocked by**: T-03, T-05
 - **Blocks**: —
@@ -582,11 +641,20 @@ IDs are never renumbered.)*
   `Domain`, `MERGE (d)-[:IN_MODEL]->(m)`. **Ordering rule (script header + help
   text)**: the **first** `migrate:model` run must precede the first
   `POST /api/v1/models`; the guard fails loudly if violated; subsequent re-runs
-  are unrestricted. Also note in the script header that re-apply after `--down`
-  while user models exist trips the same guard and is unsupported
-  (design-review C-10 — documented, not special-cased). `--down` removes
-  `IN_MODEL` to the reference model + `DETACH DELETE` the reference root
-  (matched on `isReference:true`), leaving domain/journey/activity untouched.
+  are unrestricted. Also note in the script header that re-apply after a
+  **forced** `--down` while user models exist trips the same guard and is
+  unsupported (design-review C-10 — documented, not special-cased; the
+  `--force` refusal exists precisely so that state is entered knowingly).
+  **`--down` — refusal guard first (requirements rev-4 C-10; design §4.7
+  rev 4)**: if any **other** (non-reference) `BusinessModel` exists, `--down`
+  **refuses and writes nothing unless `--force` is also passed** — the operator
+  must explicitly acknowledge that user models will remain while the reference
+  scoping is removed. When it proceeds (no user models, or `--force`):
+  `MATCH (d)-[r:IN_MODEL]->(m:BusinessModel {isReference:true}) DELETE r` then
+  `DETACH DELETE m` (matched on `isReference:true`, consistent with apply) —
+  **never an unqualified `IN_MODEL` sweep**, so a later-created model's
+  `IN_MODEL` edges and subgraph survive intact; domain/journey/activity nodes
+  untouched (counts identical to pre-migration).
   `--dry-run` runs the MATCHes read-only, prints node/edge deltas, commits
   nothing. Idempotent (MERGE + `ordinal` uniqueness constraint, T-03).
 - **Verification**: `api/__tests__/model-migration.integration.test.ts` — apply creates
@@ -594,7 +662,11 @@ IDs are never renumbered.)*
   user (non-reference) model exists still succeeds and adds zero nodes/edges
   (design §8 AC-08 — B-03)**; **guard-abort case: fresh graph with a user model
   and no reference model → apply aborts loudly and writes nothing (B-03)**;
-  `--down` restores exact pre-migration counts; `--dry-run` leaves `/api/v1/stats`
+  `--down` restores exact pre-migration counts; **`--down` while a second
+  (non-reference) model exists refuses and writes nothing without `--force`,
+  and with `--force` that second model survives the down-migration with its
+  `IN_MODEL` edges + subgraph intact (requirements rev-4 C-10; design §8
+  AC-08)**; `--dry-run` leaves `/api/v1/stats`
   unchanged while reporting intended deltas (AC-08).
 
 ### T-17 — PWA Model surface + surf-jump handler
@@ -603,7 +675,8 @@ IDs are never renumbered.)*
 - **Implements**: design §4.9, §6 — supports FR-14, UX-06; Native-Conflicts row
 - **Complexity**: moderate
 - **Blocked by**: —
-- **Blocks**: T-18, T-19
+- **Blocks**: T-18 *(rev 4, final-review C-01: no longer claims T-19 — `api.ts`
+  needs only T-01; the `Blocked by` fields are authoritative)*
 - **Steps**: Append a `model` surface to `SURFACES`: `{id:"model", label:"Model",
   kbd:"0", tabs:[models, canvas, stories, key-activities, kpi-impact, systems, export]}`
   — all seven blueprint View-Tree tabs **verbatim**. Extend the `App.tsx` keydown regex
@@ -616,9 +689,27 @@ IDs are never renumbered.)*
   proven only manually (pass-1 N-03); `manual:` load `#/model/models`, press
   `Alt+0` — expect the Model surface activates (keyboard, AC-11 jump portion).
 
+### T-19 — API client methods
+
+*(Physically slotted before T-18 in rev 4 — its dependency position; T-18's
+steps consume these methods. Resolves final-review C-01; the ID is out of
+numeric sequence because stable IDs are never renumbered.)*
+
+- **Files** (1): `pwa/src/api.ts` (modify)
+- **Implements**: design §4.9 — supports FR-16
+- **Complexity**: simple
+- **Blocked by**: T-01
+- **Blocks**: T-18, T-20
+- **Steps**: Add `models` client methods: `list`, `get`, `create`, `patch`, `archive`,
+  `remove`, `listInstances` (typed against the T-01 shared schemas). No instantiate
+  method (instance authoring is downstream, §3.4).
+- **Verification**: `bun run typecheck`; consumed + asserted transitively by
+  `pwa/src/__tests__/model-workspace.test.tsx` (T-20).
+
 ### T-18 — Active-model shell context
 
-- **Files** (1): `pwa/src/context/ActiveModelContext.tsx` (new)
+- **Files** (2): `pwa/src/context/ActiveModelContext.tsx` (new),
+  `pwa/src/App.tsx` (modify — the provider mount; counted per final-review C-01)
 - **Implements**: design §4.9 — supports FR-15, UX-06
 - **Complexity**: moderate
 - **Blocked by**: T-17, T-19
@@ -632,19 +723,6 @@ IDs are never renumbered.)*
 - **Verification**: `pwa/playwright/model-active-context.spec.ts` — navigate to
   `#/model/models`, switch active model to a non-reference model, reload → same route
   renders + active model still selected (AC-18).
-
-### T-19 — API client methods
-
-- **Files** (1): `pwa/src/api.ts` (modify)
-- **Implements**: design §4.9 — supports FR-16
-- **Complexity**: simple
-- **Blocked by**: T-01
-- **Blocks**: T-18, T-20
-- **Steps**: Add `models` client methods: `list`, `get`, `create`, `patch`, `archive`,
-  `remove`, `listInstances` (typed against the T-01 shared schemas). No instantiate
-  method (instance authoring is downstream, §3.4).
-- **Verification**: `bun run typecheck`; consumed + asserted transitively by
-  `pwa/src/__tests__/model-workspace.test.tsx` (T-20).
 
 ### T-20 — ModelWorkspace view + states
 

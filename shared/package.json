@@ -9,6 +9,10 @@
     "./schema/nodes": "./src/schema/nodes.ts",
     "./schema/edges": "./src/schema/edges.ts",
     "./schema/ontology": "./src/schema/ontology.ts",
+    "./schema/kpi-sla": "./src/schema/kpi-sla.ts",
+    "./schema/system-kind": "./src/schema/system-kind.ts",
+    "./schema/model-workspace": "./src/schema/model-workspace.ts",
+    "./schema/story-spec": "./src/schema/story-spec.ts",
     "./types": "./src/types.ts",
     "./seed/retail-mini.json": "./seed/retail-mini.json"
   },

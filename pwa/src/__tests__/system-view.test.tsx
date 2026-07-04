@@ -1,13 +1,18 @@
 import { describe, test, expect, beforeEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { ExplorerSystems } from "../views/explorer/Systems";
+import { parseHash } from "../route";
 
 // AC-04 — System-centric list view renders systems with uses + integrations counts.
+// system-augmentation-model T-15: mock rows gain `attributes_json` (the
+// view's Cypher projection now carries it) and the view takes a route
+// prop — existing assertions stay green (AC-15 regression).
 
 describe("ExplorerSystems (FR-05 / AC-04 — list mode)", () => {
   beforeEach(() => {
     cleanup();
     vi.restoreAllMocks();
+    window.location.hash = "#/explorer/systems";
   });
 
   test("renders one row per system with counts", async () => {
@@ -15,14 +20,14 @@ describe("ExplorerSystems (FR-05 / AC-04 — list mode)", () => {
       new Response(
         JSON.stringify({
           rows: [
-            { system: { id: "s-1", name: "POS", description: "Point of sale" }, uses: 5, integrations: 2 },
-            { system: { id: "s-2", name: "Stripe", description: "Payment processor" }, uses: 3, integrations: 0 },
+            { system: { id: "s-1", name: "POS", description: "Point of sale", attributes_json: '{"systemKind":"functional"}' }, uses: 5, integrations: 2 },
+            { system: { id: "s-2", name: "Stripe", description: "Payment processor", attributes_json: '{"systemKind":"functional"}' }, uses: 3, integrations: 0 },
           ],
         }),
         { status: 200 },
       ),
     );
-    render(<ExplorerSystems />);
+    render(<ExplorerSystems route={parseHash("#/explorer/systems")} />);
     expect(await screen.findByText("POS")).toBeInTheDocument();
     expect(screen.getByText("Stripe")).toBeInTheDocument();
   });
@@ -34,7 +39,7 @@ describe("ExplorerSystems (FR-05 / AC-04 — list mode)", () => {
         statusText: "Internal",
       }),
     );
-    render(<ExplorerSystems />);
+    render(<ExplorerSystems route={parseHash("#/explorer/systems")} />);
     expect(await screen.findByText(/error/i)).toBeInTheDocument();
   });
 });

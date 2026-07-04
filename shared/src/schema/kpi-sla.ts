@@ -138,3 +138,91 @@ export const slaComplianceSchema = z.object({
 });
 
 export type SLACompliance = z.infer<typeof slaComplianceSchema>;
+
+// ============================================================================
+// Request / query schemas (kpi-okr-governance design §3.3, FR-11a / FR-12)
+//
+// These encode the DOCUMENTED AS-BUILT contract of the REST surface, not
+// the aspirational read shapes above (DD-03): presence + primitive type of
+// the required fields and nothing more. Enum membership is enforced only
+// where the as-built handlers already enforced it. The one sanctioned
+// tightening is the kpi-alignment weight [0,1] bound (FR-04 / AC-06).
+// ============================================================================
+
+// FR-01 — presence + primitive types of the six documented required
+// fields; enums NOT enforced (as-built leniency, DD-03); domain_id
+// accepted (as-built extra field missing from kpiSchema).
+export const kpiCreateRequestSchema = z.object({
+  name: z.string().min(1),
+  category: z.string().min(1),
+  unit: z.string().min(1),
+  target_value: z.number(),
+  target_direction: z.string().min(1),
+  measurement_frequency: z.string().min(1),
+  description: z.string().optional(),
+  warning_threshold: z.number().optional(),
+  critical_threshold: z.number().optional(),
+  owner_role: z.string().optional(),
+  domain_id: z.string().optional(),
+});
+export const kpiPatchRequestSchema = kpiCreateRequestSchema
+  .omit({ domain_id: true }).partial();          // PATCH allow-list, as-built
+
+// FR-05 — mirrors the as-built seven required SLA fields.
+export const slaCreateRequestSchema = z.object({
+  name: z.string().min(1),
+  service_type: z.string().min(1),
+  target_value: z.number(),
+  target_unit: z.string().min(1),
+  measurement_window: z.string().min(1),
+  window_duration: z.string().min(1),
+  compliance_threshold: z.number(),
+  description: z.string().optional(),
+  penalty_type: z.string().optional(),
+  penalty_amount: z.number().optional(),
+  domain_id: z.string().optional(),
+  product_type: z.string().optional(),
+});
+export const slaPatchRequestSchema = slaCreateRequestSchema
+  .omit({ domain_id: true, product_type: true }).partial();
+
+// FR-04 — enums stay enforced (as-built enforced them); weight gains
+// the [0,1] bound the shared kpiAlignmentSchema documents (the ONE
+// sanctioned tightening, required by AC-06). target_type includes
+// "domain" — an as-built extension beyond kpiAlignmentSchema.
+export const kpiAlignmentCreateRequestSchema = z.object({
+  kpi_id: z.string().min(1),
+  target_type: z.enum(["journey", "activity", "domain"]),
+  target_id: z.string().min(1),
+  weight: z.number().min(0).max(1),
+  attribution_type: z.enum(["direct", "indirect", "leading", "lagging"]),
+  alignment_notes: z.string().optional(),
+});
+export const slaAlignmentCreateRequestSchema = z.object({
+  sla_id: z.string().min(1),
+  target_type: z.enum(["journey", "activity"]),
+  target_id: z.string().min(1),
+  is_critical: z.boolean().optional(),
+  alignment_notes: z.string().optional(),
+});
+
+// FR-03 / FR-07 — GET-only surfaces get query/path schemas ONLY
+// (requirements N-01). Coercion mirrors the as-built parseInt/parseFloat.
+export const kpiTrendsQuerySchema = z.object({
+  window_days: z.coerce.number().int().positive().default(30),
+  ma_period: z.coerce.number().int().positive().default(7),
+  anomaly_threshold: z.coerce.number().positive().default(2.0),
+});
+export const slaComplianceQuerySchema = z.object({
+  window_days: z.coerce.number().int().positive().default(90),
+});
+
+// FR-10a/b — list query params. DOCUMENTATION-ONLY schema: it exists
+// so FR-12/OpenAPI can describe the param; the handlers parse via the
+// existing parseQueryBool ("true"/"1" only, design §4.5) and never wire
+// this schema in. The type mirrors parseQueryBool semantics exactly —
+// z.coerce.boolean() is banned here because it coerces the string
+// "false" to true. Resolves: design-review C-01.
+export const listQuerySchema = z.object({
+  include_archived: z.enum(["true", "1"]).optional(),
+});

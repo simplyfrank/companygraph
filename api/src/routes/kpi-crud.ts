@@ -1,16 +1,31 @@
-// KPI CRUD handlers for KPI-SLA management system
-// POST /api/v1/kpis - create KPI
-// PATCH /api/v1/kpis/:id - update KPI
-// POST /api/v1/kpis/:id/archive - archive KPI
-// GET /api/v1/kpis/:id/audit - get KPI audit log
+// KPI CRUD handlers for KPI-SLA management system (kpi-okr-governance)
+// POST /api/v1/kpis             - create KPI
+// GET  /api/v1/kpis             - list KPIs (FR-10a; ?include_archived)
+// GET  /api/v1/kpis/:id         - get KPI resource (FR-13)
+// PATCH /api/v1/kpis/:id        - update KPI
+// POST /api/v1/kpis/:id/archive - archive KPI (FR-13; the POST /kpis/:id
+//                                 overload was retired per DEC-01)
+// GET  /api/v1/kpis/:id/audit   - audit log (DEC-02 placeholder; the
+//                                 GET /kpis/:id overload was retired)
 
 import type { Driver } from "neo4j-driver";
+import { z } from "zod";
+import {
+  kpiCreateRequestSchema,
+  kpiPatchRequestSchema,
+} from "@companygraph/shared/schema/kpi-sla";
 import { getDriver } from "../neo4j/driver";
-import { ok, error, parseId } from "./_helpers";
+import { generateId } from "../ids";
+import { ok, error, parseWith, parseQueryBool, readJson } from "./_helpers";
 
-// POST /api/v1/kpis - create KPI
+// DD-04 — path guard accepts ANY UUID version. The as-built v7-only
+// parseId made PATCH/archive/audit of the v4 ids this file used to mint
+// return 400 (V-01); pre-existing v4 KPIs must stay addressable.
+const uuidAny = z.string().uuid();
+
+// POST /api/v1/kpis - create KPI (returns 200, not 201 — pinned as-built)
 export async function handleKpiPost(req: Request): Promise<Response> {
-  const body = await req.json();
+  const body = parseWith(kpiCreateRequestSchema, await readJson(req));
   const {
     name,
     description,
@@ -25,11 +40,7 @@ export async function handleKpiPost(req: Request): Promise<Response> {
     domain_id,
   } = body;
 
-  if (!name || !category || !unit || target_value === undefined || !target_direction || !measurement_frequency) {
-    return error(400, "invalid_payload", "missing required fields", { required: ["name", "category", "unit", "target_value", "target_direction", "measurement_frequency"] });
-  }
-
-  const id = crypto.randomUUID();
+  const id = generateId(); // FR-14 — UUIDv7 (was crypto.randomUUID() v4)
   const now = new Date().toISOString();
 
   const driver: Driver = getDriver();
@@ -63,8 +74,8 @@ export async function handleKpiPost(req: Request): Promise<Response> {
         unit,
         target_value,
         target_direction,
-        warning_threshold: warning_threshold || null,
-        critical_threshold: critical_threshold || null,
+        warning_threshold: warning_threshold ?? null,
+        critical_threshold: critical_threshold ?? null,
         measurement_frequency,
         owner_role: owner_role || null,
         domain_id: domain_id || null,
@@ -79,12 +90,59 @@ export async function handleKpiPost(req: Request): Promise<Response> {
   }
 }
 
+// GET /api/v1/kpis - list KPIs (FR-10a). include_archived is parsed via
+// parseQueryBool ("true"/"1" only) — the shared listQuerySchema is
+// OpenAPI documentation, never wired here (design §4.5 / review C-01).
+export async function handleKpiList(req: Request): Promise<Response> {
+  const inclArch = parseQueryBool(new URL(req.url), "include_archived");
+
+  const driver: Driver = getDriver();
+  const session = driver.session({ defaultAccessMode: "READ" });
+
+  try {
+    const result = await session.run(
+      `MATCH (k:KPI)
+       WHERE $inclArch OR k.archived_at IS NULL
+       RETURN k
+       ORDER BY k.created_at DESC`,
+      { inclArch },
+    );
+    const rows = result.records.map((r) => r.get("k").properties);
+    return ok({ rows });
+  } finally {
+    await session.close();
+  }
+}
+
+// GET /api/v1/kpis/:id - KPI resource (FR-13). Archived KPIs ARE
+// returned — archived_at tells the caller (design §4.4).
+export async function handleKpiGet(req: Request, kpiId: string): Promise<Response> {
+  if (!uuidAny.safeParse(kpiId).success) {
+    return error(400, "invalid_payload", "malformed id", { id: kpiId });
+  }
+
+  const driver: Driver = getDriver();
+  const session = driver.session({ defaultAccessMode: "READ" });
+
+  try {
+    const result = await session.run("MATCH (k:KPI {id: $id}) RETURN k", { id: kpiId });
+    if (result.records.length === 0) {
+      return error(404, "not_found", "KPI not found", { id: kpiId });
+    }
+    return ok(result.records[0]!.get("k").properties);
+  } finally {
+    await session.close();
+  }
+}
+
 // PATCH /api/v1/kpis/:id - update KPI
 export async function handleKpiPatch(req: Request, kpiId: string): Promise<Response> {
-  const id = parseId(kpiId);
-  if (!id) return error(400, "invalid_payload", "malformed id", { id: kpiId });
+  if (!uuidAny.safeParse(kpiId).success) {
+    return error(400, "invalid_payload", "malformed id", { id: kpiId });
+  }
+  const id = kpiId;
 
-  const body = await req.json();
+  const body = parseWith(kpiPatchRequestSchema, await readJson(req));
   const now = new Date().toISOString();
 
   const driver: Driver = getDriver();
@@ -100,15 +158,17 @@ export async function handleKpiPatch(req: Request, kpiId: string): Promise<Respo
       return error(404, "not_found", "KPI not found or archived", { id });
     }
 
-    // Build dynamic SET clause
+    // Build dynamic SET clause over the as-built 10-field allow-list
+    // (kpiPatchRequestSchema strips everything else in strip mode; the
+    // explicit list stays as belt-and-braces against schema drift).
     const updates: string[] = ["k.updated_at = $now"];
-    const params: any = { id, now };
+    const params: Record<string, unknown> = { id, now };
 
     const allowedFields = [
       "name", "description", "category", "unit", "target_value",
       "target_direction", "warning_threshold", "critical_threshold",
       "measurement_frequency", "owner_role"
-    ];
+    ] as const;
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
@@ -134,8 +194,10 @@ export async function handleKpiPatch(req: Request, kpiId: string): Promise<Respo
 
 // POST /api/v1/kpis/:id/archive - archive KPI
 export async function handleKpiArchive(req: Request, kpiId: string): Promise<Response> {
-  const id = parseId(kpiId);
-  if (!id) return error(400, "invalid_payload", "malformed id", { id: kpiId });
+  if (!uuidAny.safeParse(kpiId).success) {
+    return error(400, "invalid_payload", "malformed id", { id: kpiId });
+  }
+  const id = kpiId;
 
   const now = new Date().toISOString();
 
@@ -162,17 +224,19 @@ export async function handleKpiArchive(req: Request, kpiId: string): Promise<Res
   }
 }
 
-// GET /api/v1/kpis/:id/audit - get KPI audit log
+// GET /api/v1/kpis/:id/audit - get KPI audit log (DEC-02 placeholder:
+// one synthetic row from node timestamps, user_id "system" — real audit
+// storage is deferred to a future spec; documented honestly in OpenAPI).
 export async function handleKpiAuditLog(req: Request, kpiId: string): Promise<Response> {
-  const id = parseId(kpiId);
-  if (!id) return error(400, "invalid_payload", "malformed id", { id: kpiId });
+  if (!uuidAny.safeParse(kpiId).success) {
+    return error(400, "invalid_payload", "malformed id", { id: kpiId });
+  }
+  const id = kpiId;
 
   const driver: Driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });
 
   try {
-    // Placeholder for audit log - would require audit nodes
-    // For now, return the KPI with its creation/update timestamps
     const result = await session.run(
       `MATCH (k:KPI {id: $id})
        RETURN k.id AS id, k.name AS name, k.created_at AS created_at,

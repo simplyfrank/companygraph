@@ -61,12 +61,12 @@
     {"label": "Role", "id": "018f0000-0003-7000-8000-000000000005", "attributes": {"team": "Warehouse"}},
     {"label": "Role", "id": "018f0000-0003-7000-8000-000000000006", "attributes": {"team": "CS"}},
 
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000001", "attributes": {}},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000002", "attributes": {}},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000003", "attributes": {}},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000004", "attributes": {}},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000005", "attributes": {}},
-    {"label": "System", "id": "018f0000-0004-7000-8000-000000000006", "attributes": {}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000001", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000002", "attributes": {"systemKind": "ai_predictive"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000003", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000004", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000005", "attributes": {"systemKind": "functional"}},
+    {"label": "System", "id": "018f0000-0004-7000-8000-000000000006", "attributes": {"systemKind": "agentic"}},
 
     {"label": "Location", "id": "018f0000-0005-7000-8000-000000000001", "attributes": {}},
     {"label": "Location", "id": "018f0000-0005-7000-8000-000000000002", "attributes": {}},

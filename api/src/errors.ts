@@ -1,5 +1,6 @@
-// Closed registry of error codes. envelope.test.ts asserts every code is
-// reachable from at least one route.
+// Closed registry of error codes (NFR-11). Per-surface OpenAPI
+// integration tests assert their codes appear in the ErrorEnvelope
+// enum; nothing asserts route-reachability of every code.
 
 export const ERROR_CODES = [
   "invalid_payload",
@@ -30,6 +31,29 @@ export const ERROR_CODES = [
   // T-18c — used by /api/v1/ontology/rollback/:version_id stub until the
   // full rollback executor lands in a follow-on commit.
   "not_implemented",
+  // model-workspace-core T-02 (design §3.6) — nine additive codes for the
+  // multi-model workspace + versioned-modules surface. Additive-only per
+  // NFR-11: no existing code removed or reordered.
+  "model_not_found",
+  "model_reference_immutable",
+  "module_not_found",
+  "module_version_not_found",
+  "module_instance_forked",
+  "module_version_immutable",
+  "module_downgrade_not_allowed",
+  "model_lifecycle_route_required",
+  "module_instance_node_not_member",
+  // story-spec-core T-03 (design §3.5, DD-08) — five additive codes for
+  // the user-story / acceptance-criterion surface. Additive-only per
+  // NFR-11. Deliberately NOT added: `story_duplicate_for_activity`
+  // (DD-04 — dead code under the 1..* default). A bad `roleId` reuses
+  // the generic `not_found` (DD-07); an unknown `:modelId` reuses
+  // `model_not_found` (tasks C-06 pin).
+  "story_not_found",
+  "acceptance_criterion_not_found",
+  "story_activity_required",
+  "story_activity_not_in_model",
+  "acceptance_criterion_clause_required",
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

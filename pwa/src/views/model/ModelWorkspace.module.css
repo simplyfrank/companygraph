@@ -1,0 +1,147 @@
+/* model-workspace-core T-20 (FR-16, NFR-06, UX-02) — tokens-only:
+   every value that carries color/size semantics resolves through
+   var(--…) declared in pwa/src/styles/companygraph/tokens.css. */
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease; /* house pattern (DomainCard) — no motion tokens declared in tokens.css */
+}
+
+.row:hover {
+  border-color: var(--border-strong);
+}
+
+.rowActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ordinal {
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-mono-size);
+  color: var(--muted);
+  min-width: var(--space-2xl);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  color: var(--fg);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--type-caption-mono-size);
+  line-height: 18px;
+}
+
+.badgeReference {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.badgeArchived {
+  color: var(--warn-text);
+  border-color: var(--warn);
+}
+
+.count {
+  color: var(--muted);
+  font-size: var(--type-caption-mono-size);
+}
+
+.skeleton {
+  height: var(--space-3xl);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  animation: pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { opacity: 1; }
+  to { opacity: 0.55; }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: flex-start;
+  padding: var(--space-xl);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--type-caption-mono-size);
+  color: var(--muted);
+}
+
+.input {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--font-body);
+}
+
+.input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}

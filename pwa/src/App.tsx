@@ -14,6 +14,7 @@ import {
   type Route,
 } from "./route";
 import { renderView } from "./views";
+import { ActiveModelProvider } from "./context/ActiveModelContext";
 import styles from "./App.module.css";
 
 const APP_ENV = (import.meta.env.VITE_ENV as string | undefined) ?? "dev";
@@ -37,9 +38,9 @@ export function App() {
   useEffect(() => startHealthPolling(), []);
   const stats = useHealthStore((s) => s.stats);
 
-  // Global keyboard shortcuts: Alt+1..8 to jump surfaces, "/" to focus
-  // the SubNav search input. Guarded against firing while typing in any
-  // input/textarea/contenteditable.
+  // Global keyboard shortcuts: Alt+1..9 / Alt+0 to jump surfaces, "/"
+  // to focus the SubNav search input. Guarded against firing while
+  // typing in any input/textarea/contenteditable.
   const searchInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -47,8 +48,10 @@ export function App() {
       const tag = target?.tagName?.toLowerCase();
       const typing = tag === "input" || tag === "textarea" || target?.isContentEditable;
 
-      if (e.altKey && /^[1-9]$/.test(e.key)) {
-        const idx = Number(e.key) - 1;
+      if (e.altKey && /^[0-9]$/.test(e.key)) {
+        // model-workspace-core T-17 (design §4.9, Risk 6): "0" maps to
+        // index 9 (the 10th surface — Model); 1..9 stay positional.
+        const idx = e.key === "0" ? 9 : Number(e.key) - 1;
         const s = SURFACES[idx];
         if (s) {
           e.preventDefault();
@@ -110,7 +113,12 @@ export function App() {
             }
           />
           <section className={styles.view} data-testid="stat-counts" data-nodes={totalNodes ?? ""} data-edges={totalEdges ?? ""}>
-            {renderView(route)}
+            {/* model-workspace-core T-18: active-model context is a
+                shell-level concern — mounted above renderView so every
+                Model view + sibling tab can consume it (FR-15). */}
+            <ActiveModelProvider>
+              {renderView(route)}
+            </ActiveModelProvider>
           </section>
         </main>
         <SidePanel />

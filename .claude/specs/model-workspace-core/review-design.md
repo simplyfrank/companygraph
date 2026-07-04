@@ -1,83 +1,87 @@
 ---
 feature: "model-workspace-core"
 reviewing: "design"
-reviewing_revision: 3
-artifact: "design.md (revision 3, reviewing_requirements_revision: 2)"
+reviewing_revision: 4
+artifact: "design.md (revision 4, reviewing_requirements_revision: 4)"
 reviewer: "spec-review-agent"
 verdict: "approve"
-review_pass: 2
+review_pass: 1
 reviewed_at: "2026-07-04"
 ---
 
-# Design Review: model-workspace-core (re-review of revision 3 — final pass)
+# Review: model-workspace-core / design (pass 1/2 — revision 4)
 
-Re-reviewed `design.md` (rev 3) cold against `requirements.md` (rev 2),
-`blueprint.md` (View Tree, UX-*, XD-*), `.claude/CLAUDE.md`,
-`.claude/specs/_baseline/`, and the as-built codebase. Verified this pass:
-`pwa/src/route.ts` (nine surfaces, `kbd` 1–9 — `kbd:"0"` for the tenth is
-free), `pwa/src/App.tsx` (positional `/^[1-9]$/` Alt-branch, stale
-`Alt+1..8` comment, Alt-branch not typing-guarded — all exactly as the design
-states), `api/src/auth/rbac-permissions.ts` (`ROUTE_PERMISSIONS` is an ordered
-array iterated first-match, so "specific before parameterized" is the correct
-discipline), `api/src/routes/nodes.ts` + `edges.ts` (`handleNodePost/Patch/
-Delete`, `handleEdgePost/Delete` exist as the §4.6 guard seams),
-`api/src/ontology/storage/{node-labels,edge-types}.ts` (`createNodeLabel`,
-`createEdgeType`), `api/src/routes/journey-versions.ts` (prior art exists),
-`api/src/errors.ts` (`invalid_payload`/`not_found`/`edge_endpoint_label_
-mismatch` exist; zero `model_*`/`module_*` collisions with the 9 new codes),
-`api/src/scripts/seed-rbac-roles.ts` (`RBAC_ROLES` array, `x:*` permission
-style) + `migrate-persona-hierarchy.ts` (persona pattern),
-`scripts/design-conformance.ts` (`--view` mode real; inert without it —
-matches Deviations Register D-5), `pwa/src/styles/companygraph/tokens.css`,
-`pwa/src/views/_shared.tsx` (`Loading`/`ErrorState`), `/api/v1/stats` route
-(AC-08 dry-run assertion target), root `package.json` (`typecheck` exists;
-`migrate:model`/`register:model` correctly new), `api/src/storage/` (no
-collision with the four new modules), `api/src/router.ts` (`sub.match(…)`
-dispatch blocks as described).
+Fresh cold review of `design.md` **revision 4**, requested by the orchestrator
+as the gate decision on the post-approval reconciliation (STATUS.md "Next"
+item 2). Process note: the on-disk history records a completed 2/2 review
+cycle that approved revision 3; this pass opens a new 1-of-2 budget scoped to
+revision 4. Finding IDs continue the established series (pass 1: B-01,
+C-01–C-05, N-01–N-04; pass 2: B-02/B-03, C-06–C-08, N-05–N-09; rev-3 pass:
+C-09–C-11, N-10–N-12). New this pass: **C-12, C-13, N-13–N-15**.
 
-Finding IDs continue the design-review series (pass 1: B-01, C-01–C-05,
-N-01–N-04; pass 2: B-02, B-03, C-06–C-08, N-05–N-09). New this pass:
-C-09–C-11, N-10–N-12.
+Reviewed against: `requirements.md` rev 4 (approved), `blueprint.md` (View
+Tree, UX-01..06, XD-01..18), `.claude/CLAUDE.md`, `.claude/specs/_baseline/`
+conventions, and the as-built codebase.
 
-## Status of prior findings
+**As-built claims re-verified this pass** (not taken on trust from prior
+reviews; note execution is mid-flight, so several "new" files already exist —
+checked that they agree with the design rather than contradict it):
 
-- ~~B-02~~ → **resolved.** `forkLocalKey` now stores the **full
-  instance-qualified synthetic id** (`<instanceId>::<localKey>`), globally
-  unique by construction (§3.4). All three previously-undefined steps now have
-  queryable definitions: post-fork resolution = direct equality match,
-  raw-UUID membership = `STARTS WITH <instanceId>::`, forked read anchor =
-  `{forkLocalKey: <instanceId>::journey}` (§4.4, §4.5). Backing lookup indexes
-  on `UserJourney.forkLocalKey`/`Activity.forkLocalKey` added to `applySchema`
-  (§4.3); AC-06 gains the two-instances-same-model disambiguation assertion
-  (§8). The fix is exactly the pass-2 recommendation. (Residual edge case on
-  anchor deletion → new C-09.)
-- ~~B-03~~ → **resolved.** The FR-08 sibling edge route is fully specified per
-  option (a): `POST`/`DELETE /api/v1/models/:modelId/module-instances/
-  :instanceId/edges`, addressed by `(type, from, to)` with synthetic-handle
-  support (sidestepping the no-edge-ids-in-snapshot problem), per-type
-  membership rules, fork-then-apply on a non-forked instance
-  (first-edit-is-an-edge-edit closed), idempotent MERGE semantics, §5 rows
-  with `module:write`, openapi registration, and AC-06 edge coverage (§4.4,
-  §5, §8). Complete contract; no gaps found.
-- ~~C-06~~ → **resolved.** `POST /api/v1/models/:id/domains` (`model:write`,
-  `attachDomain` one-tx storage function, §4.3/§5) gives user-created models a
-  sanctioned population path; AC-05/AC-06/AC-21 setups are API-only (§8), and
-  the guard bypass is explicit (the `IN_MODEL` edge is written internally, not
-  via the generic edge route).
-- ~~C-07~~ → **resolved.** The migration collision guard now fires only when
-  the reference model is **absent AND** a non-reference model exists; with the
-  reference model present, re-runs proceed idempotently forever, and AC-08
-  tests the re-run-after-user-model state (§4.7). (One remaining sequence,
-  `--down` → re-apply with user models present, still aborts → new C-10.)
-- ~~C-08~~ → **resolved within the design's power.** §2.1 Deviations Register
-  records all five divergences (D-1 `?model=` dropped, D-2 `targetDomainId`,
-  D-3 explicit-version publish, D-4 AC-06 single reading, D-5 AC-16 `--view`
-  command) with the explicit instruction that the orchestrator land a
-  requirements rev-3 errata before the tasks phase. The follow-through is
-  outside this artifact → tracked as C-11.
-- ~~N-05..N-09~~ → **applied** (checksum number wording §3.3; `::`
-  path-segment note §3.4; N-07 folded into D-5; checksum-coverage wording
-  §3.3; pinned-version-relative handle warning §4.5).
+- `pwa/src/route.ts` — nine pre-existing surfaces `kbd` 1–9; the Model
+  surface is appended with `kbd:"0"` and the seven View-Tree tabs
+  **verbatim** (`models, canvas, stories, key-activities, kpi-impact,
+  systems, export`) — exact match to blueprint + §4.9.
+- `pwa/src/App.tsx` — keydown branch now `/^[0-9]$/` with `"0" → index 9`
+  and `e.preventDefault()`, exactly the §4.9(a) contract.
+- `api/src/errors.ts` — all 9 new codes present, additive, no collisions.
+- `api/src/auth/rbac-permissions.ts` — ordered first-match array; the new
+  model/module rows are listed specific-before-parameterized (all
+  `models/:modelId/module-instances/*` + `models/:id/domains` + `archive`
+  before `models/:id`), matching §5's insertion-order paragraph.
+- `api/src/router.ts` — `models*`/`modules*` dispatch blocks present; no
+  per-route auth (central gate only).
+- `api/src/ontology/storage/{node-labels,edge-types}.ts` —
+  `createNodeLabel`/`createEdgeType` exist as the §4.1 registration path;
+  `shared/src/schema/nodes.ts` `nodeReadSchema.label` is `z.string()` as
+  §4.1/Risk 5 claim.
+- `scripts/design-conformance.ts` — confirmed **inert without
+  `--view`/`--surface`** ("INERT BY DEFAULT" in the file header); the two
+  `--view <file>` invocations in §6/§8 are the enforced form (D-5/C-11
+  correctly reflected).
+- `pwa/src/styles/companygraph/tokens.css`, `pwa/src/views/_shared.tsx`
+  (`Loading`/`ErrorState`) — exist as cited (N-01 path fix correct).
+- Root `package.json` — `migrate:model`, `register:model`, `typecheck`
+  scripts wired as §4.7/§4.1 describe.
+- `pwa/src/context/ActiveModelContext.tsx` (already executed) — reads
+  `?model=<id>` from the **hash** query string and persists
+  `cg.activeModelId`; consistent with §4.9 (see N-14 on wording precision).
+
+## Status of prior findings (rev-3 review residuals → rev 4)
+
+- ~~C-09~~ → **resolved.** Deleted-anchor behavior is specified in §4.4
+  (model-scoped write on a dead handle → `404
+  module_instance_node_not_member`, never 500, never re-fork) and §4.5
+  (missing-anchor forked read → instance envelope with empty content), with
+  AC-06 test coverage in §8 — exactly the recommended fix.
+- ~~C-10~~ → **resolved (documented-limitation arm).** §4.7 keeps the
+  narrow first-run collision guard, adds the requirements rev-4 mandated
+  `--down` **`--force` refusal** while non-reference models exist, and
+  documents re-apply-after-forced-`--down` as unsupported in the script
+  header/help. That is the "or document" arm of the original
+  recommendation; acceptable.
+- ~~C-11~~ → **resolved.** Requirements rev 3 landed the D-1…D-5 errata +
+  the additive `POST /models/:id/domains` route + N-10; rev 4 folded
+  D-1/D-4/D-5 into the body. §2.1 is correctly a landed ledger — verified
+  against `requirements.md` rev 4 line-by-line (FR-18/AC-21 no-`?model=`,
+  FR-08 blob-model guard wording, AC-16 two `--view` invocations, FR-10
+  `--force`, AC-08 second-model-survives, four-label counts). The tasks
+  half of C-11 is **not** fully closed → C-12 below.
+- ~~N-10~~ → **resolved** (§1 rule 1, §3 intro, §4.1 all say four labels +
+  five edges; matches requirements NFR-01 rev 4).
+- ~~N-11~~ → **resolved** (§4.4 DELETE-body note + query-param fallback
+  recorded).
+- ~~N-12~~ → **resolved** (§4.5/§8 define AC-05 identity as identical
+  *modulo the projected handles*).
 
 ## Blockers
 
@@ -85,140 +89,127 @@ None.
 
 ## Concerns
 
-### C-09 — Forked-instance behavior when the anchor journey is deleted via the generic route is unspecified
-`UserJourney`/`Activity` are not lifecycle labels, so any `node:write` session
-may `DELETE /api/v1/nodes/UserJourney/:id` on a materialized fork journey (the
-`_baseline` contract this design deliberately leaves untouched). The instance
-then remains `forked:true` while §4.5's read anchor
-(`{forkLocalKey: <instanceId>::journey}`) matches nothing, and §4.4's
-already-forked no-op read-back returns a partial/empty map. No section defines
-what `listInstances` or the model-scoped write route returns in this state.
-**Recommend (one sentence each in §4.5/§4.4):** forked read with a missing
-anchor returns the instance envelope with empty content (never a 500); a
-model-scoped write to any handle of such an instance returns
-`404 module_instance_node_not_member`. Carry into the AC-06 or AC-07 test file
-as a cheap extra assertion if the tasks author wants it.
+- **C-12 — `tasks.md` rev 3 still lacks the rev-4 T-16 sync.** Design rev 4's
+  own header flags it, and STATUS.md "Next" item 1 confirms it is pending:
+  tasks T-16 predates the §4.7 `--down --force` refusal and the AC-08
+  addition ("a second (non-reference) model survives a forced
+  down-migration with its `IN_MODEL` edges + subgraph intact"). This is the
+  only contract in rev 4 with no task/DoD carrying it. Not a design defect —
+  the design text is complete — but approval of rev 4 must be conditioned on
+  the orchestrator landing the T-16 sync **before T-16 executes** (the
+  migration script exists on disk already; whether it implements the refusal
+  is exactly what the un-synced task would fail to check).
+  *Recommendation:* one-line tasks edit: T-16 DoD gains "`--down` without
+  `--force` exits non-zero and writes nothing while a non-reference model
+  exists" + the AC-08 assertion, verification =
+  `api/__tests__/model-migration.integration.test.ts`.
 
-### C-10 — Migration guard still aborts the `--down` → re-apply sequence when user models exist
-§4.7's guard (fires when reference absent AND a non-reference exists) also
-matches the state *after an explicit `--down`* with user models present:
-migrate → user creates model #2 → `--down` (removes the reference model) →
-re-apply aborts, and the unscoped retail domains can never be re-scoped
-through the script. The actual hazard the guard protects against is narrower —
-a non-reference model holding `ordinal:1` (pre-first-migration creation),
-which would make step 2's `ON CREATE SET ordinal=1` violate the uniqueness
-constraint; in the post-`--down` state `ordinal:1` is free and re-apply would
-be correct and safe (MERGE is keyed on `isReference:true`, C-02 fix).
-**Recommend:** key the abort on the real conflict — reference absent AND some
-non-reference model has `ordinal = 1` — or document in the script header that
-re-apply after `--down` with user models present is unsupported. NFR-02/AC-08
-as written still pass either way, so this is not blocking.
-
-### C-11 — The gating conditions recorded in §2.1 are not yet landed, and `tasks.md` predates revision 3
-For the orchestrator, not the design author. (1) The requirements rev-3 errata
-for D-1…D-5 (§2.1) has not been landed — `requirements.md` is still rev 2 with
-the old AC-16/AC-21/FR-07/FR-06/AC-06 text. (2) `tasks.md` + `review-tasks.md`
-were authored **before** design rev 3 and cannot cover its additions:
-`POST /models/:id/domains`, the two instance-edge routes, the `forkLocalKey`
-lookup indexes, the revised §4.7 guard, and the expanded AC-06 test scope.
-**Recommend:** before execution, land the errata (include the additive
-`POST /models/:id/domains` route for traceability, and fix the N-10 label
-count while in there) and re-sync `tasks.md` against rev 3 — at minimum the
-tasks covering `api/src/routes/models.ts`, `api/src/storage/{models,modules}.ts`,
-`api/src/neo4j/bootstrap.ts`, openapi, and the AC-05/AC-06/AC-21 test files.
+- **C-13 — Concurrent first-edit fork race is unspecified.** §4.4 defines
+  `forkInstance` as "idempotent" only for sequential calls. Two concurrent
+  first writes to the same non-forked instance (nodes route + edges route,
+  or two clients) can both observe `forked=false` and both materialize the
+  subtree — producing **duplicate `forkLocalKey` values**, which breaks
+  §3.4's "globally unique by construction" (the §4.3 `forkLocalKey` indexes
+  are *lookup* indexes, not uniqueness constraints) and makes the §4.5
+  anchor read (`{forkLocalKey: <instanceId>::journey}`) return two
+  journeys. Likelihood is low on a loopback single-operator stack, and no
+  AC exercises concurrency, so this is not blocking — but the fix is one
+  sentence. *Recommendation:* state in §4.4 that the fork check-and-set
+  runs inside **one `executeWrite`** with a conditional gate on the
+  instance node (`MATCH (i:ModuleInstance {id:$id}) WHERE i.forked = false
+  SET i.forked = true` as the first write, so Neo4j's node write-lock
+  serializes racers; the loser re-reads and takes the already-forked
+  path). Pin it in the T-08 implementation notes.
 
 ## Nits
 
-- **N-10** — The label count is wrong throughout: §1 rule 1, §3 intro, and
-  §4.1 say "five labels", but §3.1–§3.4 (and requirements FR-01/FR-02, whose
-  AC-01 says "the four module/version/instance labels") define exactly
-  **four**: `BusinessModel`, `BusinessModule`, `BusinessModuleVersion`,
-  `ModuleInstance`. The enumerations are consistent and authoritative, so no
-  behavior is at stake, but an implementer may hunt for a fifth label. Fix the
-  count (and fold into the C-11 errata, since requirements NFR-01 repeats
-  "five labels").
-- **N-11** — `DELETE …/module-instances/:instanceId/edges` carries a JSON
-  request body. RFC 9110 gives DELETE bodies no defined semantics and some
-  intermediaries strip them; fine on this loopback + Vite-proxy stack, but add
-  a one-line note (or fall back to `?type=&from=&to=` query params if a client
-  ever misbehaves) so the tasks author doesn't relitigate it.
-- **N-12** — §8 AC-05 says the two instances "read identical content", but
-  §4.5 projects each virtual node's `id` as `<instanceId>::<localKey>` — the
-  two reads differ in every `id` (and `forkLocalKey`) by construction. State
-  that the AC-05 identity comparison is **modulo the projected handles**
-  (names, descriptions, attributes, `precedes`/ref structure identical), so
-  the test isn't written as a naive deep-equal that can never pass.
+- **N-13** — §4.7 `--down` does `DETACH DELETE m` on the reference model
+  root but says nothing about `ModuleInstance`s `INSTANCE_IN` Model #1:
+  their `INSTANCE_IN` edge dies with the root, leaving orphaned instance
+  nodes (and, if forked, live subtrees under now-unscoped domains). AC-08's
+  count assertions still pass (domain/journey/activity counts are
+  instance-blind). Add one line: either `--down` also deletes Model #1's
+  instances, or the script header documents the orphaning as part of the
+  same "entered knowingly" limitation.
+- **N-14** — §4.9 says the active-model context "reconciles against a
+  `?model=<id>` URL param". On this hash-router the param can only
+  meaningfully live in the **hash** query string
+  (`#/model/models?model=<id>` — `route.ts` parses params from the hash;
+  `location.search` is invisible to it). The executed
+  `ActiveModelContext.tsx` already picked the hash reading; make the design
+  text say "hash query param" so AC-18's playwright spec asserts the right
+  URL shape.
+- **N-15** — Trivial command drift: requirements AC-16 says
+  `bun scripts/design-conformance.ts --view …`, design §6/§8 say
+  `bun run scripts/design-conformance.ts --view …`. Both work under Bun;
+  harmless, but the tasks/T-20 DoD should quote one form.
 
-## Completeness / Traceability
+## Traceability check
 
-### Functional requirements → design
-| FR | Covered by | Status |
-|----|-----------|--------|
+| Check | Result |
+|-------|--------|
+| Every FR reaches design file-changes / a task | **pass** (table below; C-12 flags the one tasks-side gap for the rev-4 `--force` contract) |
+| Every AC is closed by a test artifact in §8 | **pass** — all 21 ACs map to a named test file or a concrete manual repro |
+| Routes/views match the blueprint View Tree verbatim | **pass** — `#/model/{models,canvas,stories,key-activities,kpi-impact,systems,export}`, exact; verified against `route.ts` as executed |
+| UX-* allowances covered in ACs | **pass** — UX-01 (§6 four states / AC-13–15), UX-02 (tokens + two `--view` runs / AC-16), UX-03 (n/a — no canvas here, tables reflect it), UX-04 (no new breakpoints), UX-05 (AC-17), UX-06 (verbatim routes + reload survival / AC-18) |
+| XD-* cross-cutting decisions honoured | **pass** — XD-01/02 (registry-only labels, Neo4j only, `NODE_LABELS` untouched + AC-20 git-diff guard), XD-06 (BusinessModel roots), XD-07 (publish/pin/fork/upgrade exactly as decided), XD-08 (Business Architect via existing RBAC, no `node:write`), XD-12 (idempotent + reversible + dry-run migration), XD-17 (DEC-01 closed at gate, silent-accept recorded) |
+| No file ownership conflict with another spec | **pass** — `route.ts` ownership per blueprint ("one feature owns a file"); `seed-rbac-roles.ts` is the known additive coordination hotspot, handled additively |
+
+### FR / NFR → design mapping
+
+| Req | Covered by | Status |
+|-----|-----------|--------|
 | FR-01 BusinessModel label | §3.1, §4.1, §4.3 | ok |
-| FR-02 module label set | §3.2–3.4, §4.1 | ok (N-10 count wording only) |
+| FR-02 module label set (four) | §3.2–3.4, §4.1 | ok (N-10 count fixed) |
 | FR-03 IN_MODEL edge | §3.5, §4.1 | ok |
 | FR-04 lifecycle edges | §3.5, §4.1 | ok |
-| FR-05 Model CRUD + ordinal + delete | §3.1, §4.3, §5 | ok (+ additive `:id/domains`, C-06 → record in errata per C-11) |
-| FR-06 module publish/versions | §3.3, §4.4, §5 | ok (D-3 recorded in §2.1) |
-| FR-07 instantiate + per-instance read | §3.4, §4.4, §4.5, §5 | ok — B-02 resolved (instance anchor); D-2 recorded |
-| FR-08 fork on edit + sibling edge route + guards | §4.4, §4.6, §5 | ok — B-03 resolved (full edge-route contract); C-09 edge case open |
-| FR-09 explicit upgrade | §4.5, §5 | ok (N-09 warning present) |
-| FR-10 retail migration | §4.7 | ok (C-10 down→re-apply sequence) |
-| FR-11 Business Architect RBAC/persona | §4.8 | ok |
-| FR-12 route-permission mapping | §4.8, §5 | ok — every §5 row has a perm, incl. the B-03 edge routes + `:id/domains` |
-| FR-13 openapi + error codes | §3.6, §5, §7 | ok — 9 codes, all reachable, edge routes registered |
-| FR-14 Model surface + 7 tabs verbatim | §4.9, §6 | ok |
-| FR-15 active-model context | §4.9 | ok |
+| FR-05 Model CRUD + ordinal + delete + at-most-one-reference | §3.1, §4.3, §5 | ok — rev-4 N-06 (transactional check picked) + N-07 (forked copies in cascade) landed |
+| FR-06 publish/versions (blob) | §3.3, §4.4, §5 | ok — D-3 explicit-version mode in body |
+| FR-07 instantiate (+`targetDomainId` D-2, `:id/domains` setup) | §3.4, §4.3, §4.4, §4.5, §5 | ok |
+| FR-08 fork trigger + edge route + lifecycle guard | §4.4, §4.6, §5 | ok — deleted-anchor (C-09) specified; fork race → C-13 |
+| FR-09 explicit upgrade | §4.5, §5 | ok (N-09 handle warning present) |
+| FR-10 migration + `--force` refusal | §4.7 | ok in design; tasks sync pending → C-12; instance orphaning → N-13 |
+| FR-11 Business Architect RBAC/persona | §4.8 | ok — verified against as-built seed pattern |
+| FR-12 route-permission mapping | §4.8, §5 | ok — every §5 row has a perm; ordering verified in executed `rbac-permissions.ts` |
+| FR-13 openapi + error codes | §3.6, §5, §7 | ok — 9 additive codes, each reachable |
+| FR-14 Model surface + 7 tabs verbatim | §4.9, §6 | ok — verified verbatim in `route.ts` |
+| FR-15 active-model context | §4.9 | ok (N-14 wording) |
 | FR-16 ModelWorkspace + 4 states | §4.9, §6 | ok |
 | FR-17 sibling-tab placeholder | §4.9, §6 | ok |
-| FR-18 model-scope helper | §4.2 | ok (D-1 recorded in §2.1) |
-| NFR-01 registry-only labels | §3, §4.1 | ok |
-| NFR-02 idempotent/reversible migration | §4.7 | ok (C-10 caveat) |
-| NFR-03a read isolation | §4.2 | ok |
-| NFR-03b write isolation | §4.4 | ok — B-02 resolved; AC-06 disambiguation test added |
-| NFR-04 version immutability | §3.3, §4.4, §4.6 | ok (structural + guard, single reachability for the 409) |
-| NFR-05 house rules | throughout | ok (loopback/zod-only/central-gate/no-tsc/en-US) |
-| NFR-06 tokens-only PWA | §6 | ok (`--view` invocation + `companygraph/tokens.css`) |
+| FR-18 model-scope helper, no `?model=` | §4.2 | ok — rev-4 C-09 agreement, body and design now match |
+| NFR-01 registry-only | §3, §4.1 | ok |
+| NFR-02 idempotent/reversible migration | §4.7 | ok |
+| NFR-03a/b isolation | §4.2 / §4.4 | ok |
+| NFR-04 version immutability | §3.3, §4.4, §4.6 | ok — single reachability for `module_version_immutable`, guard for the rest |
+| NFR-05 house rules | throughout | ok — zod-only, no tsc, central gate, loopback, en-US |
+| NFR-06 tokens-only PWA | §6 | ok — `companygraph/tokens.css` path + enforced `--view` form |
 
-### Acceptance criteria → test artifact (§8)
-All 21 ACs map to a named test file or a manual step with a concrete repro.
-AC-05/AC-06/AC-07 are now writable (B-02 anchor exists); AC-06 carries the
-B-02 disambiguation and B-03 edge-coverage assertions; AC-05/AC-21 setups are
-API-only via `POST /models/:id/domains` (C-06); AC-08 covers the C-07 re-run
-state; AC-16 uses the real `--view` invocation (D-5). Residual wording issues:
-AC-05 identical-modulo-handles (N-12). AC-06/AC-16/AC-21 read per the §2.1
-register, pending the C-11 errata.
+## Summary
 
-### House-rule / blueprint conformance
-- All routes under `/api/v1/`; auth only via the central router gate +
-  `ROUTE_PERMISSIONS`; no per-route auth; no `public` routes — honoured.
-- zod-only validation, no tsc, en-US identifiers, loopback binding — honoured.
-- View Tree routes/tabs **verbatim**: `models, canvas, stories,
-  key-activities, kpi-impact, systems, export` under `#/model/*` — exact
-  match; `route.ts` ownership per blueprint; `kbd:"0"` viable against the
-  real handler.
-- UX-01 (four states, §6/AC-13–15) / UX-02 (tokens + `--view` conformance,
-  AC-16) / UX-03 (n/a — no canvas here; tables in requirements reflect it) /
-  UX-04 (no new breakpoints) / UX-05 (keyboard + ARIA, AC-17) / UX-06
-  (verbatim routes + reload survival, AC-18) — all covered.
-- XD-01/XD-02 (registry-only labels, Neo4j only), XD-06 (side-by-side models),
-  XD-07 (publish/pin/fork/upgrade exactly as decided), XD-08 (Business
-  Architect via existing RBAC), XD-12 (retail → Model #1, idempotent +
-  reversible + dry-run) — honoured. DEC-01(a) applied consistently across
-  §4.2/§4.4/§4.7.
+- **Revision 4 does what it claims and nothing more:** it reconciles the
+  approved rev-3 design with the now-approved requirements rev 4, folds in
+  every residual finding (C-09/C-10/N-10/N-11/N-12) with the recommended
+  mechanics, and adds exactly one contract — the requirements-mandated
+  `--down --force` refusal. The §2.1 Deviations Register is verifiably a
+  landed ledger: zero divergences between requirements rev 4 and this
+  design remain.
+- Every as-built claim checked this pass verifies against the codebase, and
+  the already-executed slices (route.ts, App.tsx, errors.ts,
+  rbac-permissions.ts, router.ts, ActiveModelContext.tsx) **agree with**
+  the design rather than drift from it.
+- The two concerns are cheap and non-blocking: land the T-16 tasks sync
+  before the migration task executes (C-12 — already flagged by the design
+  and STATUS.md; this approval is conditioned on it happening), and add the
+  one-sentence transactional gate for concurrent first-edit forks (C-13).
+- Nits: `--down` instance orphaning note (N-13), "hash query param"
+  precision for AC-18 (N-14), one canonical AC-16 command form (N-15).
 
 ## Verdict
 
-**approve** — revision 3 closes both pass-2 blockers with exactly the
-recommended mechanics, and every as-built claim verifies against the codebase.
-B-02's instance-qualified `forkLocalKey` makes post-fork resolution,
-membership, and per-instance reads queryable (with index backing and a
-dedicated AC-06 disambiguation test); B-03's edge route is a complete,
-endpoint-addressed contract with permissions, openapi, and test coverage;
-C-06/C-07/C-08 are all landed. The remaining findings are non-blocking:
-C-09 (missing-anchor read behavior, one sentence), C-10 (migration guard
-over-fires on `--down` → re-apply with user models), and C-11 (orchestrator
-must land the §2.1 requirements errata and re-sync the pre-rev-3 `tasks.md`
-before execution — this is a hard sequencing condition of the approval, but a
-process step, not a design defect). Nits N-10–N-12 can ride the errata. Review
-budget for this phase is now exhausted; proceed to tasks re-sync.
+**approve** — zero blockers. Revision 4 is a faithful, fully-traceable
+reconciliation with approved requirements rev 4; routes/views match the
+blueprint View Tree verbatim; all UX-* and XD-* obligations are covered by
+named ACs; house rules are honoured throughout. Open concerns C-12 (tasks
+T-16 sync — must land before T-16 executes) and C-13 (fork-race sentence)
+plus nits N-13–N-15 are recorded for the tasks/execution phase; none
+requires a design re-review.

@@ -5,12 +5,13 @@
 // DELETE /api/v1/kpi-measurements/:id - delete KPI measurement
 
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../ids';
 import { query, queryOne } from '../storage/postgres/client';
-import { ok, error, readJson } from './_helpers';
+import { ok, error, readJson, parseWith } from './_helpers';
 
-// Validation schemas
-const createKpiMeasurementSchema = z.object({
+// Validation schemas — exported so openapi-kpi-okr.ts can register them
+// (kpi-okr-governance FR-12).
+export const createKpiMeasurementSchema = z.object({
   kpi_id: z.string().min(1),
   measured_at: z.string(),
   value: z.number(),
@@ -21,9 +22,9 @@ const createKpiMeasurementSchema = z.object({
 // POST /api/v1/kpi-measurements - record KPI measurement
 export async function handleKpiMeasurementPost(req: Request): Promise<Response> {
   const body = await readJson(req);
-  const validated = createKpiMeasurementSchema.parse(body);
+  const validated = parseWith(createKpiMeasurementSchema, body);
 
-  const id = uuidv4();
+  const id = generateId();
   const now = new Date().toISOString();
 
   await query(

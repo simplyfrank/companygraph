@@ -201,3 +201,26 @@ export async function handleDomainAuditLog(_req: Request, idParam: string): Prom
     await session.close();
   }
 }
+
+// kpi-okr-governance FR-10d — GET /api/v1/domains list. This handler is
+// the ONLY export of this file owned by kpi-okr-governance (narrow touch
+// per its design §4.9); everything above stays _baseline-governed.
+export async function handleDomainList(req: Request): Promise<Response> {
+  const driver = getDriver();
+  const session = driver.session({ defaultAccessMode: "READ" });
+  try {
+    const result = await session.run(
+      `MATCH (d:Domain)
+       RETURN d.id AS id, d.name AS name, d.description AS description
+       ORDER BY d.name`,
+    );
+    const rows = result.records.map((r) => ({
+      id: r.get("id"),
+      name: r.get("name"),
+      description: r.get("description"),
+    }));
+    return ok({ rows });
+  } finally {
+    await session.close();
+  }
+}

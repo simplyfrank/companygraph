@@ -2,18 +2,34 @@
 // GET /api/v1/kpi-trends/:kpi_id - calculate KPI trends, moving averages, and anomaly detection
 
 import type { Driver } from "neo4j-driver";
+import { z } from "zod";
+import { kpiTrendsQuerySchema } from "@companygraph/shared/schema/kpi-sla";
 import { getDriver } from "../neo4j/driver";
-import { ok, error, parseId } from "./_helpers";
+import { ok, error, parseWith } from "./_helpers";
+
+// DD-04 — path guard accepts ANY UUID version (pre-existing v4 KPI ids
+// stay addressable); the v7-only parseId guard is deliberately not used
+// on this surface (kpi-okr-governance V-01).
+const uuidAny = z.string().uuid();
 
 // GET /api/v1/kpi-trends/:kpi_id - calculate KPI trends with moving averages and anomaly detection
 export async function handleKpiTrendsGet(req: Request, kpiId: string): Promise<Response> {
   const url = new URL(req.url);
-  const windowDays = parseInt(url.searchParams.get("window_days") || "30", 10);
-  const movingAveragePeriod = parseInt(url.searchParams.get("ma_period") || "7", 10);
-  const anomalyThreshold = parseFloat(url.searchParams.get("anomaly_threshold") || "2.0");
+  // FR-11a — zod query schema replaces raw parseInt/parseFloat (garbage
+  // now 400s via parseWith instead of yielding NaN).
+  const q = parseWith(kpiTrendsQuerySchema, {
+    window_days: url.searchParams.get("window_days") ?? undefined,
+    ma_period: url.searchParams.get("ma_period") ?? undefined,
+    anomaly_threshold: url.searchParams.get("anomaly_threshold") ?? undefined,
+  });
+  const windowDays = q.window_days;
+  const movingAveragePeriod = q.ma_period;
+  const anomalyThreshold = q.anomaly_threshold;
 
-  const id = parseId(kpiId);
-  if (!id) return error(400, "invalid_payload", "malformed kpi_id", { kpi_id: kpiId });
+  if (!uuidAny.safeParse(kpiId).success) {
+    return error(400, "invalid_payload", "malformed kpi_id", { kpi_id: kpiId });
+  }
+  const id = kpiId;
 
   const driver: Driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });

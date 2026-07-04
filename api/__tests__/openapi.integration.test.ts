@@ -135,6 +135,107 @@ describe("integration: AC-24 openapi", () => {
   });
 });
 
+// kpi-okr-governance T-15 / AC-13 — every route in the design §5 table
+// (the adopted KPI/SLA/OKR/roll-down surface + the FR-10 lists) must
+// appear in the OpenAPI document, registered by registerKpiOkrPaths.
+describe("integration: AC-13 openapi covers the KPI/OKR governance surface", () => {
+  test("paths cover every FR-01…FR-10 endpoint (design §5 enumeration)", async () => {
+    const doc = await getDoc();
+    const paths = Object.keys(doc.paths);
+
+    const required = [
+      // FR-01 / FR-10a / FR-13 — KPI CRUD
+      "/api/v1/kpis",
+      "/api/v1/kpis/{id}",
+      "/api/v1/kpis/{id}/archive",
+      "/api/v1/kpis/{id}/audit",
+      // FR-05 / FR-10b / FR-13 — SLA CRUD
+      "/api/v1/slas",
+      "/api/v1/slas/{id}",
+      "/api/v1/slas/{id}/archive",
+      "/api/v1/slas/{id}/audit",
+      // FR-02 — measurements (Postgres)
+      "/api/v1/kpi-measurements",
+      "/api/v1/kpi-measurements/{id}",
+      // FR-06 — breaches (Postgres)
+      "/api/v1/sla-breaches",
+      "/api/v1/sla-breaches/{id}",
+      // FR-03 — trends
+      "/api/v1/kpi-trends/{kpiId}",
+      // FR-04 — alignments
+      "/api/v1/kpi-alignments",
+      "/api/v1/kpi-alignments/{id}",
+      "/api/v1/sla-alignments",
+      "/api/v1/sla-alignments/{id}",
+      // FR-07 — compliance
+      "/api/v1/sla-compliance/all",
+      "/api/v1/sla-compliance/{slaId}",
+      "/api/v1/sla-compliance/domain/{domainId}",
+      // FR-08 / FR-10c — OKR surface
+      "/api/v1/okr-directives",
+      "/api/v1/okr-directives/{id}",
+      "/api/v1/key-results",
+      "/api/v1/key-results/{id}",
+      "/api/v1/okr-performance",
+      // FR-09 — roll-down
+      "/api/v1/roll-down/kpi",
+      "/api/v1/roll-down/kpi/{domainId}",
+      "/api/v1/roll-down/kpi/product",
+      "/api/v1/roll-down/kpi/product/{domainId}",
+      "/api/v1/roll-down/kpi/program",
+      "/api/v1/roll-down/kpi/program/{programId}",
+      "/api/v1/roll-down/okr",
+      "/api/v1/roll-down/okr/{domainId}",
+      "/api/v1/roll-down/okr/product",
+      "/api/v1/roll-down/okr/product/{domainId}",
+      "/api/v1/roll-down/okr/program",
+      "/api/v1/roll-down/okr/program/{programId}",
+      "/api/v1/roll-down/sla/domain",
+      "/api/v1/roll-down/sla/domain/{domainId}",
+      "/api/v1/roll-down/commit",
+      "/api/v1/roll-down/adjustment",
+      "/api/v1/roll-down/contributions",
+      "/api/v1/roll-down/contributions/{domainId}",
+      "/api/v1/roll-down/approve",
+      "/api/v1/roll-down/reject",
+      "/api/v1/roll-down/notify",
+      // FR-10d — domains list
+      "/api/v1/domains",
+    ];
+
+    const missing = required.filter((p) => !paths.includes(p));
+    expect(missing).toEqual([]);
+  });
+
+  test("request/response schemas ride the shared zod definitions (spot checks)", async () => {
+    const doc = await getDoc();
+    const schemas = getSchemas(doc);
+    const expected = [
+      "Kpi",
+      "Sla",
+      "KpiCreateRequest",
+      "SlaCreateRequest",
+      "KpiAlignmentCreateRequest",
+      "KpiMeasurementCreateRequest",
+      "SlaBreachCreateRequest",
+      "OkrDirectiveCreateRequest",
+      "KpiRollDownRequest",
+      "SlaDomainRollDownRequest",
+      "AuditPlaceholderRow",
+    ];
+    const present = Object.keys(schemas);
+    const missing = expected.filter((n) => !present.includes(n));
+    expect(missing).toEqual([]);
+
+    // The KPI create path declares a request body; 400s reference the
+    // single exported errorEnvelopeSchema (pinned C-01 — no duplicate).
+    const kpiPost = getOperation(doc, "/api/v1/kpis", "post");
+    expect(typeof kpiPost.requestBody).toBe("object");
+    expect(kpiPost.requestBody).not.toBeNull();
+    expect(Object.keys(kpiPost.responses ?? {})).toContain("400");
+  });
+});
+
 // ---- helpers (typed, no `as any`) ----
 
 interface OpenApiDoc {

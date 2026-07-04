@@ -6,12 +6,15 @@
 // DELETE /api/v1/sla-breaches/:id - delete SLA breach
 
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../ids';
 import { query, queryOne } from '../storage/postgres/client';
-import { ok, error, readJson } from './_helpers';
+import { ok, error, readJson, parseWith } from './_helpers';
 
-// Validation schemas
-const createSlaBreachSchema = z.object({
+// Validation schemas — exported so openapi-kpi-okr.ts can register them
+// (kpi-okr-governance FR-12). NOTE: the DB CHECK for resolution_status
+// omits 'investigating' (the shared slaBreachSchema includes it) — the
+// PATCH schema mirrors the DB, pinned as-is (design §3.2).
+export const createSlaBreachSchema = z.object({
   sla_id: z.string().min(1),
   breach_at: z.string(),
   actual_value: z.number(),
@@ -21,7 +24,7 @@ const createSlaBreachSchema = z.object({
   root_cause: z.string().optional(),
 });
 
-const updateSlaBreachSchema = z.object({
+export const updateSlaBreachSchema = z.object({
   resolution_status: z.enum(['open', 'resolved', 'mitigated']).optional(),
   resolved_at: z.string().optional(),
   resolution_notes: z.string().optional(),
@@ -33,9 +36,9 @@ const updateSlaBreachSchema = z.object({
 // POST /api/v1/sla-breaches - record SLA breach
 export async function handleSlaBreachPost(req: Request): Promise<Response> {
   const body = await readJson(req);
-  const validated = createSlaBreachSchema.parse(body);
+  const validated = parseWith(createSlaBreachSchema, body);
 
-  const id = uuidv4();
+  const id = generateId();
   const now = new Date().toISOString();
 
   await query(
@@ -105,7 +108,7 @@ export async function handleSlaBreachGet(req: Request, breachId: string): Promis
 // PATCH /api/v1/sla-breaches/:id - update SLA breach (resolution)
 export async function handleSlaBreachPatch(req: Request, breachId: string): Promise<Response> {
   const body = await readJson(req);
-  const validated = updateSlaBreachSchema.parse(body);
+  const validated = parseWith(updateSlaBreachSchema, body);
 
   const existing = await queryOne('SELECT * FROM sla_breaches WHERE id = $1', [breachId]);
   if (!existing) {

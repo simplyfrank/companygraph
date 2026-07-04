@@ -15,6 +15,13 @@ jobs:
       - run: bun run typecheck
       - run: docker compose config -q
       - run: bun run test
+      # kpi-okr-governance T-20 (review C-02) — CI-gate exactly the two
+      # AC-14/AC-15 exec-view pin files. Deliberately scoped to the two
+      # owned files rather than the whole pwa vitest suite: the legacy
+      # error-scenarios tree is un-triaged and adopting it wholesale into
+      # the merge gate is out of this spec's charter.
+      - run: bunx vitest run src/__tests__/exec-kpi-management.test.tsx src/__tests__/exec-okr-management.test.tsx
+        working-directory: pwa
 
   integration:
     runs-on: ubuntu-latest
@@ -33,14 +40,50 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 30
+      # kpi-okr-governance T-20 / FR-17 (design §4.8, DD-10) — Postgres
+      # service so the kpi-measurements / sla-breaches routes are tested
+      # in CI. Image matches docker-compose.yml.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: companygraph
+          POSTGRES_PASSWORD: companygraph_ci_password
+          POSTGRES_DB: companygraph
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U companygraph"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 30
     env:
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: companygraph_ci_password
       NEO4J_URI: bolt://localhost:7687
       HOST: 127.0.0.1
       API_PORT: 8787
+      POSTGRES_URI: postgresql://companygraph:companygraph_ci_password@localhost:5432/companygraph
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      # run-migrations.ts resolves the migrations dir relative to cwd —
+      # the `cd api` is required. Logs "applied" per migration (AC-19).
+      - run: cd api && bun run src/storage/postgres/run-migrations.ts
+      # kpi-okr-governance V-03 — every *.integration.test.ts fetches
+      # http://127.0.0.1:8787; without a running server the job cannot
+      # pass. Boot in the background, wait for healthz, then HARD-assert:
+      # the wait loop alone exits 0 on timeout, so the final curl is the
+      # load-bearing check (design C-02 fix) and dumps the server log on
+      # failure right here, not ten files deep in the test step.
+      - name: Boot API server
+        run: |
+          cd api
+          (bun run src/server.ts > "$RUNNER_TEMP/api-server.log" 2>&1 &)
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:8787/api/v1/healthz > /dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8787/api/v1/healthz \
+            || { echo "::error::API server failed to boot"; cat "$RUNNER_TEMP/api-server.log"; exit 1; }
       - run: bun run test:integration

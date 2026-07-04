@@ -46,11 +46,38 @@ import {
   complianceRulePatchSchema,
   complianceRuleReadSchema,
 } from "@companygraph/shared/schema/ontology";
+import {
+  modelCreateSchema,
+  modelPatchSchema,
+  modelReadSchema,
+  domainAttachSchema,
+  moduleCreateSchema,
+  moduleReadSchema,
+  versionPublishSchema,
+  versionReadSchema,
+  instanceCreateSchema,
+  instanceUpgradeSchema,
+  instanceReadSchema,
+  instanceEdgeSchema,
+} from "@companygraph/shared/schema/model-workspace";
+import {
+  storyCreateSchema,
+  storyPatchSchema,
+  storyReadSchema,
+  acCreateSchema,
+  acPatchSchema,
+  acReadSchema,
+  bootstrapRequestSchema,
+  bootstrapResultSchema,
+} from "@companygraph/shared/schema/story-spec";
 import { ERROR_CODES } from "../errors";
+import { registerKpiOkrPaths } from "./openapi-kpi-okr";
 
 // Static Route[] declared right here (design-review B-02 — OpenAPI
 // generator owns its own route table, no inter-task module dependency).
-const errorEnvelopeSchema = z.object({
+// Exported for openapi-kpi-okr.ts (kpi-okr-governance pinned C-01) — one
+// envelope definition in one OpenAPI doc, no duplicate-schema drift.
+export const errorEnvelopeSchema = z.object({
   error: z.object({
     code: z.enum(ERROR_CODES),
     message: z.string(),
@@ -498,6 +525,295 @@ export function getOpenApiDoc(): object {
     },
   });
 
+  // ── model-workspace-core T-14 (design §5, FR-13) ─────────────────────
+  // Generated from the SAME shared zod definitions the handlers parse
+  // with (no hand-maintained copy).
+  registry.register("ModelCreate", modelCreateSchema);
+  registry.register("ModelPatch", modelPatchSchema);
+  registry.register("Model", modelReadSchema);
+  registry.register("DomainAttach", domainAttachSchema);
+  registry.register("ModuleCreate", moduleCreateSchema);
+  registry.register("Module", moduleReadSchema);
+  registry.register("VersionPublish", versionPublishSchema);
+  registry.register("ModuleVersion", versionReadSchema);
+  registry.register("InstanceCreate", instanceCreateSchema);
+  registry.register("InstanceUpgrade", instanceUpgradeSchema);
+  registry.register("ModuleInstance", instanceReadSchema);
+  registry.register("InstanceEdge", instanceEdgeSchema);
+
+  const err = (description: string) => ({
+    description,
+    content: { "application/json": { schema: errorEnvelopeSchema } },
+  });
+
+  registry.registerPath({
+    method: "post", path: "/api/v1/models",
+    description: "Create a business model (FR-05). Server assigns UUIDv7 id + unique ordinal (max+1).",
+    request: { body: { content: { "application/json": { schema: modelCreateSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: modelReadSchema } } },
+      400: err("validation error"),
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models",
+    description: "List business models ordered by ordinal ASC with moduleInstanceCount (FR-05). Global catalog — no ?model= param (D-1).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.array(modelReadSchema) } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{id}",
+    description: "Get one business model (FR-05).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: modelReadSchema } } },
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/models/{id}",
+    description: "Patch a business model — omitted fields kept (FR-05).",
+    request: { body: { content: { "application/json": { schema: modelPatchSchema } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: modelReadSchema } } },
+      400: err("validation error"),
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{id}/archive",
+    description: "Archive a business model — non-destructive, subgraph retained (FR-05).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: modelReadSchema } } },
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{id}",
+    description: "Delete a non-reference model + cascade its scoped subgraph; catalog modules/versions survive (FR-05).",
+    responses: {
+      204: { description: "deleted" },
+      404: err("model_not_found"),
+      409: err("model_reference_immutable"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{id}/domains",
+    description: "Create a Domain + its IN_MODEL edge in one tx — the minimal sanctioned path that populates a user-created model (design §4.3, B-02).",
+    request: { body: { content: { "application/json": { schema: domainAttachSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: nodeReadSchema } } },
+      400: err("validation error"),
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/module-instances",
+    description: "Instantiate a module version into a model (FR-07). Body requires targetDomainId (D-2) — a Domain linked IN_MODEL to the model.",
+    request: { body: { content: { "application/json": { schema: instanceCreateSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: instanceReadSchema } } },
+      400: err("invalid_payload (bad/foreign targetDomainId)"),
+      404: err("model_not_found | module_not_found | module_version_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/module-instances",
+    description: "List a model's module instances with pinned version, forked flag and resolved content (FR-07). Scoped by the :modelId path param — never a ?model= query param (D-1/AC-21).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.array(instanceReadSchema) } } },
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/models/{modelId}/module-instances/{instanceId}/nodes/{nodeId}",
+    description: "Model-scoped instance node write — THE fork trigger for nodes (FR-08). :nodeId accepts a live UUIDv7 or a synthetic <instanceId>::<key> handle sent VERBATIM (never URL-mangle the ::, design N-06). First edit on a non-forked instance forks it into the model.",
+    request: { body: { content: { "application/json": { schema: nodeUpdateSchema } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: nodeReadSchema } } },
+      400: err("validation error"),
+      404: err("module_instance_node_not_member"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/module-instances/{instanceId}/edges",
+    description: "Add an instance edge addressed by (type, from, to) — the fork trigger for edges (FR-08, B-03). Idempotent MERGE: 201 created, 200 already present.",
+    request: { body: { content: { "application/json": { schema: instanceEdgeSchema } } } },
+    responses: {
+      200: { description: "already present (idempotent MERGE)" },
+      201: { description: "created" },
+      400: err("invalid_payload | edge_endpoint_label_mismatch"),
+      404: err("module_instance_node_not_member | not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/module-instances/{instanceId}/edges",
+    description: "Remove an instance edge addressed by (type, from, to) (FR-08, B-03). Carries a JSON body (design N-11 — acceptable on this loopback stack).",
+    request: { body: { content: { "application/json": { schema: instanceEdgeSchema } } } },
+    responses: {
+      204: { description: "deleted" },
+      400: err("invalid_payload | edge_endpoint_label_mismatch"),
+      404: err("not_found | module_instance_node_not_member"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/module-instances/{instanceId}/fork",
+    description: "Explicitly fork an instance — idempotent; already-forked is a no-op 200 (FR-08).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: instanceReadSchema } } },
+      404: err("not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/module-instances/{instanceId}/upgrade",
+    description: "Re-pin an instance to another published version (FR-09). Forked → 409 module_instance_forked; downgrade needs allowDowngrade. Synthetic handles are pinned-version-relative — re-read after upgrade (N-09).",
+    request: { body: { content: { "application/json": { schema: instanceUpgradeSchema } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: instanceReadSchema } } },
+      400: err("module_downgrade_not_allowed"),
+      404: err("module_version_not_found"),
+      409: err("module_instance_forked"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/modules",
+    description: "Register a BusinessModule around a source journey subtree (FR-06).",
+    request: { body: { content: { "application/json": { schema: moduleCreateSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: moduleReadSchema } } },
+      400: err("validation error"),
+      404: err("model_not_found | not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/modules",
+    description: "List the module catalog (FR-06).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.array(moduleReadSchema) } } },
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/modules/{id}/versions",
+    description: "Publish an immutable module version (FR-06). Optional {version?} explicit-version mode (D-3); collision → 409 module_version_immutable (the single reachable site, D-4).",
+    request: { body: { content: { "application/json": { schema: versionPublishSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: versionReadSchema } } },
+      404: err("module_not_found"),
+      409: err("module_version_immutable"),
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/modules/{id}/versions",
+    description: "List a module's published versions, version DESC (FR-06).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.array(versionReadSchema) } } },
+      404: err("module_not_found"),
+    },
+  });
+
+  // ── story-spec-core T-12 (design §4.9, FR-10) — story/AC surface.
+  // Generated from the same T-01 zod definitions used at runtime; the
+  // five new ERROR_CODES members (incl. story_activity_not_in_model)
+  // surface through the shared errorEnvelopeSchema enum.
+  registry.register("StoryCreate", storyCreateSchema);
+  registry.register("StoryPatch", storyPatchSchema);
+  registry.register("Story", storyReadSchema);
+  registry.register("AcceptanceCriterionCreate", acCreateSchema);
+  registry.register("AcceptanceCriterionPatch", acPatchSchema);
+  registry.register("AcceptanceCriterion", acReadSchema);
+  registry.register("StoryBootstrapRequest", bootstrapRequestSchema);
+  registry.register("StoryBootstrapResult", bootstrapResultSchema);
+
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/stories",
+    description: "List the model's user stories (FR-05) — scoped through each story's DESCRIBES_ACTIVITY activity's membership in scopedNodeIds(:modelId); detached stories included with detached:true (DD-11).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.array(storyReadSchema) } } },
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/stories",
+    description: "Create a user story for a scoped Activity (FR-05). narrative is server-assembled; missing activityId → 400 story_activity_required; out-of-scope activityId → 404 story_activity_not_in_model (DD-08); bad roleId → 404 not_found (DD-07).",
+    request: { body: { content: { "application/json": { schema: storyCreateSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: storyReadSchema } } },
+      400: err("story_activity_required | invalid_payload"),
+      404: err("model_not_found | story_activity_not_in_model | not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/stories/bootstrap",
+    description: "Generate-then-edit bootstrap (FR-09, XD-09): derives one editable derived:true story + starter Given/When/Then AC per scoped activity without a story; idempotent per activity → {created, skipped}. Optional {activityIds} narrowing — out-of-scope id → 404 story_activity_not_in_model.",
+    request: { body: { content: { "application/json": { schema: bootstrapRequestSchema } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: bootstrapResultSchema } } },
+      404: err("model_not_found | story_activity_not_in_model"),
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/stories/{storyId}",
+    description: "Story detail with embedded acceptance criteria ordered by ordinal ASC (FR-05). Cross-model → 404 story_not_found; detached → 200 with detached:true (DD-11).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: storyReadSchema } } },
+      404: err("model_not_found | story_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/models/{modelId}/stories/{storyId}",
+    description: "Patch a story — omitted fields kept; narrative re-assembled when persona/action/benefit change; activityId/roleId re-point their edges (sourceActivityId tracks the edge, C-03); always clears derived (DD-05).",
+    request: { body: { content: { "application/json": { schema: storyPatchSchema } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: storyReadSchema } } },
+      400: err("invalid_payload"),
+      404: err("model_not_found | story_not_found | story_activity_not_in_model | not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/stories/{storyId}",
+    description: "Delete a story + its ACs + all three edge types in one DETACH DELETE tx; the story's Activity/Role survive (FR-05, FR-07).",
+    responses: {
+      204: { description: "deleted" },
+      404: err("model_not_found | story_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/stories/{storyId}/acceptance-criteria",
+    description: "List a story's acceptance criteria ordered by ordinal ASC (FR-06).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.array(acReadSchema) } } },
+      404: err("model_not_found | story_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/stories/{storyId}/acceptance-criteria",
+    description: "Create a structured Given/When/Then AC (FR-06, XD-10). Missing/empty clause → 400 acceptance_criterion_clause_required (NFR-03); ordinal defaults to max+1.",
+    request: { body: { content: { "application/json": { schema: acCreateSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: acReadSchema } } },
+      400: err("acceptance_criterion_clause_required | invalid_payload"),
+      404: err("model_not_found | story_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/models/{modelId}/stories/{storyId}/acceptance-criteria/{acId}",
+    description: "Patch an AC clause or ordinal (reorder — FR-13); always clears derived (DD-05). Empty clause → 400 acceptance_criterion_clause_required.",
+    request: { body: { content: { "application/json": { schema: acPatchSchema } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: acReadSchema } } },
+      400: err("acceptance_criterion_clause_required | invalid_payload"),
+      404: err("model_not_found | story_not_found | acceptance_criterion_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/stories/{storyId}/acceptance-criteria/{acId}",
+    description: "Delete an AC (FR-06).",
+    responses: {
+      204: { description: "deleted" },
+      404: err("model_not_found | story_not_found | acceptance_criterion_not_found"),
+    },
+  });
+
   registry.registerPath({
     method: "get", path: "/api/v1/openapi.json",
     description: "FR-16 — the v1 contract as a self-describing OpenAPI 3.1 document. Generated at server boot from the same zod definitions used at runtime; no hand-maintained copy.",
@@ -505,6 +821,8 @@ export function getOpenApiDoc(): object {
       200: { description: "OpenAPI 3.1 document for /api/v1" },
     },
   });
+
+  registerKpiOkrPaths(registry); // kpi-okr-governance FR-12 (design §4.7)
 
   const generator = new OpenApiGeneratorV31(registry.definitions);
   return generator.generateDocument({

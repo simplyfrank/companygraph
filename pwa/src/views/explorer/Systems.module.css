@@ -3,3 +3,25 @@
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-md);
 }
+
+/* system-augmentation-model T-14 — filter row + view-state styling.
+   Tokens only (UX-02). */
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.sectionGap {
+  height: var(--space-xl);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+  color: var(--muted);
+}

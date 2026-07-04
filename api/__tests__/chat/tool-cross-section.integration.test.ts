@@ -110,12 +110,19 @@ async function resetNodeAttrsToBasic(): Promise<void> {
   const enriched = JSON.parse(readFileSync(ENRICHED_SEED_PATH, "utf8")) as EnrichedSeed;
   for (const n of enriched.nodes) {
     if (Object.keys(n.attributes).length === 0) continue;
+    // system-augmentation-model compatibility: the System label's
+    // registered attribute schema now REQUIRES `systemKind`, so a PATCH
+    // to `{}` is a 400 attribute_violation by design. "Basic" for a
+    // System is the basic seed's state — `systemKind: "functional"` —
+    // not an empty map.
+    const basicAttrs =
+      n.label === "System" ? { systemKind: "functional" } : {};
     const res = await fetch(
       `${BASE_URL}/api/v1/nodes/${encodeURIComponent(n.label)}/${encodeURIComponent(n.id)}`,
       {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ attributes: {} }),
+        body: JSON.stringify({ attributes: basicAttrs }),
       },
     );
     expect(res.status).toBe(200);

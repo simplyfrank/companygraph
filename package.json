@@ -13,6 +13,10 @@
     "seed": "bun --cwd api scripts/seed.ts ../shared/seed/commercial-domain.json",
     "seed:enriched": "bun run scripts/seed-enriched.ts ./shared/seed/retail-mini-enriched.json",
     "schema:apply": "bun --cwd api run scripts/schema-apply.ts",
+    "migrate:system-kind": "bun --cwd api scripts/migrate-system-kind.ts",
+    "register:model": "bun --cwd api src/scripts/register-model-labels.ts",
+    "register:story": "bun --cwd api src/scripts/register-story-labels.ts",
+    "migrate:model": "bun --cwd api src/scripts/migrate-retail-to-model.ts",
     "typecheck": "bun build api/src/server.ts --target=bun --no-bundle > /dev/null && bun build pwa/src/main.tsx --target=browser --no-bundle > /dev/null",
     "test": "bash scripts/test-unit.sh",
     "test:integration": "bash scripts/test-integration.sh"

@@ -14,7 +14,7 @@ review_passes: 1
 | Execution | **complete** (T-01…T-21) | implementer | 2026-07-04 |
 
 **Verification:**
-- `verified_at`: 2026-07-04
+- `verified_at`: 2026-07-04 (re-verified same day, second implementer pass — see "Re-verification addendum" below)
 - `verification_artifact`: per-AC table below. Sweep commands, all green on 2026-07-04:
   `bun run typecheck` · `bun run test` (unit, incl. the new `api/__tests__/rbac-route-permissions.test.ts`) ·
   `bun run test:integration` **run twice back-to-back** against the same local stack (AC-20 — the ten
@@ -48,7 +48,7 @@ review_passes: 1
 | AC-17 | manual: keyboard walk on `#/exec/kpi-management` and `#/exec/okr-management` (macOS Chrome, keyboard) — Tab order header → tablist (role="tablist" with aria-label "KPI/OKR management sections", tabs carry aria-selected) → primary "+ Create …" Button → DataTable, all via DOM order (no tabindex tricks); Enter on the primary action opens the catalog Modal (focus-trapped); the `main` landmark is shell-provided (`pwa/src/App.tsx` wraps the routed view in `<main className={styles.main}>` — verified in source; observation-only, no source edit in T-21) |
 | AC-18 | manual: navigate to `#/exec/kpi-management` and `#/exec/okr-management`, Cmd+R (macOS Chrome, mouse+kb) — hash routes re-dispatch to the same views with data reloaded (routes registered verbatim in `pwa/src/route.ts:75-76` / `pwa/src/views/index.tsx:107-108`, untouched by this spec) |
 | AC-19 | `.github/workflows/ci.yml` — postgres:16-alpine service + pg_isready healthcheck + POSTGRES_URI + migration step (`cd api && bun run src/storage/postgres/run-migrations.ts`, logs "applied") + hard-asserted API-server boot (V-03) + `bun run test:integration`; YAML parse-validated; **first-PR checkpoint pending**: open the PR's `integration` job, confirm green, and record wall-time in the PR description (NFR-01; trim levers in design §4.8 order if > ~4 min) |
-| AC-20 | manual: `bun run test:integration` run twice consecutively against the same `bun run dev` stack (CLI) — the ten kpi-okr suites exit green both runs, no unique-constraint or leftover-fixture failures (fresh UUIDv7 fixtures + paired afterAll cleanup in every file) |
+| AC-20 | manual: `bun run test:integration` run twice consecutively against the same `bun run dev` stack (CLI) — the ten kpi-okr suites exit green both runs, no unique-constraint or leftover-fixture failures (fresh UUIDv7 fixtures + paired afterAll cleanup in every file). Re-verification hardening: a ~1-in-6 timing flake in the strict `updated_at > created.updated_at` assertions (kpi-crud / sla-crud lifecycle tests) was reproduced and fixed with `await Bun.sleep(2)` before the PATCH (timestamps are ms-resolution ISO; local round-trips can complete within one tick); ten-suite run then held 8/8 consecutive green |
 | AC-21 | `api/__tests__/okr-crud.integration.test.ts` (unfiltered list: {rows}, createdAt DESC, domain-scoped + decoy excluded, filters keep bare-array as-built dispatch) + `api/__tests__/kpi-crud.integration.test.ts` (GET /domains name-ordered {rows}) — pass ×2 |
 
 **Artifacts:**
@@ -67,6 +67,25 @@ review_passes: 1
 - **Further pinned as-built quirks:** roll-down `commit`'s `roll_down_id` actually matches the ASSIGNMENT id; kpi/okr roll-down creates never link `HAS_ASSIGNMENT` edges so collection GETs return degenerate rows; key-result list `attributes` is always `{}`; OKR DELETE returns `{success:true}` for unknown ids; alignment DELETE ids are raw Neo4j elementIds and the router does NOT URL-decode them (percent-encoded ids 404 — `pwa/src/api.ts` `deleteAlignment` still encodes; pre-existing, component-level, out of the FR-15 view mandate); FR-10c keeps the bug-compatible string-contains predicate (decoy pinned); `KpiCrud.tsx`'s internal cypher call left as-built (component, not an owned view).
 - **pwa CI gap** — only the two exec-view pin files are CI-gated by T-20's unit-job step; the wider pwa vitest suite (incl. the legacy `error-scenarios` tree) still runs locally only and is left for a downstream spec to adopt.
 - **Execution deviations (recorded):** (1) `shared/package.json` gained the one-line `"./schema/kpi-sla"` exports entry — required for `@companygraph/shared/schema/kpi-sla` imports to resolve, same additive pattern the other wave-1 specs used; (2) the CI boot step runs `bun run src/server.ts` instead of the design's literal `bun run start` — the `start` script hard-codes `--env-file=../.env`, which does not exist in CI; the job `env:` block supplies the same variables; (3) SLA PATCH now ignores `domain_id`/`product_type` (schema `.omit(...)` per design §3.3) where the as-built ladder applied them — as-built-accepted payloads still return 200 (fields stripped, not rejected).
+
+## Re-verification addendum (2026-07-04, second implementer pass)
+
+All gates re-run against the live local stack and confirmed green:
+`bun run typecheck` · `bun run test` (266 + 45 pass, 0 fail) ·
+the ten owned integration suites (`--test-name-pattern '^integration:'`, `--max-concurrency 1`)
+run repeatedly against the same stack — 71 tests/10 files ·
+`cd pwa && bunx vitest run src/__tests__/exec-kpi-management.test.tsx src/__tests__/exec-okr-management.test.tsx` (6/6) ·
+narrowed `error-scenarios/exec/{kpi-management,okr-management}` sweep (3 files/3 tests, rev-3 T-21 binding form) ·
+design-conformance on both owned views (exit 0, clean) · `api.cypher` grep clean.
+
+One AC-20 defect found and fixed during re-verification: the strict
+`updated_at > created.updated_at` assertions in
+`api/__tests__/kpi-crud.integration.test.ts` and
+`api/__tests__/sla-crud.integration.test.ts` flaked ~1 run in 6 when the
+create and PATCH round-trips completed within the same millisecond
+(route timestamps are `new Date().toISOString()`, ms resolution). Fixed
+test-side with `await Bun.sleep(2)` before the PATCH in both files (spec-owned
+test files only; no route changes). Post-fix: 8/8 consecutive green runs.
 
 ## Not caused by this spec (pre-existing/foreign failures at verification time)
 

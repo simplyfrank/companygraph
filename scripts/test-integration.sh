@@ -9,6 +9,15 @@
 # design/companygraph_v2/).
 
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)/api"
+
+# Share the API's env with the test process (root .env is the source of
+# truth locally; absent in CI, where the job env applies). Root-anchored
+# so a direct `scripts/test-integration.sh` run from any cwd behaves
+# identically to `bun run test:integration` from the repo root
+# (kpi-okr-governance design §4.8a, review N-01).
+ROOT="$(git rev-parse --show-toplevel)"
+set -a; [ -f "$ROOT/.env" ] && . "$ROOT/.env"; set +a
+
+cd "$ROOT/api"
 
 exec bun test --test-name-pattern '^integration:' --max-concurrency 1 __tests__ src

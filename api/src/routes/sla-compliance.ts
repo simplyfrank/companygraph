@@ -4,16 +4,31 @@
 // GET /api/v1/sla-compliance/all - aggregate SLA compliance across all domains
 
 import type { Driver } from "neo4j-driver";
+import { z } from "zod";
+import { slaComplianceQuerySchema } from "@companygraph/shared/schema/kpi-sla";
 import { getDriver } from "../neo4j/driver";
-import { ok, error, parseId } from "./_helpers";
+import { ok, error, parseWith } from "./_helpers";
+
+// DD-04 — path guard accepts ANY UUID version (v4 SLA/Domain ids stay
+// addressable); v7-only parseId deliberately not used on this surface.
+const uuidAny = z.string().uuid();
+
+// FR-11a — zod query schema replaces raw parseInt (garbage now 400s).
+function parseWindowDays(url: URL): number {
+  return parseWith(slaComplianceQuerySchema, {
+    window_days: url.searchParams.get("window_days") ?? undefined,
+  }).window_days;
+}
 
 // GET /api/v1/sla-compliance/:sla_id - calculate SLA compliance rates, breach patterns, and risk scores
 export async function handleSlaComplianceGet(req: Request, slaId: string): Promise<Response> {
   const url = new URL(req.url);
-  const windowDays = parseInt(url.searchParams.get("window_days") || "90", 10);
+  const windowDays = parseWindowDays(url);
 
-  const id = parseId(slaId);
-  if (!id) return error(400, "invalid_payload", "malformed sla_id", { sla_id: slaId });
+  if (!uuidAny.safeParse(slaId).success) {
+    return error(400, "invalid_payload", "malformed sla_id", { sla_id: slaId });
+  }
+  const id = slaId;
 
   const driver: Driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });
@@ -217,10 +232,12 @@ function calculateComplianceRate(breaches: Array<{ severity: string }>, windowDa
 // GET /api/v1/sla-compliance/domain/:domain_id - calculate domain-level SLA compliance across all SLAs
 export async function handleSlaComplianceByDomainGet(req: Request, domainId: string): Promise<Response> {
   const url = new URL(req.url);
-  const windowDays = parseInt(url.searchParams.get("window_days") || "90", 10);
+  const windowDays = parseWindowDays(url);
 
-  const id = parseId(domainId);
-  if (!id) return error(400, "invalid_payload", "malformed domain_id", { domain_id: domainId });
+  if (!uuidAny.safeParse(domainId).success) {
+    return error(400, "invalid_payload", "malformed domain_id", { domain_id: domainId });
+  }
+  const id = domainId;
 
   const driver: Driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });
@@ -333,7 +350,7 @@ export async function handleSlaComplianceByDomainGet(req: Request, domainId: str
 // GET /api/v1/sla-compliance/all - aggregate SLA compliance across all non-archived SLAs
 export async function handleSlaComplianceAllGet(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const windowDays = parseInt(url.searchParams.get("window_days") || "90", 10);
+  const windowDays = parseWindowDays(url);
 
   const driver: Driver = getDriver();
   const session = driver.session({ defaultAccessMode: "READ" });

@@ -32,21 +32,27 @@ import { ERROR_CODE_THROWERS } from "../ontology/error-throwers";
 // that as a permissive default — the write proceeds without per-label
 // validation. The top-level shape is still guarded by the route-layer
 // `nodeCreateSchema` / `nodeUpdateSchema` in shared.
-async function assertAttributesMatchSchema(
+// system-augmentation-model T-07 (DD-07): non-throwing core, extracted so
+// the import route's dry-run can run the SAME registry attribute check the
+// write path uses (registry READ, zero writes). Returns `null` when the
+// attributes satisfy the label's registered schema — including the
+// `not_found → permissive` fallback for unregistered labels — or the
+// classified issue split otherwise.
+export async function checkAttributesAgainstSchema(
   label: string,
   attributes: Record<string, unknown> | undefined,
-): Promise<void> {
+): Promise<{ missing: string[]; type_mismatch: string[] } | null> {
   let validator: z.ZodTypeAny;
   try {
     validator = await getAttributeValidator(label);
   } catch (e) {
     // The cache throws `not_found` when the label has no registry row.
     // Treat that as permissive — proceed with the write.
-    if ((e as { code?: string }).code === "not_found") return;
+    if ((e as { code?: string }).code === "not_found") return null;
     throw e;
   }
   const parsed = validator.safeParse(attributes ?? {});
-  if (parsed.success) return;
+  if (parsed.success) return null;
 
   const missing: string[] = [];
   const type_mismatch: string[] = [];
@@ -63,7 +69,19 @@ async function assertAttributesMatchSchema(
       if (!type_mismatch.includes(key)) type_mismatch.push(key);
     }
   }
-  ERROR_CODE_THROWERS.attribute_violation({ missing, type_mismatch });
+  return { missing, type_mismatch };
+}
+
+// Throwing wrapper — byte-for-byte identical semantics to the pre-T-07
+// function: valid (or unregistered label) → resolves; violation →
+// throws 400 `attribute_violation` with the `details` split above.
+async function assertAttributesMatchSchema(
+  label: string,
+  attributes: Record<string, unknown> | undefined,
+): Promise<void> {
+  const violation = await checkAttributesAgainstSchema(label, attributes);
+  if (violation === null) return;
+  ERROR_CODE_THROWERS.attribute_violation(violation);
 }
 
 function deserializeNode(label: string, neoNode: {
