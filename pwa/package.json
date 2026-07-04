@@ -11,17 +11,23 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
+    "test:error-scenarios": "vitest run --passWithNoTests src/__tests__/error-scenarios",
+    "test:error-coverage": "vitest run --coverage src/__tests__/error-scenarios",
+    "generate-error-tests": "bun run scripts/error-test-agent/index.ts",
     "bundle-check": "node ./scripts/bundle-check.mjs"
   },
   "dependencies": {
     "@companygraph/shared": "workspace:*",
     "@dagrejs/dagre": "^1.1.4",
     "focus-trap-react": "^12.0.2",
+    "graphology": "^0.25.4",
     "html-to-image": "^1.11.13",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "react-draggable": "^4.5.0",
     "react-focus-lock": "^2.13.2",
     "reactflow": "^11.11.4",
+    "recharts": "^3.8.1",
     "uuidv7": "^1.0.2",
     "zustand": "^4.5.5"
   },
