@@ -1,0 +1,431 @@
+{
+  "_comment": "Commercial domain seed — 10 journeys, 12 personas, 40 activities based on Confluence PC space (PO – Retail Commercials, SRD & Inventory). Persona nodes include lifecycle_stage for persona lifecycle management.",
+  "_source": "Confluence PC space persona index (Section 11) + Journey Index and Cross-Reference Matrix (12.0)",
+
+  "nodes": [
+    {"label": "Domain", "id": "01920000-0000-7000-8000-000000000001", "name": "Commercial", "description": "Retail Commercials domain: pricing, promotions, assortment, vendor management, and invoice matching.", "attributes": {"subdomains": ["Product/Item", "Merch Hierarchy", "Supplier/Vendor", "Buying/Procurement", "Pricing", "Promotions/Offers", "Assortment/Range", "Inventory/Stock", "Invoice Matching", "Supplier Collaboration"]}}
+
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000001", "name": "Product Creation and Item Setup", "description": "End-to-end item master data creation and setup for buying."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000002", "name": "Buying Cycle", "description": "Sourcing, negotiation, purchase order generation, and confirmation."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000003", "name": "Price Setting and Maintenance", "description": "Regular pricing, price changes, zone-level price maintenance."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000004", "name": "Promotion Lifecycle", "description": "Promotion creation, offer components, VFP/VFM, execution and monitoring."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000005", "name": "Assortment and Range Planning", "description": "Range planning, item-location ranging, planogram validation."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000006", "name": "Supplier Onboarding and Management", "description": "Supplier onboarding, contract negotiation, performance review."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000007", "name": "Purchase Order to Invoice Match", "description": "PO-to-invoice matching, tolerance rules, settlements."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000008", "name": "Markdown and Clearance", "description": "Clearance scheduling, markdown cadence, margin protection."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-000000000009", "name": "Consignment and Extended Valuation", "description": "Consignment stock tracking, settlement, inventory accounting."}
+    ,{"label": "UserJourney", "id": "01920000-0001-7000-8000-00000000000a", "name": "New Product Introduction", "description": "Market analysis, sourcing, price/promo planning, range allocation, launch."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001010001", "name": "Define Item Specification", "description": "Master Data Analyst defines the core item spec and attributes."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001010002", "name": "Create Merchandise Hierarchy Placement", "description": "Place the item in the correct merchandise hierarchy nodes."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001010003", "name": "Enrich Master Data Attributes", "description": "Enrich item with size, colour, supplier, cost, and duty details."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001010004", "name": "Approve Item for Buying", "description": "Category Manager approves the item for entry into the buying cycle."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001020001", "name": "Identify Sourcing Need", "description": "Buyer identifies a category gap and initiates sourcing."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001020002", "name": "Negotiate Supplier Terms", "description": "Buyer and Vendor Manager negotiate price, MOQ, and lead time."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001020003", "name": "Generate Purchase Order", "description": "Buyer raises the PO in the merchandising system."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001020004", "name": "Confirm Order Acceptance", "description": "Vendor confirms the PO and commits to delivery schedule."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001030001", "name": "Review Cost Changes", "description": "Pricing Analyst reviews landed cost changes from the vendor."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001030002", "name": "Compute Price Elasticity", "description": "Analyse demand elasticity to inform zone price recommendations."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001030003", "name": "Set Zone-Level Prices", "description": "Apply recommended prices per zone in Oracle RPM."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001030004", "name": "Publish to RPM", "description": "Publish approved prices to Retail Price Management and downstream systems."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001040001", "name": "Plan Promotional Calendar", "description": "Promo Planner builds the promotional calendar for the season."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001040002", "name": "Build Offer Components", "description": "Configure offer mechanics, thresholds, and reward types."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001040003", "name": "Validate Margin Impact", "description": "Validate that the promotion preserves minimum category margin."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001040004", "name": "Execute and Monitor Sell-Through", "description": "Launch the promotion and monitor daily sell-through and stock cover."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001050001", "name": "Review Category Performance", "description": "Category Manager reviews sales, margin, and stock KPIs by category."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001050002", "name": "Define Range Strategy", "description": "Define width, depth, and price-architecture strategy for the range."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001050003", "name": "Allocate Items to Formats", "description": "Range Planner assigns items to store formats and clusters."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001050004", "name": "Validate Planogram Fit", "description": "Confirm planogram capacity and fixture compatibility for new items."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001060001", "name": "Perform Vendor Due Diligence", "description": "Vendor Manager assesses financial health and compliance of new suppliers."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001060002", "name": "Negotiate Contract Terms", "description": "Agree payment terms, rebates, exclusivity, and SLA clauses."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001060003", "name": "Set Up Vendor Master Data", "description": "Create vendor record, bank details, and tax information in RMS."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001060004", "name": "Conduct Performance Review", "description": "Quarterly vendor scorecard review with on-time delivery and quality metrics."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001070001", "name": "Receive Goods at DC", "description": "Inbound team books delivery window and accepts vendor shipment."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001070002", "name": "Perform Three-Way Match", "description": "Match PO, goods receipt, and vendor invoice in ReIM."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001070003", "name": "Resolve Discrepancies", "description": "Investigate and resolve quantity or price mismatches."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001070004", "name": "Approve for Payment", "description": "AP Analyst approves the matched invoice for settlement."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001080001", "name": "Identify Slow-Mover Candidates", "description": "Pricing Analyst runs the slow-mover report and identifies clearance candidates."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001080002", "name": "Configure Clearance Rules", "description": "Build markdown rules with depth, cadence, and exit price."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001080003", "name": "Approve Markdown Cadence", "description": "Pricing Analyst and Director approve the markdown schedule."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001080004", "name": "Publish to POS and Monitor", "description": "Push clearance prices to POS and track sell-through vs. target."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001090001", "name": "Track Consignment Stock Levels", "description": "Inventory Analyst monitors consignment stock on hand at store and DC."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001090002", "name": "Calculate Settlement Amount", "description": "Compute the consignment sales value and settlement due to vendor."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001090003", "name": "Reconcile Valuation", "description": "Finance Liaison reconciles consignment valuation with general ledger."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001090004", "name": "Invoice Supplier", "description": "Vendor Manager issues the consignment settlement invoice."}
+
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001100001", "name": "Analyze Market Opportunity", "description": "Category Manager assesses market gap and consumer demand for new product."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001100002", "name": "Source and Negotiate", "description": "Buyer sources the product and negotiates commercial terms with vendor."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001100003", "name": "Plan Price and Promotion", "description": "Pricing Analyst and Promo Planner set launch price and introductory offer."}
+    ,{"label": "Activity", "id": "01920000-0002-7000-8000-000001100004", "name": "Allocate to Range and Launch", "description": "Range Planner allocates the new item to stores and confirms launch readiness."}
+
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000001", "name": "Category Manager", "description": "Owns category strategy and P&L; accountable for assortment and pricing decisions."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000002", "name": "Merchandise Buyer", "description": "Executes procurement and vendor negotiation for assigned categories."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000003", "name": "Range Planner", "description": "Manages assortment allocation to store formats and planogram compliance."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000004", "name": "Commercial Director", "description": "Strategic oversight and approval authority for commercial domain decisions."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000005", "name": "Pricing Analyst", "description": "Day-to-day pricing operations, elasticity analysis, and markdown planning."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000006", "name": "Promo Planner", "description": "Promotion planning and execution across channels and store formats."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000007", "name": "Master Data Analyst", "description": "Item master data management, hierarchy maintenance, and data governance."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000008", "name": "Inventory Analyst", "description": "Stock position management, consignment tracking, and clearance planning."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-000000000009", "name": "Store Ops", "description": "Store-level execution of pricing, promotions, and stock processes."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-00000000000a", "name": "Vendor Manager", "description": "Supplier relationship management, onboarding, and contract administration."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-00000000000b", "name": "Finance Liaison", "description": "Cross-domain finance coordination, reconciliation, and settlement support."}
+    ,{"label": "Role", "id": "01920000-0003-7000-8000-00000000000c", "name": "AP Analyst", "description": "Accounts payable processing, three-way matching, and payment approvals."}
+
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000001", "name": "Oracle RPM", "description": "Oracle Retail Price Management — regular pricing and price changes."}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000002", "name": "Oracle RMS", "description": "Oracle Retail Merchandising System — assortment, item master, and buying."}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000003", "name": "ReIM", "description": "Retail Invoice Matching — PO-to-invoice matching and settlements."}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000004", "name": "AutoCN", "description": "Auto-consignment — consignment stock tracking and settlement."}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000005", "name": "SSPOG", "description": "Space Planning / Planogram — assortment layout and fixture planning."}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000006", "name": "Supplier Portal", "description": "Vendor self-service portal for POs, invoices, and compliance."}
+    ,{"label": "System", "id": "01920000-0004-7000-8000-000000000007", "name": "EDI Gateway", "description": "Electronic data interchange for PO and invoice exchange with vendors."}
+
+    ,{"label": "Location", "id": "01920000-0005-7000-8000-000000000001", "name": "Commercial HQ", "description": "Corporate headquarters for commercial planning and pricing."}
+    ,{"label": "Location", "id": "01920000-0005-7000-8000-000000000002", "name": "Buying Office", "description": "Buying team office for vendor meetings and negotiation."}
+    ,{"label": "Location", "id": "01920000-0005-7000-8000-000000000003", "name": "Store A", "description": "Flagship downtown store."}
+    ,{"label": "Location", "id": "01920000-0005-7000-8000-000000000004", "name": "Store B", "description": "Suburban store."}
+    ,{"label": "Location", "id": "01920000-0005-7000-8000-000000000005", "name": "Central DC", "description": "Primary distribution centre for inbound and outbound logistics."}
+
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000001", "name": "Category Manager", "description": "Category ownership and strategy across assortment, pricing, and promotions.", "attributes": {"group": "Category & Merchandise", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 45}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000002", "name": "Merchandise Buyer", "description": "Buying and negotiation for category assortments and vendor relationships.", "attributes": {"group": "Category & Merchandise", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 120}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000003", "name": "Range Planner", "description": "Assortment and range planning, format allocation, and planogram validation.", "attributes": {"group": "Category & Merchandise", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 35}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000004", "name": "Commercial Director", "description": "Strategic oversight and approval authority for the commercial domain.", "attributes": {"group": "Category & Merchandise", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 8}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000005", "name": "Pricing Analyst", "description": "Price setting, maintenance, elasticity analysis, and markdown planning.", "attributes": {"group": "Pricing & Promotions", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 60}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000006", "name": "Promo Planner", "description": "Promotion planning and execution across channels and formats.", "attributes": {"group": "Pricing & Promotions", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 40}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000007", "name": "Master Data Analyst", "description": "Item master data management, hierarchy maintenance, and data governance.", "attributes": {"group": "Master Data & Operations", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 25}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000008", "name": "Inventory Analyst", "description": "Inventory position management, consignment tracking, and clearance planning.", "attributes": {"group": "Master Data & Operations", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 30}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-000000000009", "name": "Store Ops", "description": "Store operations execution of pricing, promotions, and stock processes.", "attributes": {"group": "Master Data & Operations", "department": "Store Operations", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 850}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-00000000000a", "name": "Vendor Manager", "description": "Supplier relationship management, onboarding, and contract administration.", "attributes": {"group": "Vendor & Finance", "department": "Commercial", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 55}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-00000000000b", "name": "Finance Liaison", "description": "Finance cross-domain coordination, reconciliation, and settlement support.", "attributes": {"group": "Vendor & Finance", "department": "Finance", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 20}}
+    ,{"label": "Persona", "id": "01920000-0006-7000-8000-00000000000c", "name": "AP Analyst", "description": "Accounts payable processing, three-way matching, and payment approvals.", "attributes": {"group": "Vendor & Finance", "department": "Finance", "lifecycle_stage": "Active", "review_date": "2026-03-24", "population": 70}}
+
+    ,{"label": "KPI", "id": "01920000-0007-7000-8000-000000000001", "name": "Gross Margin", "description": "Category gross margin percentage after promotions and markdowns.", "attributes": {"category": "cost", "unit": "%", "target_value": 42, "target_direction": "higher_is_better", "measurement_frequency": "monthly", "domain_id": "01920000-0000-7000-8000-000000000001"}}
+    ,{"label": "KPI", "id": "01920000-0007-7000-8000-000000000002", "name": "Stock Turn Rate", "description": "Inventory turns per year by category.", "attributes": {"category": "efficiency", "unit": "turns", "target_value": 8, "target_direction": "higher_is_better", "measurement_frequency": "monthly", "domain_id": "01920000-0000-7000-8000-000000000001"}}
+    ,{"label": "KPI", "id": "01920000-0007-7000-8000-000000000003", "name": "Supplier On-Time Delivery", "description": "Percentage of PO lines delivered within promised lead time.", "attributes": {"category": "quality", "unit": "%", "target_value": 95, "target_direction": "higher_is_better", "measurement_frequency": "monthly", "domain_id": "01920000-0000-7000-8000-000000000001"}}
+    ,{"label": "KPI", "id": "01920000-0007-7000-8000-000000000004", "name": "Average Time to Market", "description": "Days from sourcing need to first customer sale.", "attributes": {"category": "time", "unit": "days", "target_value": 90, "target_direction": "lower_is_better", "measurement_frequency": "monthly", "domain_id": "01920000-0000-7000-8000-000000000001"}}
+    ,{"label": "KPI", "id": "01920000-0007-7000-8000-000000000005", "name": "Promotion ROI", "description": "Return on investment for promotional campaigns.", "attributes": {"category": "cost", "unit": "ratio", "target_value": 3.5, "target_direction": "higher_is_better", "measurement_frequency": "weekly", "domain_id": "01920000-0000-7000-8000-000000000001"}}
+
+    ,{"label": "OKRDirective", "id": "01920000-0008-7000-8000-000000000001", "name": "Q2 2026 Commercial OKRs", "description": "Q2 2026 OKR cycle for Commercial domain focusing on margin improvement and supply chain efficiency.", "attributes": {"cycle_name": "Q2 2026", "cycle_start": "2026-04-01", "cycle_end": "2026-06-30", "domain_id": "01920000-0000-7000-8000-000000000001", "status": "active", "review_cadence": "monthly"}}
+    ,{"label": "Objective", "id": "01920000-0009-7000-8000-000000000001", "name": "Improve Gross Margin Through Better Pricing and Promotion", "description": "Drive margin improvement by optimizing pricing decisions and promotional effectiveness.", "attributes": {"owner": "Commercial Director", "cycle_start": "2026-04-01", "cycle_end": "2026-06-30", "status": "active", "theme": "Margin Optimization"}}
+    ,{"label": "Objective", "id": "01920000-0009-7000-8000-000000000002", "name": "Accelerate Time to Market for New Products", "description": "Reduce end-to-end cycle time from sourcing to first customer sale.", "attributes": {"owner": "Range Planner", "cycle_start": "2026-04-01", "cycle_end": "2026-06-30", "status": "active", "theme": "Speed to Market"}}
+    ,{"label": "Objective", "id": "01920000-0009-7000-8000-000000000003", "name": "Strengthen Supplier Reliability and Inventory Efficiency", "description": "Improve supplier on-time delivery and optimize inventory turnover.", "attributes": {"owner": "Vendor Manager", "cycle_start": "2026-04-01", "cycle_end": "2026-06-30", "status": "active", "theme": "Supply Chain"}}
+    ,{"label": "KeyResult", "id": "01920000-000a-7000-8000-000000000001", "name": "Increase Gross Margin from 38% to 42%", "description": "Achieve 4 percentage point margin improvement through better pricing and promotion optimization.", "attributes": {"baseline_value": 38, "target_value": 42, "current_value": 39.5, "unit": "%", "direction": "higher_is_better", "progress": 37.5, "status": "in_progress"}}
+    ,{"label": "KeyResult", "id": "01920000-000a-7000-8000-000000000002", "name": "Increase Promotion ROI from 2.8 to 3.5", "description": "Improve promotional campaign effectiveness through better targeting and execution.", "attributes": {"baseline_value": 2.8, "target_value": 3.5, "current_value": 3.1, "unit": "ratio", "direction": "higher_is_better", "progress": 42.9, "status": "in_progress"}}
+    ,{"label": "KeyResult", "id": "01920000-000a-7000-8000-000000000003", "name": "Reduce Time to Market from 105 to 90 days", "description": "Accelerate product development and launch cycle time.", "attributes": {"baseline_value": 105, "target_value": 90, "current_value": 98, "unit": "days", "direction": "lower_is_better", "progress": 46.7, "status": "in_progress"}}
+    ,{"label": "KeyResult", "id": "01920000-000a-7000-8000-000000000004", "name": "Increase Stock Turn Rate from 6.5 to 8 turns", "description": "Improve inventory velocity through better assortment and clearance management.", "attributes": {"baseline_value": 6.5, "target_value": 8, "current_value": 7.2, "unit": "turns", "direction": "higher_is_better", "progress": 40, "status": "in_progress"}}
+    ,{"label": "KeyResult", "id": "01920000-000a-7000-8000-000000000005", "name": "Increase Supplier On-Time Delivery from 90% to 95%", "description": "Improve supplier reliability through better vendor management and demand forecasting.", "attributes": {"baseline_value": 90, "target_value": 95, "current_value": 92, "unit": "%", "direction": "higher_is_better", "progress": 40, "status": "in_progress"}}
+  ],
+
+  "edges": [
+    {"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000001", "fromId": "01920000-0001-7000-8000-000000000001", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000002", "fromId": "01920000-0001-7000-8000-000000000002", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000003", "fromId": "01920000-0001-7000-8000-000000000003", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000004", "fromId": "01920000-0001-7000-8000-000000000004", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000005", "fromId": "01920000-0001-7000-8000-000000000005", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000006", "fromId": "01920000-0001-7000-8000-000000000006", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000007", "fromId": "01920000-0001-7000-8000-000000000007", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000008", "fromId": "01920000-0001-7000-8000-000000000008", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-000000000009", "fromId": "01920000-0001-7000-8000-000000000009", "toId": "01920000-0000-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1000-7000-8000-00000000000a", "fromId": "01920000-0001-7000-8000-00000000000a", "toId": "01920000-0000-7000-8000-000000000001"}
+
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000001", "fromId": "01920000-0002-7000-8000-000001010001", "toId": "01920000-0001-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000002", "fromId": "01920000-0002-7000-8000-000001010002", "toId": "01920000-0001-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000003", "fromId": "01920000-0002-7000-8000-000001010003", "toId": "01920000-0001-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000004", "fromId": "01920000-0002-7000-8000-000001010004", "toId": "01920000-0001-7000-8000-000000000001"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000005", "fromId": "01920000-0002-7000-8000-000001020001", "toId": "01920000-0001-7000-8000-000000000002"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000006", "fromId": "01920000-0002-7000-8000-000001020002", "toId": "01920000-0001-7000-8000-000000000002"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000007", "fromId": "01920000-0002-7000-8000-000001020003", "toId": "01920000-0001-7000-8000-000000000002"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000008", "fromId": "01920000-0002-7000-8000-000001020004", "toId": "01920000-0001-7000-8000-000000000002"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000009", "fromId": "01920000-0002-7000-8000-000001030001", "toId": "01920000-0001-7000-8000-000000000003"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000000a", "fromId": "01920000-0002-7000-8000-000001030002", "toId": "01920000-0001-7000-8000-000000000003"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000000b", "fromId": "01920000-0002-7000-8000-000001030003", "toId": "01920000-0001-7000-8000-000000000003"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000000c", "fromId": "01920000-0002-7000-8000-000001030004", "toId": "01920000-0001-7000-8000-000000000003"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000000d", "fromId": "01920000-0002-7000-8000-000001040001", "toId": "01920000-0001-7000-8000-000000000004"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000000e", "fromId": "01920000-0002-7000-8000-000001040002", "toId": "01920000-0001-7000-8000-000000000004"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000000f", "fromId": "01920000-0002-7000-8000-000001040003", "toId": "01920000-0001-7000-8000-000000000004"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000010", "fromId": "01920000-0002-7000-8000-000001040004", "toId": "01920000-0001-7000-8000-000000000004"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000011", "fromId": "01920000-0002-7000-8000-000001050001", "toId": "01920000-0001-7000-8000-000000000005"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000012", "fromId": "01920000-0002-7000-8000-000001050002", "toId": "01920000-0001-7000-8000-000000000005"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000013", "fromId": "01920000-0002-7000-8000-000001050003", "toId": "01920000-0001-7000-8000-000000000005"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000014", "fromId": "01920000-0002-7000-8000-000001050004", "toId": "01920000-0001-7000-8000-000000000005"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000015", "fromId": "01920000-0002-7000-8000-000001060001", "toId": "01920000-0001-7000-8000-000000000006"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000016", "fromId": "01920000-0002-7000-8000-000001060002", "toId": "01920000-0001-7000-8000-000000000006"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000017", "fromId": "01920000-0002-7000-8000-000001060003", "toId": "01920000-0001-7000-8000-000000000006"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000018", "fromId": "01920000-0002-7000-8000-000001060004", "toId": "01920000-0001-7000-8000-000000000006"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000019", "fromId": "01920000-0002-7000-8000-000001070001", "toId": "01920000-0001-7000-8000-000000000007"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000001a", "fromId": "01920000-0002-7000-8000-000001070002", "toId": "01920000-0001-7000-8000-000000000007"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000001b", "fromId": "01920000-0002-7000-8000-000001070003", "toId": "01920000-0001-7000-8000-000000000007"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000001c", "fromId": "01920000-0002-7000-8000-000001070004", "toId": "01920000-0001-7000-8000-000000000007"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000001d", "fromId": "01920000-0002-7000-8000-000001080001", "toId": "01920000-0001-7000-8000-000000000008"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000001e", "fromId": "01920000-0002-7000-8000-000001080002", "toId": "01920000-0001-7000-8000-000000000008"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-00000000001f", "fromId": "01920000-0002-7000-8000-000001080003", "toId": "01920000-0001-7000-8000-000000000008"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000020", "fromId": "01920000-0002-7000-8000-000001080004", "toId": "01920000-0001-7000-8000-000000000008"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000021", "fromId": "01920000-0002-7000-8000-000001090001", "toId": "01920000-0001-7000-8000-000000000009"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000022", "fromId": "01920000-0002-7000-8000-000001090002", "toId": "01920000-0001-7000-8000-000000000009"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000023", "fromId": "01920000-0002-7000-8000-000001090003", "toId": "01920000-0001-7000-8000-000000000009"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000024", "fromId": "01920000-0002-7000-8000-000001090004", "toId": "01920000-0001-7000-8000-000000000009"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000025", "fromId": "01920000-0002-7000-8000-000001100001", "toId": "01920000-0001-7000-8000-00000000000a"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000026", "fromId": "01920000-0002-7000-8000-000001100002", "toId": "01920000-0001-7000-8000-00000000000a"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000027", "fromId": "01920000-0002-7000-8000-000001100003", "toId": "01920000-0001-7000-8000-00000000000a"}
+    ,{"type": "PART_OF", "id": "01920000-1001-7000-8000-000000000028", "fromId": "01920000-0002-7000-8000-000001100004", "toId": "01920000-0001-7000-8000-00000000000a"}
+
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000001", "fromId": "01920000-0002-7000-8000-000001010001", "toId": "01920000-0002-7000-8000-000001010002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000002", "fromId": "01920000-0002-7000-8000-000001010002", "toId": "01920000-0002-7000-8000-000001010003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000003", "fromId": "01920000-0002-7000-8000-000001010003", "toId": "01920000-0002-7000-8000-000001010004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000004", "fromId": "01920000-0002-7000-8000-000001020001", "toId": "01920000-0002-7000-8000-000001020002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000005", "fromId": "01920000-0002-7000-8000-000001020002", "toId": "01920000-0002-7000-8000-000001020003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000006", "fromId": "01920000-0002-7000-8000-000001020003", "toId": "01920000-0002-7000-8000-000001020004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000007", "fromId": "01920000-0002-7000-8000-000001030001", "toId": "01920000-0002-7000-8000-000001030002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000008", "fromId": "01920000-0002-7000-8000-000001030002", "toId": "01920000-0002-7000-8000-000001030003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000009", "fromId": "01920000-0002-7000-8000-000001030003", "toId": "01920000-0002-7000-8000-000001030004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000000a", "fromId": "01920000-0002-7000-8000-000001040001", "toId": "01920000-0002-7000-8000-000001040002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000000b", "fromId": "01920000-0002-7000-8000-000001040002", "toId": "01920000-0002-7000-8000-000001040003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000000c", "fromId": "01920000-0002-7000-8000-000001040003", "toId": "01920000-0002-7000-8000-000001040004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000000d", "fromId": "01920000-0002-7000-8000-000001050001", "toId": "01920000-0002-7000-8000-000001050002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000000e", "fromId": "01920000-0002-7000-8000-000001050002", "toId": "01920000-0002-7000-8000-000001050003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000000f", "fromId": "01920000-0002-7000-8000-000001050003", "toId": "01920000-0002-7000-8000-000001050004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000010", "fromId": "01920000-0002-7000-8000-000001060001", "toId": "01920000-0002-7000-8000-000001060002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000011", "fromId": "01920000-0002-7000-8000-000001060002", "toId": "01920000-0002-7000-8000-000001060003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000012", "fromId": "01920000-0002-7000-8000-000001060003", "toId": "01920000-0002-7000-8000-000001060004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000013", "fromId": "01920000-0002-7000-8000-000001070001", "toId": "01920000-0002-7000-8000-000001070002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000014", "fromId": "01920000-0002-7000-8000-000001070002", "toId": "01920000-0002-7000-8000-000001070003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000015", "fromId": "01920000-0002-7000-8000-000001070003", "toId": "01920000-0002-7000-8000-000001070004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000016", "fromId": "01920000-0002-7000-8000-000001080001", "toId": "01920000-0002-7000-8000-000001080002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000017", "fromId": "01920000-0002-7000-8000-000001080002", "toId": "01920000-0002-7000-8000-000001080003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000018", "fromId": "01920000-0002-7000-8000-000001080003", "toId": "01920000-0002-7000-8000-000001080004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000019", "fromId": "01920000-0002-7000-8000-000001090001", "toId": "01920000-0002-7000-8000-000001090002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000001a", "fromId": "01920000-0002-7000-8000-000001090002", "toId": "01920000-0002-7000-8000-000001090003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000001b", "fromId": "01920000-0002-7000-8000-000001090003", "toId": "01920000-0002-7000-8000-000001090004"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000001c", "fromId": "01920000-0002-7000-8000-000001100001", "toId": "01920000-0002-7000-8000-000001100002"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000001d", "fromId": "01920000-0002-7000-8000-000001100002", "toId": "01920000-0002-7000-8000-000001100003"}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000001e", "fromId": "01920000-0002-7000-8000-000001100003", "toId": "01920000-0002-7000-8000-000001100004"}
+
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-00000000001f", "fromId": "01920000-0002-7000-8000-000001010004", "toId": "01920000-0002-7000-8000-000001020001", "attributes": {"handoff_type": "item_ready_to_buy", "target_ms": 86400000, "actual_ms": 72000000}}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000020", "fromId": "01920000-0002-7000-8000-000001030004", "toId": "01920000-0002-7000-8000-000001040001", "attributes": {"handoff_type": "price_ready_for_promo", "target_ms": 43200000, "actual_ms": 36000000}}
+    ,{"type": "PRECEDES", "id": "01920000-5000-7000-8000-000000000021", "fromId": "01920000-0002-7000-8000-000001050004", "toId": "01920000-0002-7000-8000-000001100004", "attributes": {"handoff_type": "range_validated_for_launch", "target_ms": 172800000, "actual_ms": 201600000}}
+
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000001", "fromId": "01920000-0003-7000-8000-000000000007", "toId": "01920000-0002-7000-8000-000001010001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000002", "fromId": "01920000-0003-7000-8000-000000000007", "toId": "01920000-0002-7000-8000-000001010002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000003", "fromId": "01920000-0003-7000-8000-000000000007", "toId": "01920000-0002-7000-8000-000001010003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000004", "fromId": "01920000-0003-7000-8000-000000000001", "toId": "01920000-0002-7000-8000-000001010004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000005", "fromId": "01920000-0003-7000-8000-000000000002", "toId": "01920000-0002-7000-8000-000001020001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000006", "fromId": "01920000-0003-7000-8000-000000000002", "toId": "01920000-0002-7000-8000-000001020002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000007", "fromId": "01920000-0003-7000-8000-00000000000a", "toId": "01920000-0002-7000-8000-000001020002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000008", "fromId": "01920000-0003-7000-8000-000000000002", "toId": "01920000-0002-7000-8000-000001020003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000009", "fromId": "01920000-0003-7000-8000-000000000002", "toId": "01920000-0002-7000-8000-000001020004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000000a", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001030001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000000b", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001030002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000000c", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001030003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000000d", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001030004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000000e", "fromId": "01920000-0003-7000-8000-000000000006", "toId": "01920000-0002-7000-8000-000001040001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000000f", "fromId": "01920000-0003-7000-8000-000000000006", "toId": "01920000-0002-7000-8000-000001040002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000010", "fromId": "01920000-0003-7000-8000-000000000006", "toId": "01920000-0002-7000-8000-000001040003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000011", "fromId": "01920000-0003-7000-8000-000000000006", "toId": "01920000-0002-7000-8000-000001040004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000012", "fromId": "01920000-0003-7000-8000-000000000001", "toId": "01920000-0002-7000-8000-000001050001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000013", "fromId": "01920000-0003-7000-8000-000000000001", "toId": "01920000-0002-7000-8000-000001050002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000014", "fromId": "01920000-0003-7000-8000-000000000003", "toId": "01920000-0002-7000-8000-000001050002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000015", "fromId": "01920000-0003-7000-8000-000000000003", "toId": "01920000-0002-7000-8000-000001050003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000016", "fromId": "01920000-0003-7000-8000-000000000003", "toId": "01920000-0002-7000-8000-000001050004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000017", "fromId": "01920000-0003-7000-8000-00000000000a", "toId": "01920000-0002-7000-8000-000001060001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000018", "fromId": "01920000-0003-7000-8000-00000000000a", "toId": "01920000-0002-7000-8000-000001060002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000019", "fromId": "01920000-0003-7000-8000-00000000000a", "toId": "01920000-0002-7000-8000-000001060003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000001a", "fromId": "01920000-0003-7000-8000-00000000000b", "toId": "01920000-0002-7000-8000-000001060003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000001b", "fromId": "01920000-0003-7000-8000-00000000000a", "toId": "01920000-0002-7000-8000-000001060004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000001c", "fromId": "01920000-0003-7000-8000-000000000002", "toId": "01920000-0002-7000-8000-000001070001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000001d", "fromId": "01920000-0003-7000-8000-00000000000c", "toId": "01920000-0002-7000-8000-000001070002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000001e", "fromId": "01920000-0003-7000-8000-00000000000c", "toId": "01920000-0002-7000-8000-000001070003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000001f", "fromId": "01920000-0003-7000-8000-00000000000c", "toId": "01920000-0002-7000-8000-000001070004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000020", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001080001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000021", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001080002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000022", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001080003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000023", "fromId": "01920000-0003-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001080004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000024", "fromId": "01920000-0003-7000-8000-000000000009", "toId": "01920000-0002-7000-8000-000001080004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000025", "fromId": "01920000-0003-7000-8000-000000000008", "toId": "01920000-0002-7000-8000-000001090001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000026", "fromId": "01920000-0003-7000-8000-000000000008", "toId": "01920000-0002-7000-8000-000001090002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000027", "fromId": "01920000-0003-7000-8000-00000000000b", "toId": "01920000-0002-7000-8000-000001090003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000028", "fromId": "01920000-0003-7000-8000-00000000000a", "toId": "01920000-0002-7000-8000-000001090004"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-000000000029", "fromId": "01920000-0003-7000-8000-000000000001", "toId": "01920000-0002-7000-8000-000001100001"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000002a", "fromId": "01920000-0003-7000-8000-000000000002", "toId": "01920000-0002-7000-8000-000001100002"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000002b", "fromId": "01920000-0003-7000-8000-000000000006", "toId": "01920000-0002-7000-8000-000001100003"}
+    ,{"type": "EXECUTES", "id": "01920000-2000-7000-8000-00000000002c", "fromId": "01920000-0003-7000-8000-000000000001", "toId": "01920000-0002-7000-8000-000001100004"}
+
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000001", "fromId": "01920000-0002-7000-8000-000001010001", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000002", "fromId": "01920000-0002-7000-8000-000001010002", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000003", "fromId": "01920000-0002-7000-8000-000001010003", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000004", "fromId": "01920000-0002-7000-8000-000001010004", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000005", "fromId": "01920000-0002-7000-8000-000001020001", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000006", "fromId": "01920000-0002-7000-8000-000001020002", "toId": "01920000-0004-7000-8000-000000000006"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000007", "fromId": "01920000-0002-7000-8000-000001020003", "toId": "01920000-0004-7000-8000-000000000007"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000008", "fromId": "01920000-0002-7000-8000-000001020004", "toId": "01920000-0004-7000-8000-000000000007"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000009", "fromId": "01920000-0002-7000-8000-000001030001", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000000a", "fromId": "01920000-0002-7000-8000-000001030002", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000000b", "fromId": "01920000-0002-7000-8000-000001030003", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000000c", "fromId": "01920000-0002-7000-8000-000001030004", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000000d", "fromId": "01920000-0002-7000-8000-000001040001", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000000e", "fromId": "01920000-0002-7000-8000-000001040002", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000000f", "fromId": "01920000-0002-7000-8000-000001040003", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000010", "fromId": "01920000-0002-7000-8000-000001040004", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000011", "fromId": "01920000-0002-7000-8000-000001050001", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000012", "fromId": "01920000-0002-7000-8000-000001050002", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000013", "fromId": "01920000-0002-7000-8000-000001050003", "toId": "01920000-0004-7000-8000-000000000005"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000014", "fromId": "01920000-0002-7000-8000-000001050004", "toId": "01920000-0004-7000-8000-000000000005"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000015", "fromId": "01920000-0002-7000-8000-000001060001", "toId": "01920000-0004-7000-8000-000000000006"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000016", "fromId": "01920000-0002-7000-8000-000001060002", "toId": "01920000-0004-7000-8000-000000000006"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000017", "fromId": "01920000-0002-7000-8000-000001060003", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000018", "fromId": "01920000-0002-7000-8000-000001060004", "toId": "01920000-0004-7000-8000-000000000006"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000019", "fromId": "01920000-0002-7000-8000-000001070001", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000001a", "fromId": "01920000-0002-7000-8000-000001070002", "toId": "01920000-0004-7000-8000-000000000003"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000001b", "fromId": "01920000-0002-7000-8000-000001070003", "toId": "01920000-0004-7000-8000-000000000003"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000001c", "fromId": "01920000-0002-7000-8000-000001070004", "toId": "01920000-0004-7000-8000-000000000003"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000001d", "fromId": "01920000-0002-7000-8000-000001080001", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000001e", "fromId": "01920000-0002-7000-8000-000001080002", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-00000000001f", "fromId": "01920000-0002-7000-8000-000001080003", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000020", "fromId": "01920000-0002-7000-8000-000001080004", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000021", "fromId": "01920000-0002-7000-8000-000001090001", "toId": "01920000-0004-7000-8000-000000000004"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000022", "fromId": "01920000-0002-7000-8000-000001090002", "toId": "01920000-0004-7000-8000-000000000004"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000023", "fromId": "01920000-0002-7000-8000-000001090003", "toId": "01920000-0004-7000-8000-000000000003"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000024", "fromId": "01920000-0002-7000-8000-000001090004", "toId": "01920000-0004-7000-8000-000000000004"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000025", "fromId": "01920000-0002-7000-8000-000001100001", "toId": "01920000-0004-7000-8000-000000000002"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000026", "fromId": "01920000-0002-7000-8000-000001100002", "toId": "01920000-0004-7000-8000-000000000006"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000027", "fromId": "01920000-0002-7000-8000-000001100003", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "USES_SYSTEM", "id": "01920000-3000-7000-8000-000000000028", "fromId": "01920000-0002-7000-8000-000001100004", "toId": "01920000-0004-7000-8000-000000000002"}
+
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000001", "fromId": "01920000-0002-7000-8000-000001010001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000002", "fromId": "01920000-0002-7000-8000-000001010002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000003", "fromId": "01920000-0002-7000-8000-000001010003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000004", "fromId": "01920000-0002-7000-8000-000001010004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000005", "fromId": "01920000-0002-7000-8000-000001020001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000006", "fromId": "01920000-0002-7000-8000-000001020002", "toId": "01920000-0005-7000-8000-000000000002"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000007", "fromId": "01920000-0002-7000-8000-000001020003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000008", "fromId": "01920000-0002-7000-8000-000001020004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000009", "fromId": "01920000-0002-7000-8000-000001030001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000000a", "fromId": "01920000-0002-7000-8000-000001030002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000000b", "fromId": "01920000-0002-7000-8000-000001030003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000000c", "fromId": "01920000-0002-7000-8000-000001030004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000000d", "fromId": "01920000-0002-7000-8000-000001040001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000000e", "fromId": "01920000-0002-7000-8000-000001040002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000000f", "fromId": "01920000-0002-7000-8000-000001040003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000010", "fromId": "01920000-0002-7000-8000-000001040004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000011", "fromId": "01920000-0002-7000-8000-000001050001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000012", "fromId": "01920000-0002-7000-8000-000001050002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000013", "fromId": "01920000-0002-7000-8000-000001050003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000014", "fromId": "01920000-0002-7000-8000-000001050004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000015", "fromId": "01920000-0002-7000-8000-000001060001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000016", "fromId": "01920000-0002-7000-8000-000001060002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000017", "fromId": "01920000-0002-7000-8000-000001060003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000018", "fromId": "01920000-0002-7000-8000-000001060004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000019", "fromId": "01920000-0002-7000-8000-000001070001", "toId": "01920000-0005-7000-8000-000000000005"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000001a", "fromId": "01920000-0002-7000-8000-000001070002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000001b", "fromId": "01920000-0002-7000-8000-000001070003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000001c", "fromId": "01920000-0002-7000-8000-000001070004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000001d", "fromId": "01920000-0002-7000-8000-000001080001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000001e", "fromId": "01920000-0002-7000-8000-000001080002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-00000000001f", "fromId": "01920000-0002-7000-8000-000001080003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000020", "fromId": "01920000-0002-7000-8000-000001080004", "toId": "01920000-0005-7000-8000-000000000003"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000021", "fromId": "01920000-0002-7000-8000-000001090001", "toId": "01920000-0005-7000-8000-000000000005"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000022", "fromId": "01920000-0002-7000-8000-000001090002", "toId": "01920000-0005-7000-8000-000000000005"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000023", "fromId": "01920000-0002-7000-8000-000001090003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000024", "fromId": "01920000-0002-7000-8000-000001090004", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000025", "fromId": "01920000-0002-7000-8000-000001100001", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000026", "fromId": "01920000-0002-7000-8000-000001100002", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000027", "fromId": "01920000-0002-7000-8000-000001100003", "toId": "01920000-0005-7000-8000-000000000001"}
+    ,{"type": "AT_LOCATION", "id": "01920000-4000-7000-8000-000000000028", "fromId": "01920000-0002-7000-8000-000001100004", "toId": "01920000-0005-7000-8000-000000000001"}
+
+    ,{"type": "INTEGRATES_WITH", "id": "01920000-6000-7000-8000-000000000001", "fromId": "01920000-0004-7000-8000-000000000002", "toId": "01920000-0004-7000-8000-000000000001"}
+    ,{"type": "INTEGRATES_WITH", "id": "01920000-6000-7000-8000-000000000002", "fromId": "01920000-0004-7000-8000-000000000002", "toId": "01920000-0004-7000-8000-000000000003"}
+    ,{"type": "INTEGRATES_WITH", "id": "01920000-6000-7000-8000-000000000003", "fromId": "01920000-0004-7000-8000-000000000002", "toId": "01920000-0004-7000-8000-000000000006"}
+    ,{"type": "INTEGRATES_WITH", "id": "01920000-6000-7000-8000-000000000004", "fromId": "01920000-0004-7000-8000-000000000001", "toId": "01920000-0004-7000-8000-000000000006"}
+    ,{"type": "INTEGRATES_WITH", "id": "01920000-6000-7000-8000-000000000005", "fromId": "01920000-0004-7000-8000-000000000004", "toId": "01920000-0004-7000-8000-000000000003"}
+
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000001", "fromId": "01920000-0006-7000-8000-000000000001", "toId": "01920000-0003-7000-8000-000000000001"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000002", "fromId": "01920000-0006-7000-8000-000000000002", "toId": "01920000-0003-7000-8000-000000000002"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000003", "fromId": "01920000-0006-7000-8000-000000000003", "toId": "01920000-0003-7000-8000-000000000003"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000004", "fromId": "01920000-0006-7000-8000-000000000004", "toId": "01920000-0003-7000-8000-000000000004"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000005", "fromId": "01920000-0006-7000-8000-000000000005", "toId": "01920000-0003-7000-8000-000000000005"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000006", "fromId": "01920000-0006-7000-8000-000000000006", "toId": "01920000-0003-7000-8000-000000000006"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000007", "fromId": "01920000-0006-7000-8000-000000000007", "toId": "01920000-0003-7000-8000-000000000007"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000008", "fromId": "01920000-0006-7000-8000-000000000008", "toId": "01920000-0003-7000-8000-000000000008"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-000000000009", "fromId": "01920000-0006-7000-8000-000000000009", "toId": "01920000-0003-7000-8000-000000000009"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-00000000000a", "fromId": "01920000-0006-7000-8000-00000000000a", "toId": "01920000-0003-7000-8000-00000000000a"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-00000000000b", "fromId": "01920000-0006-7000-8000-00000000000b", "toId": "01920000-0003-7000-8000-00000000000b"}
+    ,{"type": "PERFORMS_AS", "id": "01920000-7000-7000-8000-00000000000c", "fromId": "01920000-0006-7000-8000-00000000000c", "toId": "01920000-0003-7000-8000-00000000000c"}
+
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000001", "fromId": "01920000-0006-7000-8000-000000000007", "toId": "01920000-0001-7000-8000-000000000001"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000002", "fromId": "01920000-0006-7000-8000-000000000007", "toId": "01920000-0001-7000-8000-00000000000a"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000003", "fromId": "01920000-0006-7000-8000-000000000002", "toId": "01920000-0001-7000-8000-000000000001"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000004", "fromId": "01920000-0006-7000-8000-000000000002", "toId": "01920000-0001-7000-8000-000000000002"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000005", "fromId": "01920000-0006-7000-8000-000000000002", "toId": "01920000-0001-7000-8000-000000000007"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000006", "fromId": "01920000-0006-7000-8000-000000000002", "toId": "01920000-0001-7000-8000-00000000000a"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000007", "fromId": "01920000-0006-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-000000000001"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000008", "fromId": "01920000-0006-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-000000000003"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000009", "fromId": "01920000-0006-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-000000000004"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000000a", "fromId": "01920000-0006-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-000000000005"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000000b", "fromId": "01920000-0006-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-00000000000a"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000000c", "fromId": "01920000-0006-7000-8000-00000000000a", "toId": "01920000-0001-7000-8000-000000000002"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000000d", "fromId": "01920000-0006-7000-8000-00000000000a", "toId": "01920000-0001-7000-8000-000000000006"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000000e", "fromId": "01920000-0006-7000-8000-00000000000a", "toId": "01920000-0001-7000-8000-000000000007"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000000f", "fromId": "01920000-0006-7000-8000-00000000000a", "toId": "01920000-0001-7000-8000-000000000009"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000010", "fromId": "01920000-0006-7000-8000-000000000005", "toId": "01920000-0001-7000-8000-000000000002"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000011", "fromId": "01920000-0006-7000-8000-000000000005", "toId": "01920000-0001-7000-8000-000000000003"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000012", "fromId": "01920000-0006-7000-8000-000000000005", "toId": "01920000-0001-7000-8000-000000000004"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000013", "fromId": "01920000-0006-7000-8000-000000000005", "toId": "01920000-0001-7000-8000-000000000008"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000014", "fromId": "01920000-0006-7000-8000-000000000006", "toId": "01920000-0001-7000-8000-000000000004"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000015", "fromId": "01920000-0006-7000-8000-000000000006", "toId": "01920000-0001-7000-8000-000000000008"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000016", "fromId": "01920000-0006-7000-8000-000000000006", "toId": "01920000-0001-7000-8000-00000000000a"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000017", "fromId": "01920000-0006-7000-8000-000000000003", "toId": "01920000-0001-7000-8000-000000000005"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000018", "fromId": "01920000-0006-7000-8000-000000000004", "toId": "01920000-0001-7000-8000-000000000003"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-000000000019", "fromId": "01920000-0006-7000-8000-000000000004", "toId": "01920000-0001-7000-8000-000000000005"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000001a", "fromId": "01920000-0006-7000-8000-00000000000b", "toId": "01920000-0001-7000-8000-000000000006"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000001b", "fromId": "01920000-0006-7000-8000-00000000000b", "toId": "01920000-0001-7000-8000-000000000009"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000001c", "fromId": "01920000-0006-7000-8000-00000000000c", "toId": "01920000-0001-7000-8000-000000000007"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000001d", "fromId": "01920000-0006-7000-8000-000000000009", "toId": "01920000-0001-7000-8000-000000000008"}
+    ,{"type": "PARTICIPATES_IN", "id": "01920000-8000-7000-8000-00000000001e", "fromId": "01920000-0006-7000-8000-000000000008", "toId": "01920000-0001-7000-8000-000000000009"}
+
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000001", "fromId": "01920000-0007-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-000000000004", "attributes": {"weight": 0.4}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000002", "fromId": "01920000-0007-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-000000000003", "attributes": {"weight": 0.3}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000003", "fromId": "01920000-0007-7000-8000-000000000001", "toId": "01920000-0001-7000-8000-000000000002", "attributes": {"weight": 0.2}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000004", "fromId": "01920000-0007-7000-8000-000000000001", "toId": "01920000-0002-7000-8000-000001040003", "attributes": {"weight": 0.1}}
+
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000005", "fromId": "01920000-0007-7000-8000-000000000002", "toId": "01920000-0001-7000-8000-000000000005", "attributes": {"weight": 0.35}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000006", "fromId": "01920000-0007-7000-8000-000000000002", "toId": "01920000-0001-7000-8000-00000000000a", "attributes": {"weight": 0.25}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000007", "fromId": "01920000-0007-7000-8000-000000000002", "toId": "01920000-0001-7000-8000-000000000008", "attributes": {"weight": 0.25}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000008", "fromId": "01920000-0007-7000-8000-000000000002", "toId": "01920000-0002-7000-8000-000001090001", "attributes": {"weight": 0.15}}
+
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000009", "fromId": "01920000-0007-7000-8000-000000000003", "toId": "01920000-0001-7000-8000-000000000002", "attributes": {"weight": 0.5}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-00000000000a", "fromId": "01920000-0007-7000-8000-000000000003", "toId": "01920000-0001-7000-8000-000000000006", "attributes": {"weight": 0.3}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-00000000000b", "fromId": "01920000-0007-7000-8000-000000000003", "toId": "01920000-0002-7000-8000-000001020004", "attributes": {"weight": 0.2}}
+
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-00000000000c", "fromId": "01920000-0007-7000-8000-000000000004", "toId": "01920000-0001-7000-8000-00000000000a", "attributes": {"weight": 0.4}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-00000000000d", "fromId": "01920000-0007-7000-8000-000000000004", "toId": "01920000-0001-7000-8000-000000000001", "attributes": {"weight": 0.3}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-00000000000e", "fromId": "01920000-0007-7000-8000-000000000004", "toId": "01920000-0002-7000-8000-000001100002", "attributes": {"weight": 0.3}}
+
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-00000000000f", "fromId": "01920000-0007-7000-8000-000000000005", "toId": "01920000-0001-7000-8000-000000000004", "attributes": {"weight": 0.6}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000010", "fromId": "01920000-0007-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001040004", "attributes": {"weight": 0.25}}
+    ,{"type": "CONTRIBUTES_TO", "id": "01920000-9000-7000-8000-000000000011", "fromId": "01920000-0007-7000-8000-000000000005", "toId": "01920000-0002-7000-8000-000001040002", "attributes": {"weight": 0.15}}
+
+    ,{"type": "HAS_KEY_RESULT", "id": "01920000-a000-7000-8000-000000000001", "fromId": "01920000-0008-7000-8000-000000000001", "toId": "01920000-000a-7000-8000-000000000001"}
+    ,{"type": "HAS_KEY_RESULT", "id": "01920000-a000-7000-8000-000000000002", "fromId": "01920000-0008-7000-8000-000000000001", "toId": "01920000-000a-7000-8000-000000000002"}
+    ,{"type": "HAS_KEY_RESULT", "id": "01920000-a000-7000-8000-000000000003", "fromId": "01920000-0008-7000-8000-000000000001", "toId": "01920000-000a-7000-8000-000000000003"}
+    ,{"type": "HAS_KEY_RESULT", "id": "01920000-a000-7000-8000-000000000004", "fromId": "01920000-0008-7000-8000-000000000001", "toId": "01920000-000a-7000-8000-000000000004"}
+    ,{"type": "HAS_KEY_RESULT", "id": "01920000-a000-7000-8000-000000000005", "fromId": "01920000-0008-7000-8000-000000000001", "toId": "01920000-000a-7000-8000-000000000005"}
+
+    ,{"type": "DRIVES_KPI", "id": "01920000-a100-7000-8000-000000000001", "fromId": "01920000-000a-7000-8000-000000000001", "toId": "01920000-0007-7000-8000-000000000001", "attributes": {"baseline": 38, "target": 42}}
+    ,{"type": "DRIVES_KPI", "id": "01920000-a100-7000-8000-000000000002", "fromId": "01920000-000a-7000-8000-000000000002", "toId": "01920000-0007-7000-8000-000000000005", "attributes": {"baseline": 2.8, "target": 3.5}}
+    ,{"type": "DRIVES_KPI", "id": "01920000-a100-7000-8000-000000000003", "fromId": "01920000-000a-7000-8000-000000000003", "toId": "01920000-0007-7000-8000-000000000004", "attributes": {"baseline": 105, "target": 90}}
+    ,{"type": "DRIVES_KPI", "id": "01920000-a100-7000-8000-000000000004", "fromId": "01920000-000a-7000-8000-000000000004", "toId": "01920000-0007-7000-8000-000000000002", "attributes": {"baseline": 6.5, "target": 8}}
+    ,{"type": "DRIVES_KPI", "id": "01920000-a100-7000-8000-000000000005", "fromId": "01920000-000a-7000-8000-000000000005", "toId": "01920000-0007-7000-8000-000000000003", "attributes": {"baseline": 90, "target": 95}}
+
+    ,{"type": "HAS_BASELINE", "id": "01920000-a200-7000-8000-000000000001", "fromId": "01920000-0007-7000-8000-000000000001", "toId": "01920000-0008-7000-8000-000000000001", "attributes": {"baseline_value": 38, "captured_at": "2026-04-01"}}
+    ,{"type": "HAS_BASELINE", "id": "01920000-a200-7000-8000-000000000002", "fromId": "01920000-0007-7000-8000-000000000002", "toId": "01920000-0008-7000-8000-000000000001", "attributes": {"baseline_value": 6.5, "captured_at": "2026-04-01"}}
+    ,{"type": "HAS_BASELINE", "id": "01920000-a200-7000-8000-000000000003", "fromId": "01920000-0007-7000-8000-000000000003", "toId": "01920000-0008-7000-8000-000000000001", "attributes": {"baseline_value": 90, "captured_at": "2026-04-01"}}
+    ,{"type": "HAS_BASELINE", "id": "01920000-a200-7000-8000-000000000004", "fromId": "01920000-0007-7000-8000-000000000004", "toId": "01920000-0008-7000-8000-000000000001", "attributes": {"baseline_value": 105, "captured_at": "2026-04-01"}}
+    ,{"type": "HAS_BASELINE", "id": "01920000-a200-7000-8000-000000000005", "fromId": "01920000-0007-7000-8000-000000000005", "toId": "01920000-0008-7000-8000-000000000001", "attributes": {"baseline_value": 2.8, "captured_at": "2026-04-01"}}
+  ]
+}

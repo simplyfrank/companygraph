@@ -7,6 +7,18 @@ export const NODE_LABELS = [
   "Role",
   "System",
   "Location",
+  "Persona",
+  "Product",
+  "Program",
+  "KPI",
+  "Objective",
+  "KeyResult",
+  "OKRDirective",
+  "RollDown",
+  "RollDownAssignment",
+  "RollDownObjective",
+  "RollDownKeyResult",
+  "RollDownAdjustment",
 ] as const;
 export type NodeLabel = (typeof NODE_LABELS)[number];
 

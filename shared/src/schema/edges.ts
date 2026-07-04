@@ -8,6 +8,12 @@ export const EDGE_TYPES = [
   "AT_LOCATION",      // Activity→Location
   "PRECEDES",         // Activity→Activity
   "INTEGRATES_WITH",  // System→System
+  "PERFORMS_AS",      // Persona→Role
+  "PARTICIPATES_IN",  // Persona→UserJourney
+  "CONTRIBUTES_TO",   // KPI→UserJourney, KPI→Activity (with weight)
+  "HAS_KEY_RESULT",  // OKRDirective→KeyResult
+  "DRIVES_KPI",       // KeyResult→KPI (with baseline→target delta)
+  "HAS_BASELINE",    // KPI→OKRDirective (baseline snapshot)
 ] as const;
 export type EdgeType = (typeof EDGE_TYPES)[number];
 
@@ -27,6 +33,12 @@ export const EDGE_ENDPOINTS = {
   AT_LOCATION:     [["Activity", "Location"]],
   PRECEDES:        [["Activity", "Activity"]],
   INTEGRATES_WITH: [["System", "System"]],
+  PERFORMS_AS:     [["Persona", "Role"]],
+  PARTICIPATES_IN: [["Persona", "UserJourney"]],
+  CONTRIBUTES_TO:  [["KPI", "UserJourney"], ["KPI", "Activity"]],
+  HAS_KEY_RESULT:  [["OKRDirective", "KeyResult"]],
+  DRIVES_KPI:      [["KeyResult", "KPI"]],
+  HAS_BASELINE:    [["KPI", "OKRDirective"]],
 } as const satisfies Record<EdgeType, ReadonlyArray<readonly [NodeLabel, NodeLabel]>>;
 
 export const edgeCreateSchema = z.object({

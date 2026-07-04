@@ -1,0 +1,420 @@
+{
+  "_comment": "Commercial Domain Import — Full specification demonstrating bounded contexts, entities, relationships, node labels, and edge types",
+  "_source": "Confluence PC space Domain Entity Model pages",
+
+  "nodeLabels": [
+    {
+      "name": "Item",
+      "description": "The core tradeable unit in the system. Master reference for pricing, inventory, procurement, and assortment.",
+      "usage_example": "POST /api/v1/nodes/Item",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    {
+      "name": "Barcode",
+      "description": "GS1-compliant barcode assignments for items (EAN-13, GTIN-14, or internal barcodes for own-brand).",
+      "usage_example": "POST /api/v1/nodes/Barcode",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"}
+        }
+      }
+    },
+    {
+      "name": "Supplier",
+      "description": "Supplier/vendor master record.",
+      "usage_example": "POST /api/v1/nodes/Supplier",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"}
+        }
+      }
+    },
+    {
+      "name": "Purchase_Order",
+      "description": "Commitment to a supplier for specified quantity of items at agreed costs.",
+      "usage_example": "POST /api/v1/nodes/Purchase_Order",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"}
+        }
+      }
+    },
+    {
+      "name": "Promotion",
+      "description": "Container for one or more offer components that temporarily reduce selling prices.",
+      "usage_example": "POST /api/v1/nodes/Promotion",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"}
+        }
+      }
+    },
+    {
+      "name": "Assortment_Plan",
+      "description": "Defines which items are ranged at which locations for a given period.",
+      "usage_example": "POST /api/v1/nodes/Assortment_Plan",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"}
+        }
+      }
+    },
+    {
+      "name": "Allocation",
+      "description": "Distribution of inventory from warehouse to stores.",
+      "usage_example": "POST /api/v1/nodes/Allocation",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"}
+        }
+      }
+    },
+    {
+      "name": "Consignment_Agreement",
+      "description": "Commercial terms for consignment trading (supplier retains ownership until sale).",
+      "usage_example": "POST /api/v1/nodes/Consignment_Agreement",
+      "json_schema_doc": {
+        "type": "object",
+        "required": ["bounded_context", "entity_number", "status"],
+        "properties": {
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "oracle_table": {"type": "string"}
+        }
+      }
+    }
+  ],
+
+  "edgeTypes": [
+    {
+      "name": "PART_OF",
+      "description": "Entity belongs to a bounded context",
+      "usage_example": "MATCH (e:Entity)-[:PART_OF]->(bc:BoundedContext)",
+      "endpoints": [
+        {
+          "fromLabel": "Item",
+          "toLabel": "BoundedContext",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "name": "UPSTREAM_OF",
+      "description": "Bounded context provides data to another bounded context",
+      "usage_example": "MATCH (bc1:BoundedContext)-[:UPSTREAM_OF]->(bc2:BoundedContext)",
+      "endpoints": [
+        {
+          "fromLabel": "BoundedContext",
+          "toLabel": "BoundedContext",
+          "cardinality": "MANY_TO_MANY"
+        }
+      ]
+    },
+    {
+      "name": "DOWNSTREAM_OF",
+      "description": "Bounded context consumes data from another bounded context",
+      "usage_example": "MATCH (bc1:BoundedContext)-[:DOWNSTREAM_OF]->(bc2:BoundedContext)",
+      "endpoints": [
+        {
+          "fromLabel": "BoundedContext",
+          "toLabel": "BoundedContext",
+          "cardinality": "MANY_TO_MANY"
+        }
+      ]
+    }
+  ],
+
+  "boundedContexts": [
+    {
+      "id": "01930000-0000-7000-8000-000000000001",
+      "name": "BC1 Product Catalogue",
+      "description": "Core Domain — Product and Item Management. Upstream: BC3 (Shared Kernel). Downstream: BC4, BC5, BC6.",
+      "domain": "Commercial",
+      "subdomain": "3.A",
+      "type": "Core",
+      "oracle_system": "RMS 19.0",
+      "jira_projects": ["ASIC", "PD", "BMP", "COD"]
+    },
+    {
+      "id": "01930000-0000-7000-8000-000000000002",
+      "name": "BC2 Merchandise Hierarchy",
+      "description": "Generic Domain — Merchandise Hierarchy and Classification. Reference data provider for all bounded contexts.",
+      "domain": "Commercial",
+      "subdomain": "3.B",
+      "type": "Generic",
+      "oracle_system": "RMS 16.0",
+      "jira_projects": ["ASTM", "BMP", "COD"]
+    },
+    {
+      "id": "01930000-0000-7000-8000-000000000003",
+      "name": "BC3 Supplier & Procurement",
+      "description": "Core Domain — Supplier and Vendor Management + Buying and Procurement (merged). Upstream: BC1. Downstream: FD1 Supply Chain, FD Finance.",
+      "domain": "Commercial",
+      "subdomain": "3.C/3.D",
+      "type": "Core",
+      "oracle_system": "RMS 16.0",
+      "jira_projects": ["AUT", "ALA", "AR3", "AT", "ASIC", "PD", "BMP", "BMCM", "BMPM", "COD", "MPM"]
+    },
+    {
+      "id": "01930000-0000-7000-8000-000000000004",
+      "name": "BC4 Pricing & Markdown",
+      "description": "Core Domain — Pricing. Upstream: BC1, BC3. Downstream: BC5, POS/E-Commerce.",
+      "domain": "Commercial",
+      "subdomain": "3.E",
+      "type": "Core",
+      "oracle_system": "RPM 16.0",
+      "jira_projects": ["PPE2", "DM082", "PC", "SLBMY", "COD"]
+    },
+    {
+      "id": "01930000-0000-7000-8000-000000000005",
+      "name": "BC5 Promotion Management",
+      "description": "Core Domain — Promotions and Offers. Upstream: BC4, BC1. Downstream: POS/E-Commerce/Supplier Portal.",
+      "domain": "Commercial",
+      "subdomain": "3.F",
+      "type": "Core",
+      "oracle_system": "RPM 16.0",
+      "jira_projects": ["PPE2", "PC", "SLBMY", "BMP"]
+    },
+    {
+      "id": "01930000-0000-7000-8000-000000000006",
+      "name": "BC6 Assortment & Range",
+      "description": "Core Domain — Assortment and Range Planning. Upstream: BC1, BC4. Downstream: BC7.",
+      "domain": "Commercial",
+      "subdomain": "3.G",
+      "type": "Core",
+      "oracle_system": "RMS 16.0",
+      "jira_projects": ["ASTM", "SD", "BMP", "PD"]
+    },
+    {
+      "id": "01930000-0000-7000-8000-000000000007",
+      "name": "BC7 Allocation & Replenishment",
+      "description": "Supporting Domain — Distribution Planning and Allocation. Upstream: BC6. Downstream: FD1 Supply Chain.",
+      "domain": "Commercial",
+      "subdomain": "3.H",
+      "type": "Supporting",
+      "oracle_system": "RMS 16.0 / Oracle Alloc",
+      "jira_projects": ["BMP", "BMCM", "SCABI", "CIABI", "COD"]
+    },
+    {
+      "id": "01930000-0000-7000-8000-000000000008",
+      "name": "BC8 Supplier Collaboration",
+      "description": "Supporting Domain — Supplier Collaboration, Consignment and Extended Valuation. Cross-domain dependencies with FD1 Supply Chain and FD Finance.",
+      "domain": "Commercial",
+      "subdomain": "3.J",
+      "type": "Supporting",
+      "oracle_system": "RMS / ReIM / AutoCN",
+      "jira_projects": ["ASIC", "AUT", "BMCM", "BMPM", "SCABI", "CIABI", "COD"]
+    }
+  ],
+
+  "entities": [
+    {
+      "id": "01930000-0100-7000-8000-000000000001",
+      "name": "Item",
+      "description": "The core tradeable unit in the system. Master reference for pricing, inventory, procurement, and assortment.",
+      "subdomain": "3.A",
+      "bounded_context": "BC1 Product Catalogue",
+      "entity_number": 1,
+      "status": "ACTIVE",
+      "oracle_table": "ITEM_MASTER"
+    },
+    {
+      "id": "01930000-0100-7000-8000-000000000002",
+      "name": "Barcode",
+      "description": "GS1-compliant barcode assignments for items (EAN-13, GTIN-14, or internal barcodes for own-brand).",
+      "subdomain": "3.A",
+      "bounded_context": "BC1 Product Catalogue",
+      "entity_number": 2,
+      "status": "ACTIVE",
+      "oracle_table": "BARCODE"
+    },
+    {
+      "id": "01930000-0100-7000-8000-00000000001e",
+      "name": "Supplier",
+      "description": "Supplier/vendor master record. GLN field NOT APPLICABLE - removed.",
+      "subdomain": "3.C",
+      "bounded_context": "BC3 Supplier & Procurement",
+      "entity_number": 31,
+      "status": "ACTIVE",
+      "oracle_table": "SUPPLIER",
+      "note": "GLN field removed"
+    },
+    {
+      "id": "01930000-0100-7000-8000-000000000025",
+      "name": "Purchase Order",
+      "description": "Commitment to a supplier for specified quantity of items at agreed costs. PO creation owned by Commercials; execution owned by Supply Chain (FD1).",
+      "subdomain": "3.D",
+      "bounded_context": "BC3 Supplier & Procurement",
+      "entity_number": 39,
+      "status": "ACTIVE",
+      "oracle_table": "PO_HEADER"
+    },
+    {
+      "id": "01930000-0100-7000-8000-000000000039",
+      "name": "Promotion",
+      "description": "Container for one or more offer components that temporarily reduce selling prices. Lotus's: 10,000+ promotions monthly per store, 1-day lead time, no duration limit, active modify allowed.",
+      "subdomain": "3.F",
+      "bounded_context": "BC5 Promotion Management",
+      "entity_number": 59,
+      "status": "ACTIVE",
+      "oracle_table": "PROMOTION"
+    },
+    {
+      "id": "01930000-0100-7000-8000-000000000042",
+      "name": "Assortment Plan",
+      "description": "Defines which items are ranged at which locations for a given period.",
+      "subdomain": "3.G",
+      "bounded_context": "BC6 Assortment & Range",
+      "entity_number": 68,
+      "status": "ACTIVE",
+      "oracle_table": "ASSORTMENT_PLAN"
+    },
+    {
+      "id": "01930000-0100-7000-8000-000000000049",
+      "name": "Allocation",
+      "description": "Distribution of inventory from warehouse to stores. Strategic allocation planning owned by PC; physical distribution execution owned by FD1 per D-031.",
+      "subdomain": "3.H",
+      "bounded_context": "BC7 Allocation & Replenishment",
+      "entity_number": 77,
+      "status": "ACTIVE",
+      "oracle_table": "ALLOCATION"
+    },
+    {
+      "id": "01930000-0100-7000-8000-000000000051",
+      "name": "Consignment Agreement",
+      "description": "Commercial terms for consignment trading (supplier retains ownership until sale).",
+      "subdomain": "3.J",
+      "bounded_context": "BC8 Supplier Collaboration",
+      "entity_number": 94,
+      "status": "ACTIVE",
+      "oracle_table": "CONSIGNMENT_AGREEMENT"
+    }
+  ],
+
+  "boundedContextRelationships": [
+    {
+      "from": "BC1 Product Catalogue",
+      "to": "BC4 Pricing & Markdown",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC1 Product Catalogue",
+      "to": "BC5 Promotion Management",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC1 Product Catalogue",
+      "to": "BC6 Assortment & Range",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC2 Merchandise Hierarchy",
+      "to": "BC1 Product Catalogue",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC2 Merchandise Hierarchy",
+      "to": "BC3 Supplier & Procurement",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC2 Merchandise Hierarchy",
+      "to": "BC4 Pricing & Markdown",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC2 Merchandise Hierarchy",
+      "to": "BC5 Promotion Management",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC2 Merchandise Hierarchy",
+      "to": "BC6 Assortment & Range",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC2 Merchandise Hierarchy",
+      "to": "BC7 Allocation & Replenishment",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC2 Merchandise Hierarchy",
+      "to": "BC8 Supplier Collaboration",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC3 Supplier & Procurement",
+      "to": "BC1 Product Catalogue",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC3 Supplier & Procurement",
+      "to": "BC4 Pricing & Markdown",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC4 Pricing & Markdown",
+      "to": "BC5 Promotion Management",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC4 Pricing & Markdown",
+      "to": "BC6 Assortment & Range",
+      "type": "UPSTREAM_OF"
+    },
+    {
+      "from": "BC6 Assortment & Range",
+      "to": "BC7 Allocation & Replenishment",
+      "type": "UPSTREAM_OF"
+    }
+  ]
+}

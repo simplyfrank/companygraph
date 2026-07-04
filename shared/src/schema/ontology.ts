@@ -91,6 +91,15 @@ const _jsonSchemaDocInner: z.ZodType<unknown> = z.lazy(() =>
     .strict(),
 );
 
+// zod-to-openapi cannot traverse ZodLazy self-references — without an
+// explicit `type` it throws UnknownZodTypeError at generation time, which
+// 500s GET /api/v1/openapi.json. Represent the document as a free-form
+// object in the generated spec. Set on `_def` in place (not `.openapi()`,
+// which clones) so the self-referencing instance itself carries it.
+(_jsonSchemaDocInner as unknown as {
+  _def: { openapi?: { metadata: { type: string } } };
+})._def.openapi = { metadata: { type: "object" } };
+
 // Public export wraps the inner schema with depth + size guards so
 // register-time validation rejects documents that would produce
 // unbounded codegen strings in attribute-zod.ts's `new Function` path.
@@ -136,6 +145,35 @@ export const externalAlignmentArraySchema = z.array(
 
 // Neo4j label naming: PascalCase starting with uppercase letter.
 const NODE_LABEL_NAME_REGEX = /^[A-Z][A-Za-z0-9_]*$/;
+
+/**
+ * Sanitize a string to match the NODE_LABEL_NAME_REGEX pattern.
+ * - Replaces spaces, hyphens, slashes, dots, parentheses with underscores
+ * - Removes consecutive underscores
+ * - Ensures the result starts with an uppercase letter
+ * - Ensures the result contains only [A-Za-z0-9_]
+ */
+export function sanitizeLabelName(name: string): string {
+  // Replace special characters with underscores
+  let sanitized = name
+    .replace(/[^A-Za-z0-9]/g, '_')
+    // Remove consecutive underscores
+    .replace(/_+/g, '_')
+    // Remove leading/trailing underscores
+    .replace(/^_+|_+$/g, '');
+  
+  // Ensure it starts with an uppercase letter
+  if (sanitized.length > 0) {
+    sanitized = sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
+  }
+  
+  // If empty after sanitization, use a fallback
+  if (!sanitized) {
+    sanitized = 'Entity';
+  }
+  
+  return sanitized;
+}
 
 export const nodeLabelCreateSchema = z.object({
   name: z
@@ -252,9 +290,73 @@ export type SchemaResponse = z.infer<typeof schemaResponseSchema>;
 // identical post-parse.
 // =============================================================================
 
+// Bounded context schema for import
+export const boundedContextCreateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().min(1).max(2000),
+  domain: z.string().min(1).max(100),
+  subdomain: z.string().min(1).max(100),
+  type: z.enum(["Core", "Generic", "Supporting"]),
+  oracle_system: z.string().max(200).optional(),
+  jira_projects: z.array(z.string()).default([]),
+});
+export type BoundedContextCreate = z.infer<typeof boundedContextCreateSchema>;
+
+// Entity schema for import
+export const entityCreateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().min(1).max(2000),
+  subdomain: z.string().min(1).max(100),
+  bounded_context: z.string().min(1).max(200),
+  entity_number: z.number().int().nonnegative(),
+  status: z.enum(["ACTIVE", "NOT MAINTAINED", "NOT IN USE", "PARTIAL", "UNDER REVIEW"]),
+  oracle_table: z.string().max(100).optional(),
+  note: z.string().max(500).optional(),
+});
+export type EntityCreate = z.infer<typeof entityCreateSchema>;
+
+// Bounded context relationship schema for import
+export const boundedContextRelationshipSchema = z.object({
+  from: z.string().min(1), // Bounded context name
+  to: z.string().min(1), // Bounded context name
+  type: z.enum(["UPSTREAM_OF", "DOWNSTREAM_OF"]),
+});
+export type BoundedContextRelationship = z.infer<typeof boundedContextRelationshipSchema>;
+
+// Domain schema for import - schema per domain
+export const domainSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  accountable_role: z.string().max(200).optional(),
+  compliance_tags: z.array(z.string()).default([]),
+  // Schema per domain - node labels and edge types scoped to this domain
+  nodeLabels: z.array(z.string()).default([]), // Names of node labels belonging to this domain
+  edgeTypes: z.array(z.string()).default([]), // Names of edge types belonging to this domain
+});
+export type DomainCreate = z.infer<typeof domainSchema>;
+
+// Cross-domain entity relationship schema
+export const crossDomainEntityRelationshipSchema = z.object({
+  from_entity_id: z.string().uuid(), // Entity ID
+  to_entity_id: z.string().uuid(), // Entity ID
+  from_domain: z.string().min(1).max(100), // Source domain
+  to_domain: z.string().min(1).max(100), // Target domain
+  relationship_type: z.string().min(1).max(100), // Edge type name
+  description: z.string().max(500).optional(),
+});
+export type CrossDomainEntityRelationship = z.infer<typeof crossDomainEntityRelationshipSchema>;
+
 export const ontologyImportSchema = z.object({
   nodeLabels: z.array(nodeLabelCreateSchema).optional(),
   edgeTypes: z.array(edgeTypeCreateSchema).optional(),
+  boundedContexts: z.array(boundedContextCreateSchema).optional(),
+  entities: z.array(entityCreateSchema).optional(),
+  boundedContextRelationships: z.array(boundedContextRelationshipSchema).optional(),
+  domains: z.array(domainSchema).optional(),
+  crossDomainEntityRelationships: z.array(crossDomainEntityRelationshipSchema).optional(),
 });
 export type OntologyImportPayload = z.infer<typeof ontologyImportSchema>;
 
@@ -263,11 +365,16 @@ export const ontologyImportResponseSchema = z.object({
   accepted: z.object({
     nodeLabels: z.number().int().nonnegative(),
     edgeTypes: z.number().int().nonnegative(),
+    boundedContexts: z.number().int().nonnegative(),
+    entities: z.number().int().nonnegative(),
+    boundedContextRelationships: z.number().int().nonnegative(),
+    domains: z.number().int().nonnegative(),
+    crossDomainEntityRelationships: z.number().int().nonnegative(),
   }),
   errors: z
     .array(
       z.object({
-        section: z.enum(["nodeLabels", "edgeTypes"]),
+        section: z.enum(["nodeLabels", "edgeTypes", "boundedContexts", "entities", "boundedContextRelationships", "domains", "crossDomainEntityRelationships"]),
         index: z.number().int().nonnegative(),
         code: z.string(),
         message: z.string(),
@@ -363,3 +470,243 @@ export interface OntologyChangedEvent {
   ts: string; // ISO datetime
   diff: ReadonlyArray<Record<string, unknown>>;
 }
+
+// =============================================================================
+// Business Glossaries — Ontos integration for process terminology.
+// =============================================================================
+
+export const COLLECTION_TYPE_ENUM = ["GLOSSARY", "TAXONOMY", "ONTOLOGY"] as const;
+export type CollectionType = (typeof COLLECTION_TYPE_ENUM)[number];
+
+export const SCOPE_LEVEL_ENUM = ["ENTERPRISE", "DOMAIN", "DEPARTMENT", "TEAM", "PROJECT", "EXTERNAL"] as const;
+export type ScopeLevel = (typeof SCOPE_LEVEL_ENUM)[number];
+
+export const SOURCE_TYPE_ENUM = ["CUSTOM", "IMPORTED"] as const;
+export type SourceType = (typeof SOURCE_TYPE_ENUM)[number];
+
+export const CONCEPT_STATUS_ENUM = ["DRAFT", "UNDER_REVIEW", "APPROVED", "ACTIVE", "DEPRECATED", "RETIRED"] as const;
+export type ConceptStatus = (typeof CONCEPT_STATUS_ENUM)[number];
+
+export const glossaryCollectionSchema = z.object({
+  iri: z.string().min(1).max(500),
+  label: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  collection_type: z.enum(COLLECTION_TYPE_ENUM).default("GLOSSARY"),
+  scope_level: z.enum(SCOPE_LEVEL_ENUM).default("ENTERPRISE"),
+  source_type: z.enum(SOURCE_TYPE_ENUM).default("CUSTOM"),
+  source_url: z.string().url().optional(),
+  parent_collection_iri: z.string().max(500).optional(),
+  is_editable: z.boolean().default(true),
+  status: z.enum(["active", "archived"]).default("active"),
+});
+export type GlossaryCollectionCreate = z.infer<typeof glossaryCollectionSchema>;
+
+export const glossaryCollectionPatchSchema = glossaryCollectionSchema
+  .pick({
+    label: true,
+    description: true,
+    is_editable: true,
+    status: true,
+  })
+  .partial()
+  .strict();
+export type GlossaryCollectionPatch = z.infer<typeof glossaryCollectionPatchSchema>;
+
+export const glossaryCollectionReadSchema = glossaryCollectionSchema.extend({
+  concept_count: z.number().int().nonnegative().default(0),
+  created_at: z.string().datetime(),
+  created_by: z.string().optional(),
+  updated_at: z.string().datetime(),
+  updated_by: z.string().optional(),
+});
+export type GlossaryCollectionRead = z.infer<typeof glossaryCollectionReadSchema> & {
+  child_collections: GlossaryCollectionRead[];
+};
+
+export const glossaryTermSchema = z.object({
+  id: z.string().uuid(),
+  iri: z.string().min(1).max(500),
+  local_name: z.string().min(1).max(200),
+  label: z.string().min(1).max(200),
+  description: z.string().max(5000).optional(),
+  status: z.enum(CONCEPT_STATUS_ENUM).default("DRAFT"),
+  collection_iri: z.string().min(1).max(500),
+  synonyms: z.array(z.string().max(200)).max(50).default([]),
+  tags: z.array(z.string().max(100)).max(20).default([]),
+});
+export type GlossaryTermCreate = z.infer<typeof glossaryTermSchema>;
+
+export const glossaryTermPatchSchema = glossaryTermSchema
+  .pick({
+    label: true,
+    description: true,
+    status: true,
+    synonyms: true,
+    tags: true,
+  })
+  .partial()
+  .strict();
+export type GlossaryTermPatch = z.infer<typeof glossaryTermPatchSchema>;
+
+export const glossaryTermReadSchema = glossaryTermSchema.extend({
+  created_at: z.string().datetime(),
+  created_by: z.string().optional(),
+  updated_at: z.string().datetime(),
+  updated_by: z.string().optional(),
+});
+export type GlossaryTermRead = z.infer<typeof glossaryTermReadSchema>;
+
+// Ontology Proposal schemas for LLM-based ontology generation
+export const PROPOSAL_SOURCE_SCOPE_ENUM = ["DOMAIN", "SUBDOMAIN", "JOURNEY"] as const;
+export const PROPOSAL_STATUS_ENUM = ["DRAFT", "UNDER_REVIEW", "APPROVED", "REJECTED", "INTEGRATED"] as const;
+
+export const ontologyProposalSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  source_scope: z.enum(PROPOSAL_SOURCE_SCOPE_ENUM),
+  source_id: z.string().max(100),
+  status: z.enum(PROPOSAL_STATUS_ENUM).default("DRAFT"),
+  owl_content: z.string().max(10_000_000),  // 10MB max for Turtle content
+  classes: z.string(),  // JSON array of class definitions
+  properties: z.string(),  // JSON array of property definitions
+  agent_steps: z.string(),  // JSON array of agent execution steps
+  llm_model: z.string().max(100).default("gpt-4"),
+  llm_usage: z.string(),  // JSON of token usage
+  created_at: z.string().datetime(),
+  created_by: z.string().optional(),
+  reviewed_at: z.string().datetime().optional(),
+  reviewed_by: z.string().optional(),
+  integrated_at: z.string().datetime().optional(),
+});
+export type OntologyProposal = z.infer<typeof ontologyProposalSchema>;
+export type OntologyProposalCreate = Omit<OntologyProposal, "id" | "created_at" | "created_by" | "reviewed_at" | "reviewed_by" | "integrated_at">;
+
+export const ontologyProposalPatchSchema = ontologyProposalSchema
+  .pick({
+    name: true,
+    description: true,
+    status: true,
+    owl_content: true,
+    classes: true,
+    properties: true,
+  })
+  .partial()
+  .strict();
+export type OntologyProposalPatch = z.infer<typeof ontologyProposalPatchSchema>;
+
+export const ontologyProposalReadSchema = ontologyProposalSchema.extend({
+  created_at: z.string().datetime(),
+  created_by: z.string().optional(),
+  reviewed_at: z.string().datetime().optional(),
+  reviewed_by: z.string().optional(),
+  integrated_at: z.string().datetime().optional(),
+});
+export type OntologyProposalRead = z.infer<typeof ontologyProposalReadSchema>;
+
+// Agent step schema for tracking LLM execution
+export const agentStepSchema = z.object({
+  step_number: z.number().int().positive(),
+  tool_name: z.string(),
+  tool_input: z.record(z.unknown()),
+  tool_output: z.record(z.unknown()).optional(),
+  error: z.string().optional(),
+  duration_ms: z.number().int().nonnegative(),
+  timestamp: z.string().datetime(),
+});
+export type AgentStep = z.infer<typeof agentStepSchema>;
+
+// OWL class definition schema
+export const owlClassSchema = z.object({
+  iri: z.string().max(500),
+  label: z.string().max(200),
+  description: z.string().max(2000).optional(),
+  super_classes: z.array(z.string().max(500)).max(20).default([]),
+  equivalent_classes: z.array(z.string().max(500)).max(10).default([]),
+  disjoint_with: z.array(z.string().max(500)).max(10).default([]),
+  annotations: z.record(z.string()).optional(),
+});
+export type OwlClass = z.infer<typeof owlClassSchema>;
+
+// OWL property definition schema
+export const owlPropertySchema = z.object({
+  iri: z.string().max(500),
+  label: z.string().max(200),
+  description: z.string().max(2000).optional(),
+  property_type: z.enum(["object", "data", "annotation"]),
+  domain: z.string().max(500).optional(),
+  range: z.string().max(500).optional(),
+  sub_properties: z.array(z.string().max(500)).max(10).default([]),
+  super_properties: z.array(z.string().max(500)).max(10).default([]),
+  annotations: z.record(z.string()).optional(),
+});
+export type OwlProperty = z.infer<typeof owlPropertySchema>;
+
+// Compliance rule schemas for declarative SLA/KPI rule enforcement
+export const COMPLIANCE_RULE_TYPE_ENUM = ["PERFORMANCE", "COMPLIANCE", "QUALITY"] as const;
+export const COMPLIANCE_SEVERITY_ENUM = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+export const COMPLIANCE_ACTION_TYPE_ENUM = ["TAG", "NOTIFY", "BLOCK", "ALERT"] as const;
+
+export const complianceActionSchema = z.object({
+  type: z.enum(COMPLIANCE_ACTION_TYPE_ENUM),
+  config: z.record(z.unknown()),
+});
+
+export const complianceRuleSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  rule_dsl: z.string().min(1).max(10000),
+  rule_type: z.enum(COMPLIANCE_RULE_TYPE_ENUM),
+  category: z.string().max(100),
+  severity: z.enum(COMPLIANCE_SEVERITY_ENUM),
+  enabled: z.boolean().default(true),
+  actions: z.string().describe("JSON-stringified array of {type, config} action objects"),
+  schedule: z.string().max(100).optional(),
+  last_evaluated_at: z.string().datetime().optional(),
+  last_evaluation_result: z.string().optional(),
+  created_at: z.string().datetime(),
+  created_by: z.string().optional(),
+  updated_at: z.string().datetime(),
+  updated_by: z.string().optional(),
+});
+export type ComplianceRule = z.infer<typeof complianceRuleSchema>;
+export type ComplianceRuleCreate = Omit<ComplianceRule, "id" | "created_at" | "created_by" | "updated_at" | "updated_by" | "last_evaluated_at" | "last_evaluation_result">;
+
+export const complianceRulePatchSchema = complianceRuleSchema
+  .pick({
+    name: true,
+    description: true,
+    rule_dsl: true,
+    enabled: true,
+    actions: true,
+    schedule: true,
+  })
+  .partial()
+  .strict();
+export type ComplianceRulePatch = z.infer<typeof complianceRulePatchSchema>;
+
+export const complianceRuleReadSchema = complianceRuleSchema.extend({
+  created_at: z.string().datetime(),
+  created_by: z.string().optional(),
+  updated_at: z.string().datetime(),
+  updated_by: z.string().optional(),
+  last_evaluated_at: z.string().datetime().optional(),
+  last_evaluation_result: z.string().optional(),
+});
+export type ComplianceRuleRead = z.infer<typeof complianceRuleReadSchema>;
+
+// Compliance evaluation schema
+export const complianceEvaluationSchema = z.object({
+  id: z.string().uuid(),
+  rule_id: z.string().uuid(),
+  evaluated_at: z.string().datetime(),
+  passed: z.boolean(),
+  score: z.number(),
+  violations: z.string(),  // JSON array
+  affected_entities: z.string(),  // JSON array
+  actions_taken: z.string(),  // JSON array
+  duration_ms: z.number().int().nonnegative(),
+});
+export type ComplianceEvaluation = z.infer<typeof complianceEvaluationSchema>;
+export type ComplianceEvaluationRead = z.infer<typeof complianceEvaluationSchema>;

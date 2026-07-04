@@ -1,0 +1,62 @@
+{
+  "_comment": "Commercial Domain Ontology Schema — node labels and edge types for bounded context model",
+  "_source": "Confluence PC space Domain Entity Model pages",
+
+  "nodeLabels": [
+    {
+      "name": "BoundedContext",
+      "description": "A DDD bounded context representing a cohesive domain model with clear boundaries. Bounded contexts group related entities and define ownership, upstream/downstream relationships, and integration patterns.",
+      "usage_example": "BC1 Product Catalogue, BC4 Pricing & Markdown, BC6 Assortment & Range",
+      "json_schema_doc": {
+        "type": "object",
+        "properties": {
+          "domain": {"type": "string"},
+          "type": {"type": "string"},
+          "subdomain": {"type": "string"},
+          "entity_count": {"type": "integer"},
+          "oracle_system": {"type": "string"},
+          "jira_projects": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["domain", "type", "subdomain"]
+      },
+      "external_alignment": [
+        {"source": "Confluence", "id": "Domain Entity Model"}
+      ]
+    },
+    {
+      "name": "Entity",
+      "description": "A domain entity representing a core business concept with identity and lifecycle. Entities have attributes, relationships, and business rules. They are the building blocks of the domain model.",
+      "usage_example": "Item, Supplier, Purchase Order, Promotion, Allocation",
+      "json_schema_doc": {
+        "type": "object",
+        "properties": {
+          "subdomain": {"type": "string"},
+          "bounded_context": {"type": "string"},
+          "entity_number": {"type": "integer"},
+          "status": {"type": "string"},
+          "oracle_table": {"type": "string"},
+          "note": {"type": "string"}
+        },
+        "required": ["subdomain", "bounded_context", "entity_number", "status"]
+      },
+      "external_alignment": [
+        {"source": "Confluence", "id": "Domain Entity Model"},
+        {"source": "Oracle RMS", "id": "ITEM_MASTER"}
+      ]
+    }
+  ],
+
+  "edgeTypes": [
+    {
+      "name": "PART_OF",
+      "description": "Indicates that a node is a component or member of a larger aggregate or collection. Used for entity-to-bounded-context relationships and hierarchical structures.",
+      "usage_example": "Entity Item is PART_OF BoundedContext BC1 Product Catalogue",
+      "endpoints": [
+        {"fromLabel": "Entity", "toLabel": "BoundedContext"}
+      ],
+      "external_alignment": [
+        {"source": "DDD", "id": "Aggregate Root Pattern"}
+      ]
+    }
+  ]
+}
