@@ -11,7 +11,7 @@ async function main(): Promise<void> {
   }
   const absPath = resolve(process.cwd(), seedPath);
   const body = readFileSync(absPath, "utf8");
-  const url = `http://${env.host}:${env.apiPort}/api/v1/import`;
+  const url = `http://${env.host}:${env.apiPort}/api/v1/ontology/import`;
 
   console.log(`[seed] POST ${url} (payload from ${absPath})`);
   const res = await fetch(url, {

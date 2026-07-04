@@ -52,6 +52,94 @@ export async function isRegistryEmpty(driver: Driver): Promise<boolean> {
   }
 }
 
+/**
+ * Seed bounded contexts from the specification data.
+ * This is called during bootstrap after the registry is seeded.
+ */
+export async function seedBoundedContexts(driver: Driver): Promise<void> {
+  const session = driver.session();
+  try {
+    // Check if bounded contexts already exist
+    const result = await session.run(
+      `MATCH (bc:BoundedContext) RETURN count(bc) AS c`,
+    );
+    const c = toN(result.records[0]?.get("c"));
+    if (c > 0) {
+      // Already seeded, skip
+      return;
+    }
+
+    // Import bounded contexts from the specification data
+    const { BOUNDED_CONTEXTS_SPEC } = await import("./bounded-contexts-spec");
+    const spec = BOUNDED_CONTEXTS_SPEC;
+
+    // Import bounded contexts
+    for (const bc of spec.boundedContexts || []) {
+      await session.run(`
+        MERGE (bc:BoundedContext {id: $id})
+        SET bc.name = $name,
+            bc.description = $description,
+            bc.domain = $domain,
+            bc.subdomain = $subdomain,
+            bc.type = $type,
+            bc.oracle_system = $oracle_system,
+            bc.jira_projects = $jira_projects
+      `, {
+        id: bc.id,
+        name: bc.name,
+        description: bc.description,
+        domain: bc.domain,
+        subdomain: bc.subdomain,
+        type: bc.type,
+        oracle_system: bc.oracle_system,
+        jira_projects: bc.jira_projects,
+      });
+    }
+
+    // Import entities
+    for (const entity of spec.entities || []) {
+      await session.run(`
+        MERGE (e:Entity {id: $id})
+        SET e.name = $name,
+            e.description = $description,
+            e.subdomain = $subdomain,
+            e.bounded_context = $bounded_context,
+            e.entity_number = $entity_number,
+            e.status = $status,
+            e.oracle_table = $oracle_table
+        ${entity.note ? ', e.note = $note' : ''}
+        WITH e
+        MATCH (bc:BoundedContext {name: $bounded_context})
+        MERGE (e)-[:PART_OF]->(bc)
+      `, {
+        id: entity.id,
+        name: entity.name,
+        description: entity.description,
+        subdomain: entity.subdomain,
+        bounded_context: entity.bounded_context,
+        entity_number: entity.entity_number,
+        status: entity.status,
+        oracle_table: entity.oracle_table,
+        ...(entity.note ? { note: entity.note } : {}),
+      });
+    }
+
+    // Import bounded context relationships
+    for (const rel of spec.boundedContextRelationships || []) {
+      await session.run(`
+        MATCH (from:BoundedContext {name: $from})
+        MATCH (to:BoundedContext {name: $to})
+        MERGE (from)-[r:${rel.type}]->(to)
+      `, {
+        from: rel.from,
+        to: rel.to,
+      });
+    }
+  } finally {
+    await session.close();
+  }
+}
+
 export async function seedRegistryFromConstTuples(driver: Driver): Promise<{
   version_id: string;
   event_id: string;

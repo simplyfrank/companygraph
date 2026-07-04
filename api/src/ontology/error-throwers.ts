@@ -84,6 +84,10 @@ export interface ThrowerRegistry {
     toLabel: string;
     allowed: ReadonlyArray<{ from: string; to: string }>;
   }) => never;
+  validation_error: (details: {
+    message: string;
+    details?: Record<string, unknown>;
+  }) => never;
 }
 
 function throwAs<C extends OntologyErrorCode>(
@@ -120,4 +124,6 @@ export const ERROR_CODE_THROWERS: ThrowerRegistry = {
     throwAs("migration_failed", { ...details }, 400),
   edge_endpoint_label_mismatch: (details) =>
     throwAs("edge_endpoint_label_mismatch", { ...details }, 400),
+  validation_error: (details) =>
+    throwAs("validation_error", { ...details }, 400),
 };

@@ -19,5 +19,6 @@ export const ONTOLOGY_ERROR_CODES = [
   "attribute_violation",
   "migration_failed",
   "edge_endpoint_label_mismatch", // symmetric with graph-core (FR-04a)
+  "validation_error", // for glossary validation errors
 ] as const;
 export type OntologyErrorCode = (typeof ONTOLOGY_ERROR_CODES)[number];
