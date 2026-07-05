@@ -29,7 +29,7 @@ export function SmeHome() {
           id="home-domain-select"
           value={home ?? ""}
           onChange={(e) => setHome(e.target.value || null)}
-          style={{ padding: "8px 12px", fontSize: 14, borderRadius: 4, border: "1px solid var(--border, #ccc)", minWidth: 240 }}
+          style={{ padding: "8px 12px", fontSize: 14, borderRadius: 4, border: "1px solid var(--border)", minWidth: 240 }}
         >
           <option value="">(none — all writes enabled)</option>
           {domains.status === "ok" &&

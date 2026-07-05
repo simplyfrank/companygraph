@@ -60,3 +60,18 @@ to sight (both recorded as decided, not open):
 per the review's preferred recommendation; the review itself said "the
 re-review should be quick"). After approval → execution (19 tasks, order
 T-01..T-07, T-09, T-08, T-10..T-17, T-18, T-19).
+
+**Changelog:**
+- 2026-07-05: as-built traceability backfill. No phase status changed.
+  Reworded the Verification lines of T-09, T-12, T-13, T-18, T-19 so each names
+  its real test path (`capability-authz.test.ts`, `system-modeler*.test.tsx`) or
+  an honest `manual:` repro on the same line (the artifacts already existed; only
+  the wording was moved onto the Verification line so the mechanical
+  `spec-traceability.sh` check recognizes them). Tagged the two consumed
+  `model-workspace-core` dependency FRs (**FR-17** → `ModelTabPlaceholder.tsx` /
+  `systems` slot, replaced by T-13's SystemModeler; **FR-18** → `model-scope.ts`
+  `scopedNodeIds`) explicitly in design §1.1 and the tasks Dependencies section —
+  these are consumed dependencies, not this spec's own requirements (this spec
+  owns FR-01..FR-15). No FR/AC/DD/T IDs renumbered; no code or other specs
+  touched. `scripts/spec/spec-traceability.sh .claude/specs/ddd-system-modeling`
+  now prints OK (17 FRs, 21 ACs, 19 tasks all traced).

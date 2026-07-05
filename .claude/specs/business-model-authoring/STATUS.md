@@ -35,3 +35,30 @@ spend task-review pass 2/2 on it, or accept directly (the rev-4 delta is
 exactly the touch-up the design's approve verdict directed). (4) Only then
 present the execution plan — tasks.md's Execution preconditions gate T-01
 on (1)+(2).
+
+## Changelog
+
+- **2026-07-05: as-built traceability backfill** — made
+  `scripts/spec/spec-traceability.sh` pass green (exit 0) for this spec.
+  Three mechanical gaps closed, reality-first, no phase-status change and no
+  FR/AC/DD/T renumbering: (a) the `FR-18` token the checker read as an owned
+  requirement was in fact the cross-spec citation `model-workspace-core` FR-18
+  (its `scopedNodeIds`/model-scoped-read helper that NFR-03 consumes); the
+  NFR-03 Source cell was reworded to name that helper by subject so it no longer
+  masquerades as an owned FR (this spec owns FR-01..FR-14 only — the isolation
+  concept is fully traced via NFR-03/`scopedNodeIds`/`outOfModel` in design +
+  tasks). (b) T-11's Verification was reworded to lead with the real shipped
+  test `api/__tests__/authoring-authz.test.ts` (proves all three DD-06 routes
+  resolve through the router gate — the as-built proof `registerAuthoringRoutes`
+  is wired in `api/src/router.ts:469`), plus the two live-Neo4j integration
+  files. (c) T-06's Verification was corrected to name the real shipped test
+  `pwa/src/__tests__/model-canvas.test.tsx` (drives the `authoring` client
+  wrappers through the mounted view) + `wizardModel.test.ts` for the apply-echo
+  path; noted honestly that the two per-wrapper shape-test files originally
+  scoped (`model-canvas-template.test.tsx` / `model-canvas-steps.test.tsx`) were
+  consolidated into `model-canvas.test.tsx` and that the `createDomain`/
+  `createInstance` clone-path wrappers ship in `pwa/src/api.ts` with their
+  clone coverage in `api/__tests__/authoring-template-clone.integration.test.ts`
+  rather than dedicated shape assertions. No code, other specs, or shared files
+  were touched. Result: `[business-model-authoring] OK — 15 FRs, 20 ACs, 19
+  tasks all traced`.

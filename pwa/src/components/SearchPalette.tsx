@@ -221,9 +221,9 @@ export function SearchPalette({ forceOpen }: Props = {}) {
       <div
         style={{
           width: "min(640px, 92vw)",
-          background: "var(--bg, #fff)",
-          color: "var(--fg, #111)",
-          border: "1px solid var(--rule, #ddd)",
+          background: "var(--bg)",
+          color: "var(--fg)",
+          border: "1px solid var(--rule)",
           borderRadius: 8,
           boxShadow: "0 10px 32px rgba(0,0,0,0.25)",
           overflow: "hidden",
@@ -251,7 +251,7 @@ export function SearchPalette({ forceOpen }: Props = {}) {
             width: "100%",
             padding: "12px 16px",
             border: "none",
-            borderBottom: "1px solid var(--rule, #ddd)",
+            borderBottom: "1px solid var(--rule)",
             background: "transparent",
             color: "inherit",
             fontSize: 16,

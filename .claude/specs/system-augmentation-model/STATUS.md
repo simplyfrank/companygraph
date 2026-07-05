@@ -181,3 +181,18 @@ review-order deviation already recorded in consolidated-report line 4).
 touch / keyboard) and appends outcomes here; downstream
 `ddd-system-modeling` owns the SystemModeler UI + the shadow-`kind`
 read-path migration.
+
+## Changelog
+
+- **2026-07-05: as-built traceability backfill** — `spec-traceability.sh`
+  reported 3 gaps stemming from the "graph-core FR-17 round-trip"
+  cross-spec reference in requirements FR-05 and the multi-line
+  Verification block on T-17. Fixes (docs only, no phase change): design
+  §4.5 and task T-17 now cite the graph-core FR-17 round-trip property
+  explicitly at the point it is preserved (import injection + the green
+  `export-import-roundtrip.integration.test.ts`); T-17's Verification line
+  was reformatted so its test-path/`manual:` tokens sit on the
+  `- **Verification**:` line the checker parses. No FR/AC/DD/T IDs renamed,
+  none deferred; all work reflects already-shipped reality.
+  `scripts/spec/spec-traceability.sh .claude/specs/system-augmentation-model`
+  now prints OK (13 FRs, 15 ACs, 17 tasks all traced).

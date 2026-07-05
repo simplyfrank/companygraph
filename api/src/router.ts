@@ -238,6 +238,13 @@ import {
   handleKpiMeasurementDelete,
 } from "./routes/kpi-measurements";
 import {
+  handleParamBindingPost,
+  handleParamBindingsGet,
+  handleParamBindingDelete,
+  handleKpiReconcile,
+  handleKpiReconcileAll,
+} from "./routes/kpi-param-bindings";
+import {
   handleSlaBreachPost,
   handleSlaBreachesGet,
   handleSlaBreachGet,
@@ -852,6 +859,21 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   // KPI trend analysis routes (KPI-SLA-07)
   const kpiTrendsOne = sub.match(/^kpi-trends\/([^/]+)$/);
   if (kpiTrendsOne && method === "GET") return handleKpiTrendsGet(req, decodeURIComponent(kpiTrendsOne[1]!));
+
+  // KPI parameter binding routes (kpi-measurement-alignment FR-09)
+  const kpiParamBindings = sub.match(/^kpis\/([^/]+)\/param-bindings$/);
+  if (kpiParamBindings) {
+    const id = decodeURIComponent(kpiParamBindings[1]!);
+    if (method === "POST") return handleParamBindingPost(req, id);
+    if (method === "GET") return handleParamBindingsGet(req, id);
+  }
+  const paramBindingOne = sub.match(/^param-bindings\/([^/]+)$/);
+  if (paramBindingOne && method === "DELETE") return handleParamBindingDelete(req, decodeURIComponent(paramBindingOne[1]!));
+
+  // KPI reconciliation routes (kpi-measurement-alignment FR-11)
+  if (sub === "kpis/reconcile-all" && method === "POST") return handleKpiReconcileAll(req);
+  const kpiReconcileOne = sub.match(/^kpis\/([^/]+)\/reconcile$/);
+  if (kpiReconcileOne && method === "POST") return handleKpiReconcile(req, decodeURIComponent(kpiReconcileOne[1]!));
 
   // SLA compliance reporting routes (KPI-SLA-08)
   if (sub === "sla-compliance/all" && method === "GET") return handleSlaComplianceAllGet(req);

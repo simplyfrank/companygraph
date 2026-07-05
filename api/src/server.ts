@@ -8,6 +8,7 @@ import { runAuditRetention } from "./ontology/jobs/audit-retention";
 import { initAnalyticsDb, closeAnalyticsDb } from "./analytics/reporting/cache";
 import { initAnalyticsSettings, getSettingsRow } from "./analytics/reporting/settings";
 import { runPrecompute } from "./analytics/reporting/scheduler";
+import { startKafkaConsumerIfConfigured, stopKafkaConsumer } from "./ingest/kafka-consumer";
 
 async function main(): Promise<void> {
   const env = loadEnv();
@@ -58,6 +59,13 @@ async function main(): Promise<void> {
 
   console.log(`[server] listening on http://${env.host}:${env.apiPort}/api/v1/`);
 
+  // kpi-measurement-alignment FR-13 — opt-in Kafka consumer for KPI
+  // measurement ingestion. Non-blocking: failure to connect logs a
+  // warning and never crashes the server (NFR-03).
+  startKafkaConsumerIfConfigured().catch((e) => {
+    console.warn("[server] Kafka consumer start failed (non-fatal):", e);
+  });
+
   // T-20 — Daily audit-retention cron (design §10 / FR-13a). Default
   // `0 3 * * *` runs at 03:00 in the operator's TZ. `OPT_ONTOLOGY_AUDIT_CRON`
   // overrides the schedule; `OPT_ONTOLOGY_AUDIT_RETENTION_DAYS=0` disables
@@ -104,6 +112,7 @@ async function main(): Promise<void> {
     retentionTask.stop();
     precomputeTask?.stop();
     server.stop();
+    await stopKafkaConsumer();
     closeChatDb();
     closeAnalyticsDb();
     await closeDriver();

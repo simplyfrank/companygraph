@@ -22,6 +22,8 @@ import {
   slaCreateRequestSchema,
   slaPatchRequestSchema,
   kpiAlignmentCreateRequestSchema,
+  paramBindingCreateRequestSchema,
+  kpiParamBindingSchema,
   slaAlignmentCreateRequestSchema,
   kpiTrendsQuerySchema,
   slaComplianceQuerySchema,
@@ -250,8 +252,38 @@ export function registerKpiOkrPaths(registry: OpenAPIRegistry): void {
   // ── KPI trends (FR-03 — reads Neo4j :KPIMeasurement nodes, V-02) ───
   registry.registerPath({
     method: "get", path: "/api/v1/kpi-trends/{kpiId}",
-    description: "Trend payload (FR-03): linear-regression trend (slope per WEEK), moving average, z-score anomalies. Query params per KpiTrendsQuery. SPLIT-BRAIN (V-02): reads Neo4j :KPIMeasurement nodes, NOT the Postgres rows POST /kpi-measurements writes.",
+    description: "Trend payload (FR-03): linear-regression trend (slope per WEEK), moving average, z-score anomalies. Query params per KpiTrendsQuery. kpi-measurement-alignment FR-01: POST /kpi-measurements now dual-writes to Neo4j :KPIMeasurement, so REST-recorded measurements DO appear here.",
     responses: { 200: jsonOk(permissiveRecord, "trend payload"), 400: err400, 404: err404 },
+  });
+
+  // ── KPI parameter bindings (kpi-measurement-alignment FR-09) ──────
+  registry.registerPath({
+    method: "post", path: "/api/v1/kpis/{id}/param-bindings",
+    description: "Create a PARAM_BINDS edge linking a KPI parameter (target_value, warning_threshold, critical_threshold) to an entity attribute path. The reconciliation job reads the bound entity attribute and PATCHes the KPI parameter.",
+    request: { body: { content: { "application/json": { schema: paramBindingCreateRequestSchema } } } },
+    responses: { 201: jsonOk(kpiParamBindingSchema, "created"), 400: err400, 404: err404 },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/kpis/{id}/param-bindings",
+    description: "List PARAM_BINDS edges for a KPI.",
+    responses: { 200: jsonOk(rowsOf(kpiParamBindingSchema)), 400: err400 },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/param-bindings/{bindingId}",
+    description: "Delete a PARAM_BINDS edge by its Neo4j elementId (opaque string).",
+    responses: { 200: jsonOk(z.object({ deleted: z.literal(true) })), 404: err404 },
+  });
+
+  // ── KPI reconciliation (kpi-measurement-alignment FR-11) ──────────
+  registry.registerPath({
+    method: "post", path: "/api/v1/kpis/{id}/reconcile",
+    description: "Trigger parameter reconciliation for a single KPI: reads all PARAM_BINDS edges, resolves attribute paths on target entities, PATCHes the KPI's bound parameters.",
+    responses: { 200: jsonOk(permissiveRecord, "reconcile result"), 400: err400, 404: err404 },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/kpis/reconcile-all",
+    description: "Trigger parameter reconciliation for all non-archived KPIs.",
+    responses: { 200: jsonOk(permissiveRecord, "batch reconcile result") },
   });
 
   // ── Alignments (FR-04) ─────────────────────────────────────────────

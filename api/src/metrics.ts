@@ -80,6 +80,12 @@ registry.register("concurrent_users", "gauge", "Number of concurrent users");
 registry.register("data_ingest_events_total", "counter", "Total data ingest events");
 registry.register("data_ingest_errors_total", "counter", "Total data ingest errors");
 
+// KPI-specific metrics (kpi-measurement-alignment FR-15)
+registry.register("kpi_measurements_ingested_total", "counter", "Total KPI measurements ingested (by source: rest|kafka)");
+registry.register("kpi_measurement_write_duration_ms", "histogram", "KPI measurement write duration in milliseconds");
+registry.register("kpi_reconciliation_runs_total", "counter", "Total KPI parameter reconciliation runs");
+registry.register("kpi_reconciliation_bindings_active", "gauge", "Number of active KPI parameter bindings");
+
 export const metrics = {
   registry,
   increment: (name: string, labels?: Record<string, string>, value?: number) => registry.increment(name, labels, value),

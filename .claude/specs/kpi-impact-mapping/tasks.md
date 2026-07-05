@@ -171,6 +171,9 @@ re-derive them. None changes the architecture.
 - **Implements**: design §4.2, §4.3, DD-01, DD-08, DD-11, N-02 — closes AC-01
   (storage half) + AC-03 (activity half); supports FR-01, FR-03, FR-04, NFR-01,
   NFR-02, NFR-03
+- **Consumes (upstream, not re-specced)**: `model-workspace-core` FR-18 —
+  `scopedNodeIds(driver, modelId)` (`api/src/storage/model-scope.ts`), imported
+  for the model-scope + link-target check (NFR-01); never re-implemented here.
 - **Complexity**: complex
 - **Blocked by**: T-01, T-02 (hard build-order — needs `kpi-okr-governance`'s
   `ALIGNED_TO`/`kpi-alignments` base contract merged)
@@ -211,9 +214,10 @@ re-derive them. None changes the architecture.
   the base `kpi-sla-alignment.ts` writer (this spec adds a second MERGE writer in
   its own module, DD-08). Do **not** edit the generic `createNode`/`createEdge`
   primitives.
-- **Verification**: exercised through the route surface by
-  `api/__tests__/kpi-impact-activity-links.integration.test.ts` (T-11, AC-01) and
-  `kpi-impact-links-crud.integration.test.ts` (T-11, AC-03); `bun run typecheck`.
+- **Verification**: `api/__tests__/kpi-impact-activity-links.integration.test.ts`
+  (T-11, AC-01) — exercises `createActivityLink` through the route surface — and
+  `api/__tests__/kpi-impact-links-crud.integration.test.ts` (T-11, AC-03);
+  `bun run typecheck`.
 
 ### T-04 — Story-link write + list/delete (`IMPACTS_KPI`)
 
@@ -253,10 +257,10 @@ re-derive them. None changes the architecture.
     (an activity link's elementId → matches no `IMPACTS_KPI` → 404, never a
     cross-type delete, AC-03/N-01).
   `EDGE_ENDPOINTS`/`NODE_LABELS` consts unchanged (NFR-02, AC-15).
-- **Verification**: exercised by
-  `api/__tests__/kpi-impact-story-links.integration.test.ts` (T-11, AC-02) and
-  `kpi-impact-links-crud.integration.test.ts` (T-11, AC-03 — story delete +
-  mis-routed id); `bun run typecheck`.
+- **Verification**: `api/__tests__/kpi-impact-story-links.integration.test.ts`
+  (T-11, AC-02) — exercises `createStoryLink` through the route surface — and
+  `api/__tests__/kpi-impact-links-crud.integration.test.ts` (T-11, AC-03 — story
+  delete + mis-routed id); `bun run typecheck`.
 
 ### T-05 — Matrix read + pure matrix/gap assembler
 
@@ -371,8 +375,8 @@ re-derive them. None changes the architecture.
     **never 500** (FR-09). **C-01:** this seam is the only measurement read;
     a future V-02 Postgres resolution swaps `fetchTrends` transparently. The
     endpoint is **read-only** — no measurement/KPI/SLA writes (FR-09, NFR-02).
-- **Verification**: status-derivation + `latestValue`-extraction unit cases in
-  `api/__tests__/kpi-impact-matrix.test.ts` (extend, T-05's file): each
+- **Verification**: `api/__tests__/kpi-impact-matrix.test.ts` (extend, T-05's
+  file) — status-derivation + `latestValue`-extraction unit cases: each
   `target_direction` band → correct `status`; a `null` `latestValue` → `no_data`,
   no crash; `aggregateImpactWeight` capped at 1.0; a windowed ASC array →
   `latestValue = last element` (DD-04). Integration in T-12; `bun run typecheck`.
@@ -458,8 +462,9 @@ re-derive them. None changes the architecture.
   (DELETE). The 5-segment `…-links/:linkId` DELETE regexes never collide with the
   4-segment bare `…-links` list/create regexes; specific-first kept per house
   convention.
-- **Verification**: exercised through the route surface by every T-11/T-12
-  integration test; `bun run typecheck`.
+- **Verification**: `api/__tests__/kpi-impact-matrix.integration.test.ts` (plus
+  every other T-11/T-12 `kpi-impact-*.integration.test.ts` file) exercises the 8
+  handlers + router dispatch through the route surface; `bun run typecheck`.
 
 ### T-09 — `IMPACTS_KPI` runtime-registry edge registration
 
@@ -481,10 +486,10 @@ re-derive them. None changes the architecture.
   `register:story`) and wire it into the same boot registration path the other
   runtime labels use. **`EDGE_ENDPOINTS`/`NODE_LABELS` consts are NOT edited**
   (AC-15).
-- **Verification**: asserted by
-  `api/__tests__/kpi-impact-story-links.integration.test.ts` (T-11 — `IMPACTS_KPI`
-  registered via the runtime registry with `EDGE_ENDPOINTS` const unchanged; a
-  `(:UserStory)-[:IMPACTS_KPI]->(:KPI)` edge is writable); `bun run typecheck`.
+- **Verification**: `api/__tests__/kpi-impact-story-links.integration.test.ts`
+  (T-11) asserts `IMPACTS_KPI` is registered via the runtime registry with the
+  `EDGE_ENDPOINTS` const unchanged and a `(:UserStory)-[:IMPACTS_KPI]->(:KPI)`
+  edge is writable; `bun run typecheck`.
 
 ### T-10 — OpenAPI registration
 
@@ -554,7 +559,11 @@ re-derive them. None changes the architecture.
     whose only link is a base-route `ALIGNED_TO` with `direction:null` **stays** in
     gaps (DD-07/C-04); a non-key activity with no links **not** in gaps;
     `meta.gapCount === gaps.length`.
-- **Verification**: the five files above; `bun test:integration`.
+- **Verification**: `api/__tests__/kpi-impact-activity-links.integration.test.ts`
+  + `kpi-impact-story-links.integration.test.ts`
+  + `kpi-impact-links-crud.integration.test.ts`
+  + `kpi-impact-matrix.integration.test.ts`
+  + `kpi-impact-gaps.integration.test.ts`; run via `bun test:integration`.
 
 ### T-12 — Roll-up + authz integration tests
 
@@ -585,7 +594,9 @@ re-derive them. None changes the architecture.
     `200` on matrix/rollup/list GETs; the `business_architect` role resolves both
     permissions; `getRoutePermission` resolves each new route (never `null`); no
     new route `isPublicRoute`.
-- **Verification**: the two files above; `bun test:integration` (Neo4j only).
+- **Verification**: `api/__tests__/kpi-impact-rollup.integration.test.ts`
+  + `api/__tests__/kpi-impact-authz.integration.test.ts` (the two files above);
+  run via `bun test:integration` (Neo4j only).
 
 ### T-13 — PWA api client (`kpiImpact` block)
 
@@ -605,8 +616,9 @@ re-derive them. None changes the architecture.
   `ImpactLinkRow`) inferred from the shared T-01 zod schemas. The link-editor KPI
   picker **reuses** `kpi-okr-governance`'s `api.kpi.list()` (`GET /api/v1/kpis`) —
   **not** re-implemented (DD-12).
-- **Verification**: `bun run typecheck`; consumed + asserted transitively by
-  `pwa/src/__tests__/kpi-impact-matrix.test.tsx` (T-14).
+- **Verification**: `pwa/src/__tests__/kpi-impact-matrix.test.tsx` (T-14) consumes
+  + asserts the `kpiImpact` api block transitively (the view fetches through it);
+  `bun run typecheck`.
 
 ### T-14 — KpiImpactMatrix view + grid + link editor + gaps strip + roll-up panel + 4 states + registration
 

@@ -236,6 +236,15 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   P("GET", "kpi-measurements/:id", "kpi:read"),
   P("DELETE", "kpi-measurements/:id", "kpi:write"),
 
+  // ── KPI parameter bindings (kpi-measurement-alignment FR-09, FR-18) ──
+  P("POST", "kpis/:id/param-bindings", "kpi:write"),
+  P("GET", "kpis/:id/param-bindings", "kpi:read"),
+  P("DELETE", "param-bindings/:id", "kpi:write"),
+
+  // ── KPI reconciliation (kpi-measurement-alignment FR-11, FR-18) ──
+  P("POST", "kpis/:id/reconcile", "kpi:write"),
+  P("POST", "kpis/reconcile-all", "kpi:write"),
+
   // ── SLA breaches ──
   P("POST", "sla-breaches", "sla:write"),
   P("GET", "sla-breaches", "sla:read"),

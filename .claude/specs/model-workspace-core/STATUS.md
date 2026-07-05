@@ -104,3 +104,16 @@ review_passes: 1
    snapshot example missing activity `description`) + the C-13 one-sentence
    §4.4 concurrency note — owner: design author at next touch; shipped code
    confirmed correct on all four.
+
+## Changelog
+
+- 2026-07-05: as-built traceability backfill — `spec-traceability.sh` reported
+  3 gaps (T-19, T-24, T-25 each lacked a machine-recognized Verification token,
+  though all three tasks already named their real tests in prose). Verified the
+  cited tests exist and cover the described behavior as-built
+  (`pwa/src/__tests__/model-workspace.test.tsx`,
+  `api/__tests__/module-fork.integration.test.ts`,
+  `api/__tests__/model-migration.integration.test.ts`) and hoisted each real
+  test path onto the `**Verification**:` line so the parser recognizes it. No
+  FR/AC/DD/T IDs renumbered; no phase status changed; no work invented. Script
+  now prints OK (18 FRs, 22 ACs, 25 tasks all traced).

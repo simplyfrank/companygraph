@@ -102,15 +102,20 @@ total_tasks: 19
 
 Rev 1's "hard build-order precondition" is **discharged**: every consumed
 dependency file exists on disk (re-verified at rev-2 authoring, 2026-07-04) —
-`api/src/storage/{model-scope,models,model-lifecycle-guard}.ts`,
+`model-workspace-core` **FR-18** →
+`api/src/storage/{model-scope,models,model-lifecycle-guard}.ts` (`scopedNodeIds`,
+consumed by T-04/T-05/T-07/T-10),
 `api/src/scripts/register-model-labels.ts`,
 `api/src/scripts/register-story-labels.ts` (`registerStorySchema`; the router
 imports `registerStoryRoutes`), `api/src/scripts/seed-rbac-roles.ts`
 (`business_architect` at line 96), `pwa/src/context/ActiveModelContext.tsx`
-(`useActiveModel`), `pwa/src/views/model/ModelTabPlaceholder.tsx` (the model
-surface's `systems` slot at `pwa/src/views/index.tsx:165`), and
+(`useActiveModel`), `model-workspace-core` **FR-17** →
+`pwa/src/views/model/ModelTabPlaceholder.tsx` (the model surface's `systems`
+slot at `pwa/src/views/index.tsx`, replaced by T-13's SystemModeler), and
 `shared/src/schema/system-kind.ts`. Implementation is unblocked; no
-bind-at-implementation-time seams remain.
+bind-at-implementation-time seams remain. (These two `model-workspace-core` FRs
+are **consumed dependencies**, not this spec's own requirements — this spec owns
+FR-01..FR-15; see requirements §Dependencies.)
 
 ## Review carry-forwards (binding decisions — do not re-derive at execution)
 
@@ -539,9 +544,9 @@ binding, task-anchored decision.
   (GET, PATCH, DELETE) — **last**. Export (or share via a module const) the
   **exact 13 method+route literal list** so T-08's table-driven authz assertion
   iterates it (tasks-review C-03).
-- **Verification**: exercised through the route surface by
-  `capability-crud`/`capability-mapping`/`system-gap-analysis`/`context-map`
-  integration tests (T-04/T-05/T-06) and `capability-authz.test.ts` (T-08);
+- **Verification**: `api/__tests__/capability-authz.test.ts` (route dispatch +
+  permission gate) plus the `capability-crud`/`system-gap-analysis`/`context-map`
+  integration tests (T-04/T-05/T-06) that drive these handlers end-to-end;
   `bun run typecheck`.
 
 ### T-08 — Route-permission mapping + RBAC role grant + authz test
@@ -665,8 +670,9 @@ binding, task-anchored decision.
   import into `api.ts`; rendering rules (badges via
   `SYSTEM_KINDS`/`SYSTEM_KIND_LABELS`) live in T-13 (rev-2 tasks-review N-03).
   No production `systemKind` string literal in this file (AC-20).
-- **Verification**: `bun run typecheck`; consumed + asserted transitively by
-  `pwa/src/__tests__/system-modeler.test.tsx` (T-13).
+- **Verification**: `pwa/src/__tests__/system-modeler.test.tsx` (the client's
+  `capabilities`/`systemModel` blocks are consumed + asserted transitively by the
+  view's ready-state suite); `bun run typecheck`.
 
 ### T-13 — SystemModeler view + detail/edit + ready panels + view registration
 
@@ -717,13 +723,15 @@ binding, task-anchored decision.
   **Prefer rendering kinds directly via `SYSTEM_KIND_LABELS`** — do not reach
   for `pwa/src/lib/journeyData.ts`'s system-render helper (see T-15's
   conditional).
-- **Verification**: **CLI** (AC-17, AC-20 CLI half — deterministic):
+- **Verification**: `pwa/src/__tests__/system-modeler.test.tsx` (the view's
+  ready-state suite asserts SystemModeler renders in the `systems` slot) **plus**
+  the deterministic CLI half (AC-17, AC-20):
   `bun run scripts/design-conformance.ts --view pwa/src/views/model/SystemModeler.tsx`
   **and** `--view pwa/src/views/model/SystemModeler.module.css` both exit 0;
   `git grep -n '"agentic"\|"ai_predictive"' pwa/src/views/model/SystemModeler.tsx`
-  → no matches; `bun run typecheck` exit 0. The AC-10..13 component test suites
-  are **T-18's** deliverable (rev-2 tasks-review C-02) — T-13 is not complete
-  for STATUS purposes until T-18's suites pass against it.
+  → no matches; `bun run typecheck` exit 0. The full AC-10..13 component test
+  suites are **T-18's** deliverable (rev-2 tasks-review C-02) — T-13 is not
+  complete for STATUS purposes until T-18's suites pass against it.
 
 ### T-14 — SystemModeler view-state tests (loading / empty+create / error+retry)
 
@@ -837,8 +845,11 @@ binding, task-anchored decision.
     context call the FR-05 routes and update the panel; **the detached
     indicator renders when a stub response's `detached[]` is non-empty**
     (AC-13, DD-13).
-- **Verification**: the four test files above under `bun test` (AC-10, AC-11,
-  AC-12, AC-13).
+- **Verification**: `pwa/src/__tests__/system-modeler.test.tsx`,
+  `pwa/src/__tests__/system-modeler-gaps.test.tsx`,
+  `pwa/src/__tests__/system-modeler-context-map.test.tsx`, and
+  `pwa/src/__tests__/system-modeler-detail.test.tsx` under `bun test` (AC-10,
+  AC-11, AC-12, AC-13).
 
 ### T-19 — Final validation sweep (AC-21 + full suite)
 
@@ -857,10 +868,11 @@ binding, task-anchored decision.
   `bun run dev`). (3) Sweep the AC-01..AC-21 (+AC-06b) table in STATUS.md —
   every AC has its verification artifact recorded before Execution flips to
   complete (`.claude/hooks/spec-completion-check.sh` blocks otherwise).
-- **Verification**: CLI — `bun run typecheck` exit 0; `git diff
-  shared/src/schema/nodes.ts shared/src/schema/edges.ts` inspected for zero
-  `NODE_LABELS`/`EDGE_ENDPOINTS` additions (deterministic diff read, not a
-  visual judgment); `bun test` + `bun test:integration` both green (AC-21).
+- **Verification**: manual: run `bun run typecheck` (exit 0), `git diff
+  shared/src/schema/nodes.ts shared/src/schema/edges.ts` (expect zero
+  `NODE_LABELS`/`EDGE_ENDPOINTS` additions — deterministic diff read, not a
+  visual judgment), then `bun test` + `bun test:integration` — expect both suites
+  green with every AC's verification artifact recorded (AC-21).
 
 ## Cross-cutting verification (whole-spec)
 

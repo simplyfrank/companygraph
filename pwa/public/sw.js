@@ -86,7 +86,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Shell assets: cache-first (fast boot), fall back to network.
+  // index.html: network-first so new deploys are picked up immediately.
+  // The HTML references hashed JS/CSS bundles, so a stale HTML means
+  // the browser loads old bundles even after a new deploy.
+  if (url.pathname === "/" || url.pathname === "/index.html") {
+    event.respondWith(networkFirst(request, SHELL_CACHE));
+    return;
+  }
+
+  // Other shell assets (manifest, icons): cache-first (truly static).
   event.respondWith(cacheFirst(request, SHELL_CACHE));
 });
 

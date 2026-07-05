@@ -51,3 +51,21 @@ review_passes: 0
 - **OQ-3 — gap detection scope.** Default: activity→KPI links only clear a gap (story links are a `should` coverage rider, FR-07).
 - **OQ-4 (DEC-03, new — split from Risk 4 per C-04) — does an *undirected* pre-existing `ALIGNED_TO` clear a measurability gap?** Default: **no** — only a `direction`-bearing link clears a gap (matches XD-04's directional-impact intent). Looser alternative (any `ALIGNED_TO` clears it) flagged. Confirm the stricter default.
 - **C-01 flag — second-writer MERGE on `kpi-okr-governance`'s `ALIGNED_TO`.** This spec's `…/activity-links` POST MERGEs on the same edge type the base `kpi-alignments` POST CREATEs. Confirm with that spec's owner that a second writer with MERGE idempotency is acceptable; whether the two POST surfaces converge is a design/consolidated-report flag.
+
+## Changelog
+
+- **2026-07-05: as-built traceability backfill.** Made
+  `scripts/spec/spec-traceability.sh .claude/specs/kpi-impact-mapping` print OK
+  (exit 0) with no phase-status change. Reality-first, no ID renumbering:
+  (1) cited the consumed upstream deliverable `model-workspace-core` FR-18
+  (`scopedNodeIds`, `api/src/storage/model-scope.ts`) in T-03's Consumes line —
+  it was already referenced in requirements.md/design.md and the helper is
+  imported by the shipped `api/src/storage/kpi-impact.ts`, closing the
+  "FR-18 never reaches tasks.md" false-positive gap (FR-18 is
+  `model-workspace-core`'s FR, consumed here, not a local FR); (2) reflowed the
+  Verification lines of T-03, T-04, T-06, T-08, T-09, T-11, T-12, T-13 so each
+  names its real, on-disk test file on the same line as the word "Verification"
+  (the parser requires the test path co-located) — every named test exists
+  (`api/__tests__/kpi-impact-*.test.ts`, `shared/src/schema/__tests__/kpi-impact.test.ts`,
+  `pwa/src/__tests__/kpi-impact-matrix*.test.tsx`, `pwa/playwright/kpi-impact-matrix-context.spec.ts`).
+  No FR deferred; no work invented. Final: `16 FRs, 17 ACs, 16 tasks all traced`.

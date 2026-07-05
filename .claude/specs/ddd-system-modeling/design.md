@@ -97,6 +97,7 @@ only**.
 
 At rev-1 authoring time several dependency files were absent. **Re-verified at
 rev-2 authoring time (2026-07-04): every consumed file now exists on disk** —
+`model-workspace-core` **FR-18** →
 `api/src/storage/model-scope.ts` (`scopedNodeIds` / `scopedWhereFragment`),
 `api/src/storage/{models,model-lifecycle-guard}.ts`,
 `api/src/scripts/register-model-labels.ts`,
@@ -104,7 +105,10 @@ rev-2 authoring time (2026-07-04): every consumed file now exists on disk** —
 router imports `registerStoryRoutes` at `api/src/router.ts:251`),
 `api/src/scripts/seed-rbac-roles.ts` (`business_architect` at line 96),
 `pwa/src/context/ActiveModelContext.tsx` (`useActiveModel`),
-`pwa/src/views/model/ModelTabPlaceholder.tsx` (+ `ModelWorkspace.tsx`,
+`model-workspace-core` **FR-17** →
+`pwa/src/views/model/ModelTabPlaceholder.tsx` + the `systems` slot in
+`pwa/src/views/index.tsx` `renderView` (which this spec's SystemModeler
+replaces — verified `pwa/src/views/index.tsx:183`) (+ `ModelWorkspace.tsx`,
 `StoryCatalog.tsx`), and `shared/src/schema/system-kind.ts`
 (`system-augmentation-model`). **Implementation is unblocked** — no
 bind-at-implementation-time seams remain.

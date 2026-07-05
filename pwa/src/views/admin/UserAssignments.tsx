@@ -165,7 +165,7 @@ function AssignPersonaForm({
 
   if (availablePersonas.length === 0) {
     return (
-      <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid var(--border, #ddd)", borderRadius: "0.5rem" }}>
+      <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid var(--border)", borderRadius: "0.5rem" }}>
         <p>All personas are already assigned to this user.</p>
         <Button tone="ghost" onClick={onCancel}>Close</Button>
       </div>
@@ -173,7 +173,7 @@ function AssignPersonaForm({
   }
 
   return (
-    <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid var(--border, #ddd)", borderRadius: "0.5rem" }}>
+    <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid var(--border)", borderRadius: "0.5rem" }}>
       <h4>Assign Persona</h4>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         <label>

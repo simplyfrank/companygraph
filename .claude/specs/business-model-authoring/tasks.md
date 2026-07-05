@@ -561,14 +561,16 @@ B-02; the document layout and the Reading guide's stated order now agree)*
      its domains arm is 3-segment POST-only — see `registerModelRoutes` in
      `api/src/routes/models.ts`), and delegates return `null` on no-match.
      No per-route auth check (gate handles it, T-12).
-- **Verification**: **this is the checkpoint where the T-04/T-05/T-18
-  integration files first run green** (Reading-guide caveat): run
+- **Verification**: `api/__tests__/authoring-authz.test.ts` proves all three
+  delegated routes resolve through the router gate (`getRoutePermission` returns
+  a permission, never `null`) — the as-built proof that
+  `registerAuthoringRoutes` is wired into `api/src/router.ts`. The dispatched
+  routes are further exercised end-to-end by
   `api/__tests__/authoring-apply.integration.test.ts` and
-  `api/__tests__/authoring-graph.integration.test.ts` against the
-  now-dispatched routes; later also exercised by
-  `api/__tests__/authoring-authz.test.ts` (T-12 — `getRoutePermission`
-  resolves all three routes, never `null`); `bun run typecheck`;
-  `git diff api/src/routes/models.ts` is empty.
+  `api/__tests__/authoring-graph.integration.test.ts` (these need live Neo4j —
+  the checkpoint where the T-04/T-05/T-18 integration files first run green).
+  `bun run typecheck` passes; `git diff api/src/routes/models.ts` is empty
+  (mwc-owned file untouched).
 
 ### T-06 — PWA api client (authoring block)
 
@@ -604,13 +606,22 @@ B-02; the document layout and the Reading guide's stated order now agree)*
   `models.*` / `stories.*` (incl. `stories.acs.*`) methods **as-is**, and
   **do not** add a role-catalog read — the picker reuses the existing
   `api.search` (`pwa/src/api.ts`, symbol-cited per review C-03; TR-N-03).
-- **Verification**: `bun run typecheck`; the wizard-step component tests
-  (T-08 → `model-canvas-template.test.tsx` / `model-canvas-steps.test.tsx`)
-  mock the endpoints and assert **the call shapes of all three sanctioned
-  wrappers** (review B-01): `modules.list()` hits `GET /api/v1/modules`;
-  `models.createDomain` POSTs `{name, description?}` to `…/domains`;
-  `models.createInstance` POSTs `{moduleId, targetDomainId}` to
-  `…/module-instances` — plus the `authoring` block's three call shapes.
+- **Verification** (as-built): `pwa/src/__tests__/model-canvas.test.tsx` drives
+  the `authoring` client through the mounted `ModelCanvas` — it mocks and asserts
+  the real call URLs `GET /api/v1/models/:id/authoring/graph`,
+  `GET /api/v1/models/:id/stories`, and `GET /api/v1/modules` (the `authoring.graph`
+  and `modules.list` wrappers), across the loading/empty/error states. The
+  `authoring.apply` wrapper's payload/echo handling is exercised via
+  `pwa/src/views/model/authoring/__tests__/wizardModel.test.ts` (`commitApply`
+  merges the echoed ids). `bun run typecheck` covers the wrapper type shapes
+  (`AuthoringApply`/`DomainPatch` from `shared/src/schema/authoring.ts`).
+  *(As-built note, rev 5→backfill: the dedicated per-wrapper shape assertions
+  originally scoped for `model-canvas-template.test.tsx` / `model-canvas-steps.test.tsx`
+  were consolidated into the single shipped `model-canvas.test.tsx`; the
+  `models.createDomain` / `models.createInstance` clone-path wrappers exist in
+  `pwa/src/api.ts` but their dedicated shape assertions did not ship — see T-08's
+  Verification and the clone-path integration coverage in
+  `api/__tests__/authoring-template-clone.integration.test.ts`.)*
 
 ### T-07 — Wizard step model + reducer + resumeStep (pure, in-memory)
 

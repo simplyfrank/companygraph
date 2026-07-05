@@ -340,6 +340,29 @@ export const api = {
       json<{ deleted: true }>(`/api/v1/kpi-measurements/${encodeURIComponent(id)}`, {
         method: "DELETE",
       }),
+    // kpi-measurement-alignment FR-09, FR-11 — param bindings + reconcile
+    createParamBinding: (kpiId: string, data: ParamBindingCreate) =>
+      json<ParamBinding>(`/api/v1/kpis/${encodeURIComponent(kpiId)}/param-bindings`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    getParamBindings: (kpiId: string, signal?: AbortSignal) =>
+      json<{ rows: ParamBinding[] }>(`/api/v1/kpis/${encodeURIComponent(kpiId)}/param-bindings`, withSignal(signal)),
+    deleteParamBinding: (bindingId: string) =>
+      json<{ deleted: true }>(`/api/v1/param-bindings/${encodeURIComponent(bindingId)}`, {
+        method: "DELETE",
+      }),
+    reconcile: (kpiId: string) =>
+      json<ReconcileResult>(`/api/v1/kpis/${encodeURIComponent(kpiId)}/reconcile`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      }),
+    reconcileAll: () =>
+      json<{ reconciled_kpis: number; total_bindings: number; total_reconciled: number }>(`/api/v1/kpis/reconcile-all`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      }),
   },
 
   sla: {
@@ -1120,6 +1143,36 @@ export interface KPIMeasurementCreate {
   value: number;
   context?: Record<string, unknown>;
   source?: string;
+}
+
+// kpi-measurement-alignment FR-09, FR-11 — param binding + reconcile types
+export interface ParamBinding {
+  binding_id: string;
+  kpi_id: string;
+  target_type: "journey" | "activity" | "domain" | "system";
+  target_id: string;
+  target_name: string | null;
+  parameter: "target_value" | "warning_threshold" | "critical_threshold";
+  attribute_path: string;
+  created_at: string;
+}
+
+export interface ParamBindingCreate {
+  target_type: "journey" | "activity" | "domain" | "system";
+  target_id: string;
+  parameter: "target_value" | "warning_threshold" | "critical_threshold";
+  attribute_path: string;
+}
+
+export interface ReconcileResult {
+  kpi_id: string;
+  reconciled: Array<{
+    parameter: string;
+    old_value: number;
+    new_value: number;
+    entity_id: string;
+  }>;
+  unchanged: string[];
 }
 
 export interface SLA {

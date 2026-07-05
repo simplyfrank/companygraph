@@ -123,40 +123,38 @@ export function resolveSlice(url: URL): PerformanceSlice {
 // Absent slice params drop their fragment entirely, so the three
 // fragments compose unconditionally in any combination.
 
-// {domainFilter} (C-02) — OR semantics pinned: a KPI matches the domain
-// slice if EITHER its flat k.domain_id equals $domain OR it has a
-// CONTRIBUTES_TO path reaching that domain (branch (b) is independent of
-// domain_id — a null-domain_id KPI with a qualifying path DOES match).
-// PART_OF*1..2 covers UserJourney→Domain (1 hop) and
-// Activity→UserJourney→Domain (2 hops), per the edges.ts endpoint matrix.
+// {domainFilter} (kpi-measurement-alignment FR-04) — ALIGNED_TO-only:
+// a KPI matches the domain slice if it has an ALIGNED_TO edge to the
+// domain itself OR to an entity PART_OF that domain (UserJourney→Domain
+// 1 hop, Activity→UserJourney→Domain 2 hops). The flat k.domain_id
+// property is NO LONGER read (FR-06) — alignment is solely graph-based.
 const DOMAIN_FILTER = `
-AND (
-  k.domain_id = $domain
-  OR EXISTS {
-    MATCH (k)-[:CONTRIBUTES_TO]->(t)
-    MATCH (t)-[:PART_OF*1..2]->(:Domain {id: $domain})
-  }
-)`;
+AND EXISTS {
+  MATCH (k)-[:ALIGNED_TO]->(t)
+  WHERE t.id = $domain
+     OR (t)-[:PART_OF*1..2]->(:Domain {id: $domain})
+}`;
 
-// {journeyFilter} (C-02) — CONTRIBUTES_TO-only (KPI nodes carry no flat
-// journey_id): the KPI contributes directly to the journey, or to an
-// activity PART_OF the journey.
+// {journeyFilter} (kpi-measurement-alignment FR-04) — ALIGNED_TO-only:
+// the KPI is aligned directly to the journey, or to an activity
+// PART_OF the journey.
 const JOURNEY_FILTER = `
 AND EXISTS {
-  MATCH (k)-[:CONTRIBUTES_TO]->(t)
+  MATCH (k)-[:ALIGNED_TO]->(t)
   WHERE t.id = $journey
      OR (t)-[:PART_OF]->(:UserJourney {id: $journey})
 }`;
 
-// {kindFilter} (FR-06, DD-06 inclusive-any) — a KPI is in scope for
-// ?kind=X when ANY System reachable via its contributed journey/activity
-// carries systemKind X inside attributes_json (the same
-// apoc.convert.fromJsonMap pattern system-augmentation-model uses). A
-// KPI with no KPI→…→System path is excluded from a non-`all` slice.
-// Still within Read 1 — an EXISTS subquery, not an extra round trip.
+// {kindFilter} (FR-06, DD-06 inclusive-any, kpi-measurement-alignment
+// FR-07) — a KPI is in scope for ?kind=X when ANY System reachable via
+// its ALIGNED_TO journey/activity carries systemKind X inside
+// attributes_json (the same apoc.convert.fromJsonMap pattern
+// system-augmentation-model uses). A KPI with no KPI→…→System path is
+// excluded from a non-`all` slice. Still within Read 1 — an EXISTS
+// subquery, not an extra round trip.
 const KIND_FILTER = `
 AND EXISTS {
-  MATCH (k)-[:CONTRIBUTES_TO]->(t)
+  MATCH (k)-[:ALIGNED_TO]->(t)
   MATCH (a:Activity)
   WHERE a = t OR (a)-[:PART_OF]->(t)
   MATCH (a)-[:USES_SYSTEM]->(s:System)

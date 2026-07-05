@@ -44,11 +44,29 @@ file owned upstream that may not exist on disk at this spec's authoring time**.
 Each task binds to the real upstream files once they land; the requirements cite
 their approved response contracts.
 
+**Upstream (model-workspace-core) dependency FRs consumed here (as-built,
+not this spec's own FRs).** The requirements' Dependencies § references two
+`model-workspace-core` requirement IDs by number; both are already shipped and
+consumed by this spec's tasks — neither is re-implemented here:
+
+- **`model-workspace-core` FR-13** — the `model_not_found` error code
+  (`api/src/errors.ts:37`, verified). **Reused** (not re-declared) by **T-04**'s
+  route model-existence pre-check (`handleSpecExport` → `error(404,
+  "model_not_found", …)`, `api/src/routes/spec-export.ts:118`) and referenced by
+  **T-05a** (which adds only `unsupported_export_format`, never
+  `model_not_found`). This spec's own error-code FR is **FR-06**.
+- **`model-workspace-core` FR-18** — the `scopedNodeIds(driver, modelId)` model
+  scoping helper (`api/src/storage/model-scope.ts:22`, verified). The scoping
+  every upstream section read already applies (never called directly here — see
+  NFR-01); model isolation is asserted by **T-02** (fixture-scoped assembly),
+  **T-07** (seeded-model integration), and **T-11** (no cross-model leakage).
+  This spec's own model-isolation NFR is **NFR-01**.
+
 Verified against disk at authoring time (2026-07-04):
 
-- **`model_not_found`** is **already** in `ERROR_CODES` (`api/src/errors.ts:36`) —
-  reused, **not** re-declared (FR-06, requirements Dependencies). Only
-  `unsupported_export_format` is added.
+- **`model_not_found`** (`model-workspace-core` FR-13) is **already** in
+  `ERROR_CODES` (`api/src/errors.ts:37`) — reused, **not** re-declared (FR-06,
+  requirements Dependencies). Only `unsupported_export_format` is added.
 - **`api/src/derive/`** does **not** exist yet — this spec (or an upstream
   `derive`-using spec, e.g. `key-activity-optimizer` / `kpi-impact-mapping`)
   creates it. The pure assembler + renderer live under `api/src/derive/`
@@ -291,10 +309,25 @@ seam.
     collides with `model-workspace-core`'s parameterized `models/:id` (2-segment)
     rows: `^models\/([^/]+)\/spec-export$` (GET only). Read-only — **no** write
     dispatch.
-- **Verification**: exercised through the route surface by
-  `api/__tests__/spec-export-document.integration.test.ts` (T-07, AC-01),
-  `spec-export-degradation.integration.test.ts` (T-07, AC-02), and
-  `spec-export-format.integration.test.ts` (T-07, AC-04); `bun run typecheck`.
+- **Verification** (as-built): `api/__tests__/spec-document-assembler.test.ts` +
+  `api/__tests__/spec-markdown-render.test.ts` — the assembly + degradation logic the route wraps
+  is covered by these (populated readers
+  → zod-valid `SpecDocument` with correct `meta.counts`; a throwing reader →
+  empty-shape section + `meta.degraded.<section>`, no exception propagates —
+  AC-01/AC-02 unit halves), and the Markdown branch by
+  `api/__tests__/spec-markdown-render.test.ts`. The route wiring itself
+  (`handleSpecExport` model pre-check → `404 model_not_found`; `?format` guard →
+  `400 unsupported_export_format`; `Accept: text/markdown` negotiation;
+  `registerSpecExportRoutes` dispatch, `api/src/routes/spec-export.ts`) has **no
+  automated integration test** — the T-07 integration suite is **deferred** (needs
+  live Neo4j + the `kpi-impact-mapping` upstream routes, which throw-and-degrade
+  today; STATUS ledger). `bun run typecheck`. manual: with `bun run dev` up and a
+  seeded model, `curl 127.0.0.1:8787/api/v1/models/<id>/spec-export` — expect a
+  `200` JSON `{model,stories,keyActivities,kpiImpact,systemModel,meta}` envelope;
+  `curl '…/spec-export?format=markdown'` — expect `200` `content-type:
+  text/markdown; charset=utf-8`; `curl '…/spec-export?format=pdf'` — expect `400
+  unsupported_export_format`; `curl …/models/nonexistent/spec-export` — expect
+  `404 model_not_found`.
 
 ### T-05 — Additive error code + route-permission mapping + RBAC grant
 
@@ -407,7 +440,27 @@ seam.
   - `spec-export-openapi.integration.test.ts` (**AC-13**): the route path, the
     `?format` enum, and `unsupported_export_format` appear in `GET
     /api/v1/openapi.json`.
-- **Verification**: the five files above; `bun test:integration`.
+- **Status (as-built): DEFERRED** — none of the five integration files exist on
+  disk yet (`api/__tests__/spec-export-*.integration.test.ts` — verified absent).
+  The suite is blocked on a live Neo4j **and** on the `kpi-impact-mapping`
+  upstream routes: the default `readKpiImpact` reader in
+  `api/src/routes/spec-export.ts:87-93` currently throws (upstream not landed) and
+  is caught as a degraded section, so a full-fixture AC-01 assertion cannot pass
+  end-to-end until that dependency merges (STATUS ledger: "T-07 pending — needs
+  live Neo4j"). The route surface it would cover is exercised manually (see T-04)
+  and its pure halves are unit-covered (`spec-document-assembler.test.ts`,
+  `spec-markdown-render.test.ts`).
+- **Verification**: manual: (deferred integration suite) with `bun run dev` up,
+  seed a model via the API and run the five scenarios by hand against
+  `127.0.0.1:8787` — (1) document: `GET …/spec-export` → `200` zod-valid
+  `{model,stories,keyActivities,kpiImpact,systemModel,meta}`, bad `:modelId` →
+  `404 model_not_found`; (2) degradation: with `readKpiImpact` throwing, `GET
+  …/spec-export` → `200` with `kpiImpact` empty + `meta.degraded.kpiImpact` set,
+  not a 500; (3) format: `?format=markdown` → `text/markdown; charset=utf-8`,
+  `?format=pdf` → `400 unsupported_export_format`; (4) authz: session without
+  `spec_export:read` → `403`, with it → `200`; (5) openapi: the route + `?format`
+  enum + `unsupported_export_format` appear in `GET /api/v1/openapi.json`. Promote
+  to `bun test:integration` once Neo4j + `kpi-impact-mapping` land.
 
 ### T-08 — SpecExport view + 4 states + Markdown preview + section chips + registration
 
@@ -481,9 +534,19 @@ seam.
     cannot return text) returning the Markdown string for the preview + the
     Markdown download.
   Types (`SpecDocument`, `ExportFormat`) inferred from the shared T-01 zod schemas.
-- **Verification**: `bun run typecheck`; consumed + asserted transitively by
-  `pwa/src/__tests__/spec-export.test.tsx` (T-08) and
-  `spec-export-download.test.tsx` (T-10).
+- **Verification** (as-built): `pwa/__tests__/spec-export.test.ts` + `bun run typecheck`.
+  The `specExport` client landed at
+  `pwa/src/api.ts:1518-1531` (`export const specExport = { json(modelId,signal?),
+  markdown(modelId,signal?) }`, `encodeURIComponent`-encoded paths, JSON via the
+  private `json<T>` wrapper + a raw-text `markdown` fetch — verified). Type-checked
+  by `bun run typecheck` (exit 0); the empty-state gate + download filename
+  sanitization the client feeds are unit-covered by `pwa/__tests__/spec-export.test.ts`
+  (verified green: `isAllZero`, `safeName`). manual: with `bun run dev` up, open
+  `#/model/export` for a seeded model and confirm the Markdown preview + section
+  chips populate (the view calls `specExport.markdown`/`specExport.json`) and the
+  two download buttons fetch `?format=markdown`/`?format=json`. No dedicated
+  `spec-export-download.test.tsx` exists (T-10's download test is component-level
+  and did not ship as a separate file — see T-10).
 
 ### T-10 — Download controls + degraded banner + view-state tests
 

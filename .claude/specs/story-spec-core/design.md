@@ -106,10 +106,14 @@ Rev 1/2 recorded a hard "cannot start implementation until `model-workspace-core
 merges" precondition. That is now **stale**: the dependency is on disk, and every
 interface this design cites was **re-verified against the real files** at rev-3
 authoring time — `scopedNodeIds(driver, modelId): Promise<Set<string>>`
-(`api/src/storage/model-scope.ts`), `useActiveModel()`
-(`pwa/src/context/ActiveModelContext.tsx`), the `business_architect` seed
-(`api/src/scripts/seed-rbac-roles.ts:96`), `ModelTabPlaceholder` + the `stories`
-placeholder slot in `pwa/src/views/index.tsx`, and `registerModelSchema` inside
+(`api/src/storage/model-scope.ts`, `model-workspace-core` FR-18 — consumed here
+by §4.1's list/scope query, never re-implemented), `useActiveModel()`
+(`pwa/src/context/ActiveModelContext.tsx`, `model-workspace-core` FR-15), the
+`business_architect` seed (`api/src/scripts/seed-rbac-roles.ts:96`),
+`ModelTabPlaceholder` + the `stories` placeholder slot in
+`pwa/src/views/index.tsx` (`model-workspace-core` FR-17 — this spec's §4.10
+StoryCatalog replaces that placeholder in the `renderView` dispatch), and
+`registerModelSchema` inside
 `applySchema` (`api/src/neo4j/bootstrap.ts:63`). Implementation is **unblocked**;
 the tasks phase must **not** carry a "blocked on dependency" precondition
 (§2.1 D-3).

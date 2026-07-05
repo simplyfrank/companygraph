@@ -86,7 +86,7 @@ semantic-ramp views, per the per-hex mapping in design §5d.
 - **Files**: `exec/RiskDashboard.tsx`, `exec/Risk.tsx`, `ontology/Erd.tsx`, `sme/Review.tsx` (Erd co-located CSS handled in T-04d)
 - **Complexity**: moderate
 - **Traces**: FR-02, DD-02, DV-02, AC-02
-- **Verification**: `design-conformance.ts --view` PASS on each of the 4 `.tsx` (zero `❌`); `git diff` shows only color-string → `var(--cat/sev-*)` swaps (no logic change)
+- **Verification**: `design-conformance.ts --view` PASS on each of the 4 `.tsx` (zero `❌`); `git diff` shows only color-string → `var(--cat/sev-*)` swaps (no logic change). `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/views/exec/RiskDashboard.tsx\` (and Risk.tsx / ontology/Erd.tsx / sme/Review.tsx), expect \`✅ clean\` + \`design-conformance: PASS\` on each` (static-analysis gate; execution deferred, no per-view unit test)
 
 ## T-04a — Token sweep: admin `.tsx` (DD-01)
 
@@ -95,7 +95,7 @@ semantic-ramp views, per the per-hex mapping in design §5d.
 - **Files**: `admin/Personas.tsx`, `admin/RbacRoles.tsx`, `admin/UserAssignments.tsx`
 - **Complexity**: simple
 - **Traces**: FR-02, DD-01, AC-02
-- **Verification**: `design-conformance.ts --view` PASS on each; `git diff` shows only the hex→token swap
+- **Verification**: `design-conformance.ts --view` PASS on each; `git diff` shows only the hex→token swap. `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/views/admin/Personas.tsx\` (and RbacRoles.tsx / UserAssignments.tsx), expect \`✅ clean\` + \`design-conformance: PASS\`` (static-analysis gate; execution deferred, no per-view unit test)
 
 ## T-04b — Token sweep: exec ContextAlignment (DD-01)
 
@@ -104,7 +104,7 @@ semantic-ramp views, per the per-hex mapping in design §5d.
 - **Files**: `exec/ContextAlignment.tsx`
 - **Complexity**: simple
 - **Traces**: FR-02, DD-01, AC-02
-- **Verification**: `design-conformance.ts --view` PASS; `git diff` token-swap only
+- **Verification**: `design-conformance.ts --view` PASS; `git diff` token-swap only. `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/views/exec/ContextAlignment.tsx\`, expect \`✅ clean\` + \`design-conformance: PASS\`` (static-analysis gate; execution deferred, no per-view unit test)
 
 ## T-04c — Token sweep: explorer `.tsx` + CSS (DD-01)
 
@@ -117,7 +117,7 @@ edit (resolves via T-01).
 - **Files**: explorer `.tsx` (5) + `.module.css` (6), in ≤3-file batches
 - **Complexity**: moderate
 - **Traces**: FR-02, DD-01, AC-02
-- **Verification**: `design-conformance.ts --view` PASS on each explorer file in §5/§5b; `git diff` token/`color-mix` swaps only
+- **Verification**: `design-conformance.ts --view` PASS on each explorer file in §5/§5b; `git diff` token/`color-mix` swaps only. `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/views/explorer/Journey.tsx\` (and each explorer \`.tsx\`/\`.module.css\` in §5/§5b), expect \`✅ clean\` + \`design-conformance: PASS\` on each` (static-analysis gate; execution deferred, no per-view unit test)
 
 ## T-04d — Token sweep: ontology `.tsx` + CSS (DD-01)
 
@@ -128,7 +128,7 @@ ontology modal CSS files' rgba → §5e.
 - **Files**: `ontology/{Catalog,Editor}.tsx`, `ontology/{Erd,AddEdgeModal,AddEntityModal,RollbackModal}.module.css`, in ≤3-file batches
 - **Complexity**: moderate
 - **Traces**: FR-02, DD-01, AC-02
-- **Verification**: `design-conformance.ts --view` PASS on each ontology file in §5/§5b; `git diff` token/`color-mix` swaps only
+- **Verification**: `design-conformance.ts --view` PASS on each ontology file in §5/§5b; `git diff` token/`color-mix` swaps only. `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/views/ontology/Catalog.tsx\` (and each ontology \`.tsx\`/\`.module.css\` in §5/§5b), expect \`✅ clean\` + \`design-conformance: PASS\` on each` (static-analysis gate; execution deferred, no per-view unit test)
 
 ## T-04e — Token sweep: sme Quarterly (DD-01)
 
@@ -137,7 +137,7 @@ ontology modal CSS files' rgba → §5e.
 - **Files**: `sme/Quarterly.tsx`
 - **Complexity**: simple
 - **Traces**: FR-02, DD-01, AC-02
-- **Verification**: `design-conformance.ts --view` PASS; `git diff` hex→token only
+- **Verification**: `design-conformance.ts --view` PASS; `git diff` hex→token only. `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/views/sme/Quarterly.tsx\`, expect \`✅ clean\` + \`design-conformance: PASS\`` (static-analysis gate; execution deferred, no per-view unit test)
 
 ## T-04f — Token sweep: shared components — chat/canvas group (DD-01)
 
@@ -154,7 +154,7 @@ ontology modal CSS files' rgba → §5e.
 - **Files**: the above shared components, in ≤3-file batches
 - **Complexity**: moderate
 - **Traces**: FR-02, DD-01, AC-02
-- **Verification**: `design-conformance.ts --view` PASS on each file in this group; `git diff` token/`color-mix` swaps only (no prop/API change — these are shared by studio consumers, design §11)
+- **Verification**: `design-conformance.ts --view` PASS on each file in this group; `git diff` token/`color-mix` swaps only (no prop/API change — these are shared by studio consumers, design §11). `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/components/SearchPalette.tsx\` (and each chat/canvas component in this group), expect \`✅ clean\` + \`design-conformance: PASS\` on each` (static-analysis gate; execution deferred, no per-component unit test)
 
 ## T-04g — Token sweep: shared components — kpi/sla/persona/charts group (DD-01)
 
@@ -167,7 +167,7 @@ ontology modal CSS files' rgba → §5e.
 - **Files**: the above shared components, in ≤3-file batches
 - **Complexity**: moderate
 - **Traces**: FR-02, DD-01, AC-02
-- **Verification**: `design-conformance.ts --view` PASS on each file in this group incl. `components/charts/KpiCard.module.css`; `git diff` token swaps only
+- **Verification**: `design-conformance.ts --view` PASS on each file in this group incl. `components/charts/KpiCard.module.css`; `git diff` token swaps only. `manual: shell — run \`bun run scripts/design-conformance.ts --view pwa/src/components/KpiDashboard.tsx\` (and each kpi/sla/persona/charts file in this group, incl. \`components/charts/KpiCard.module.css\`), expect \`✅ clean\` + \`design-conformance: PASS\` on each` (static-analysis gate; execution deferred, no per-component unit test)
 
 ## T-05 — CI sweep script (DD-07)
 

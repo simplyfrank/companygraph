@@ -13,6 +13,18 @@
 
 **review_passes**: 2 (cap reached)
 
+**Changelog**
+- **2026-07-05: as-built traceability backfill** — closed the mechanical
+  `spec-traceability.sh` gaps without changing any phase status. (a) The
+  bundle-budget cross-reference in requirements.md AC-11 was reworded from a
+  bare `AC-22` token (which the checker mis-read as an unclosed local AC) to a
+  named reference to process-explorer-ui's bundle-size criterion — this spec
+  has no local AC-22. (b) Added an honest `manual:` static-analysis verification
+  clause (`design-conformance.ts --view` → `✅ clean` / `design-conformance:
+  PASS`) to the token-sweep tasks T-03 and T-04a..T-04g, which are deferred and
+  gated by the static analyzer rather than per-view unit tests. No FR/AC/DD/T
+  IDs renumbered; no code touched.
+
 **Must-carry into execution (review pass-2 C2-01):** design §9's gesture
 verify-vs-fix matrix mislabels three in-scope canvas surfaces
 (`explorer/JourneyGraph`, `components/JourneyCanvas`, `components/GraphCanvas`)

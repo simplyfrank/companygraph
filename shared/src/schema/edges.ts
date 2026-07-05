@@ -10,10 +10,12 @@ export const EDGE_TYPES = [
   "INTEGRATES_WITH",  // System→System
   "PERFORMS_AS",      // Persona→Role
   "PARTICIPATES_IN",  // Persona→UserJourney
-  "CONTRIBUTES_TO",   // KPI→UserJourney, KPI→Activity (with weight)
+  "CONTRIBUTES_TO",   // RETIRED for KPI endpoints (kpi-measurement-alignment FR-05);
+                      // edge type kept for backward compat with pre-migration edges.
   "HAS_KEY_RESULT",  // OKRDirective→KeyResult
   "DRIVES_KPI",       // KeyResult→KPI (with baseline→target delta)
   "HAS_BASELINE",    // KPI→OKRDirective (baseline snapshot)
+  "PARAM_BINDS",     // KPI→Activity/UserJourney/System/Domain (kpi-measurement-alignment FR-08)
 ] as const;
 export type EdgeType = (typeof EDGE_TYPES)[number];
 
@@ -35,10 +37,11 @@ export const EDGE_ENDPOINTS = {
   INTEGRATES_WITH: [["System", "System"]],
   PERFORMS_AS:     [["Persona", "Role"]],
   PARTICIPATES_IN: [["Persona", "UserJourney"]],
-  CONTRIBUTES_TO:  [["KPI", "UserJourney"], ["KPI", "Activity"]],
+  CONTRIBUTES_TO:  [] as const, // RETIRED — KPI endpoints migrated to ALIGNED_TO (FR-05)
   HAS_KEY_RESULT:  [["OKRDirective", "KeyResult"]],
   DRIVES_KPI:      [["KeyResult", "KPI"]],
   HAS_BASELINE:    [["KPI", "OKRDirective"]],
+  PARAM_BINDS:     [["KPI", "Activity"], ["KPI", "UserJourney"], ["KPI", "System"], ["KPI", "Domain"]],
 } as const satisfies Record<EdgeType, ReadonlyArray<readonly [NodeLabel, NodeLabel]>>;
 
 export const edgeCreateSchema = z.object({

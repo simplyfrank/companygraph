@@ -13,7 +13,7 @@ review_passes: 0
 | Design Review | waived (user-approved single-shot) | - | 2026-07-05 |
 | Tasks | approved | user (single-shot) | 2026-07-05 |
 | Task Review | waived (user-approved single-shot) | - | 2026-07-05 |
-| Execution | pending | - | - |
+| Execution | in-progress | - | 2026-07-05 |
 
 **Verification:**
 - `verified_at`: <YYYY-MM-DD>

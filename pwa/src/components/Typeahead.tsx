@@ -197,7 +197,7 @@ export function Typeahead({
         style={{
           width: "100%",
           padding: "8px 10px",
-          border: "1px solid var(--rule, #ddd)",
+          border: "1px solid var(--rule)",
           borderRadius: 4,
           fontSize: 14,
           boxSizing: "border-box",
@@ -217,9 +217,9 @@ export function Typeahead({
               width: rect.width,
               maxHeight: 320,
               overflowY: "auto",
-              background: "var(--bg, #fff)",
-              color: "var(--fg, #111)",
-              border: "1px solid var(--rule, #ddd)",
+              background: "var(--bg)",
+              color: "var(--fg)",
+              border: "1px solid var(--rule)",
               borderRadius: 4,
               boxShadow: "0 6px 16px rgba(0,0,0,0.18)",
               zIndex: 9999,
@@ -249,7 +249,7 @@ export function Typeahead({
                   padding: "6px 10px",
                   cursor: "pointer",
                   background:
-                    idx === selectedIdx ? "var(--accent-bg, #eef)" : "transparent",
+                    idx === selectedIdx ? "var(--accent-bg)" : "transparent",
                 }}
               >
                 {r.name}
@@ -267,12 +267,12 @@ export function Typeahead({
                 style={{
                   padding: "6px 10px",
                   cursor: creating ? "wait" : "pointer",
-                  borderTop: results.length > 0 ? "1px solid var(--rule, #ddd)" : "none",
+                  borderTop: results.length > 0 ? "1px solid var(--rule)" : "none",
                   background:
                     selectedIdx === results.length
-                      ? "var(--accent-bg, #eef)"
+                      ? "var(--accent-bg)"
                       : "transparent",
-                  color: "var(--accent, #1a73e8)",
+                  color: "var(--accent)",
                 }}
               >
                 {creating

@@ -514,9 +514,9 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
   `story_activity_not_in_model`, `not_found`,
   `acceptance_criterion_not_found`) are thrown by the storage layer
   (T-05/T-06/T-07) and pass through.
-- **Verification**: exercised through the route surface by
-  `story-crud.integration.test.ts` (T-05),
-  `acceptance-criteria-crud.integration.test.ts` (T-06), and
+- **Verification**: `api/__tests__/story-crud.integration.test.ts` (T-05) exercises
+  these handlers through the route surface, alongside
+  `acceptance-criteria-crud.integration.test.ts` (T-06) and
   `story-bootstrap.integration.test.ts` (T-07); the clause-required exact-code
   mapping is asserted in `acceptance-criteria-crud.integration.test.ts`
   (AC-04); `bun run typecheck`.
@@ -538,17 +538,22 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
   `^models\/([^/]+)\/stories\/([^/]+)$` (GET, PATCH, DELETE) — **last**. Dispatch
   to the T-08 handlers. (`bootstrap`/`acceptance-criteria` literals never collide
   with a UUIDv7 `:storyId`, but specific-first is kept per the house convention.)
-- **Verification**: covered by the route-surface integration tests
-  (`story-crud`/`acceptance-criteria-crud`/`story-bootstrap`) and by
-  `api/__tests__/story-authz.test.ts` (T-11 — `getRoutePermission` resolves each
-  new route); `bun run typecheck`. **This task's validation checkpoint is the
+- **Verification**: `api/__tests__/story-crud.integration.test.ts` (+
+  `acceptance-criteria-crud.integration.test.ts`,
+  `story-bootstrap.integration.test.ts`) route-surface tests reach this dispatch
+  block, and `api/__tests__/story-authz.test.ts` (T-11) asserts
+  `getRoutePermission` resolves each new route; `bun run typecheck`. **This task's validation checkpoint is the
   first green run of all three T-05/T-06/T-07 integration tests (reading-guide
   C-06 run gate) — run them here.**
 
 ### T-10 — Model isolation integration test (read- + write-side)
 
 - **Files** (1): `api/__tests__/story-model-scope.integration.test.ts` (new)
-- **Implements**: design §3.4, §4.1, DD-06, DD-08 — closes AC-08; supports NFR-02
+- **Implements**: design §3.4, §4.1, DD-06, DD-08 — closes AC-08; supports NFR-02.
+  **Consumes `model-workspace-core` FR-18** (`scopedNodeIds`,
+  `api/src/storage/model-scope.ts`) — this test proves the activity-membership
+  join through that helper (a story id is not itself in `scopedNodeIds`); the
+  helper is consumed, never re-implemented.
 - **Complexity**: moderate
 - **Blocked by**: T-08, T-09
 - **Blocks**: —
@@ -636,8 +641,8 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
   `bootstrap` (each on `/api/v1/models/${modelId}/stories…`) plus a nested `acs`
   block (`list`/`create`/`patch`/`remove` on `…/acceptance-criteria…`). Each read
   accepts an optional `signal`.
-- **Verification**: `bun run typecheck`; consumed + asserted transitively by
-  `pwa/src/__tests__/story-catalog.test.tsx` (T-14).
+- **Verification**: `pwa/src/__tests__/story-catalog.test.tsx` (T-14) consumes and
+  asserts this api client block transitively; `bun run typecheck`.
 
 ### T-14 — StoryCatalog view + detail/edit + four states + view registration
 
@@ -648,7 +653,11 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
   AC-16; **implements-but-does-not-close AC-12, AC-13, AC-14 (sole closer:
   T-15, whose `story-catalog-states.test.tsx` is the verification artifact for
   all three — resolves task-review N-04)**; supports FR-12, FR-13, FR-14,
-  UX-01/02/05/06
+  UX-01/02/05/06. **Consumes `model-workspace-core` FR-17**: this task replaces
+  that spec's `ModelTabPlaceholder` for the `stories` slot in
+  `pwa/src/views/index.tsx` `renderView` with the real `StoryCatalog` (the slot
+  is the only line this spec edits in that file; `route.ts`/`SURFACES` stay
+  `model-workspace-core`'s).
 - **Complexity**: complex
 - **Blocked by**: T-13
 - **Blocks**: T-15, T-16
@@ -834,11 +843,12 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
   comment with a `story-spec-core T-18 (review C-08)` line. No other ci.yml
   change (the integration job already boots the API server the story
   integration files need).
-- **Verification**: CLI — `cd pwa && bunx vitest run
-  src/__tests__/story-catalog.test.tsx src/__tests__/story-detail.test.tsx
-  src/__tests__/story-catalog-states.test.tsx` exits 0 (the exact invocation
-  CI will run), and `grep story-catalog-states .github/workflows/ci.yml`
-  returns the wired line (the gate exists).
+- **Verification**: `pwa/src/__tests__/story-catalog-states.test.tsx` (+
+  `story-catalog.test.tsx`, `story-detail.test.tsx`) run green under the CI-wired
+  invocation `cd pwa && bunx vitest run src/__tests__/story-catalog.test.tsx
+  src/__tests__/story-detail.test.tsx src/__tests__/story-catalog-states.test.tsx`
+  (exit 0 — the exact command CI runs), and `grep story-catalog-states
+  .github/workflows/ci.yml` returns the wired gate line.
 
 ## Cross-cutting verification (whole-spec)
 
@@ -884,3 +894,5 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
 | NFR-05 house rules | T-09, T-11, all | AC-09, AC-18 |
 | NFR-06 tokens-only + conformance | T-14 | AC-15, AC-16 |
 | XD-18 verification mandate | T-17 (+ T-07, T-11) | AC-19 |
+| _consumed_ `model-workspace-core` FR-17 (stories placeholder slot) | T-14 (replaces placeholder → `StoryCatalog`) | — |
+| _consumed_ `model-workspace-core` FR-18 (`scopedNodeIds`) | T-05, T-07, T-10 (activity-membership join) | AC-08 |

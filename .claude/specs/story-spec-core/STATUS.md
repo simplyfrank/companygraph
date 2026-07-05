@@ -84,6 +84,9 @@ T-18 gates (run 2026-07-05, all green):
 - 📄 Tasks: `.claude/specs/story-spec-core/tasks.md` (rev 4, approved — 18 tasks; all executed)
 - 📝 Reviews: `review-requirements.md`, `review-design.md`, `review-tasks.md`
 
+**Changelog:**
+- 2026-07-05: as-built traceability backfill — no phase status changed, no FR/AC/DD/T IDs renumbered. Made `scripts/spec/spec-traceability.sh` print OK (was 7 gaps): (a) the two cross-spec `model-workspace-core` dependency references FR-17 (stories placeholder slot) and FR-18 (`scopedNodeIds`) now cite their real as-built consumers — FR-18 in design §1.1 + tasks T-05/T-07/T-10, FR-17 in design §1.1 + tasks T-14 (the `renderView` placeholder→`StoryCatalog` swap, `pwa/src/views/index.tsx:174`); both added to the tasks traceability summary as _consumed_ rows; (b) inlined a real test path onto the wrapped Verification lines of T-08 (`api/__tests__/story-crud.integration.test.ts`), T-09 (same + `story-authz.test.ts`), T-13 (`pwa/src/__tests__/story-catalog.test.tsx`), and T-18 (`pwa/src/__tests__/story-catalog-states.test.tsx`) so the mechanical check sees each. All cited artifacts verified present on disk; nothing invented, nothing deferred.
+
 **Next**: nothing — all 18 tasks executed and verified; spec is done.
 No further review passes (cap 2/2 consumed).
 

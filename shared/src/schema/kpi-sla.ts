@@ -226,3 +226,42 @@ export const slaComplianceQuerySchema = z.object({
 export const listQuerySchema = z.object({
   include_archived: z.enum(["true", "1"]).optional(),
 });
+
+// ============================================================================
+// Parameter binding schemas (kpi-measurement-alignment FR-08, FR-09)
+//
+// A PARAM_BINDS edge links a KPI parameter (target_value, warning_threshold,
+// critical_threshold) to an entity attribute path. The reconciliation job
+// reads the bound entity attribute and PATCHes the KPI parameter.
+// ============================================================================
+
+export const kpiParamBindingSchema = z.object({
+  id: z.string(),
+  kpi_id: z.string().uuid(),
+  target_type: z.enum(["journey", "activity", "domain", "system"]),
+  target_id: z.string().min(1),
+  parameter: z.enum(["target_value", "warning_threshold", "critical_threshold"]),
+  attribute_path: z.string().min(1).max(500),
+  created_at: z.string().datetime(),
+});
+export type KpiParamBinding = z.infer<typeof kpiParamBindingSchema>;
+
+export const paramBindingCreateRequestSchema = z.object({
+  target_type: z.enum(["journey", "activity", "domain", "system"]),
+  target_id: z.string().min(1),
+  parameter: z.enum(["target_value", "warning_threshold", "critical_threshold"]),
+  attribute_path: z.string().min(1).max(500),
+});
+export type ParamBindingCreateRequest = z.infer<typeof paramBindingCreateRequestSchema>;
+
+export const reconcileResultSchema = z.object({
+  kpi_id: z.string().uuid(),
+  reconciled: z.array(z.object({
+    parameter: z.string(),
+    old_value: z.number(),
+    new_value: z.number(),
+    entity_id: z.string(),
+  })),
+  unchanged: z.array(z.string()),
+});
+export type ReconcileResult = z.infer<typeof reconcileResultSchema>;

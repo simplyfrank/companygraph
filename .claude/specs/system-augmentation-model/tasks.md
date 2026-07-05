@@ -484,10 +484,12 @@ verification amendment** text appears verbatim in T-12 and in STATUS.md.
   `api/__tests__/openapi.integration.test.ts` and
   `api/__tests__/export-import-roundtrip.integration.test.ts` staying green
   (AC-15; confirms no `openapi.json` delta and the export→import round-trip
-  under injection); `bun scripts/design-conformance.ts` from repo root, exit
+  under injection — this leg preserves the graph-core FR-17 round-trip
+  property, the cross-spec dependency recorded against requirements FR-05);
+  `bun scripts/design-conformance.ts` from repo root, exit
   0 with the Systems view clean (AC-14). Then execute the three manual
   repros below and record outcomes in STATUS.md.
-- **Verification**:
+- **Verification**: `bun test:integration` (`api/__tests__/export-import-roundtrip.integration.test.ts` + `api/__tests__/openapi.integration.test.ts` stay green — AC-15) + `bun scripts/design-conformance.ts` exit 0 (AC-14), plus the three manual legs below:
   manual: (AC-10 mouse) open `http://127.0.0.1:5173/#/explorer/systems?kind=agentic` in macOS Chrome and reload with the mouse — expect only agentic rows and the Agentic control shown pressed after reload;
   manual: (AC-10 touch) expose the dev PWA via a temporary `vite --host` LAN bind (API stays loopback; Vite proxies `/api/v1`) — or macOS Safari responsive design mode as fallback — open `#/explorer/systems` on iPhone Safari and tap each of the four filter controls in turn — expect each tap to activate the intended control without mis-taps and the table/chart to narrow;
   manual: (AC-13 keyboard) keyboard-only in macOS Safari — Tab to `Agentic`, press Enter — verify the table narrows and the focus ring stays visible;

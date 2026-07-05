@@ -375,7 +375,10 @@ semantics are untouched: `attributes` present → whole-map validation;
 The `/api/v1/export` route is untouched: post-migration every System
 carries `systemKind`, so export→import round-trips exactly; pre-migration
 export files round-trip via injection (AC-15 keeps
-`export-import-roundtrip.integration.test.ts` green).
+`export-import-roundtrip.integration.test.ts` green). This preserves the
+graph-core FR-17 export→import round-trip property under the tightened
+`System` schema (the cross-spec dependency recorded against
+requirements FR-05).
 
 ### 4.6 System-writing path inventory (Risk 3)
 

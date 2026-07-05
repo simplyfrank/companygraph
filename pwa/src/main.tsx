@@ -12,11 +12,17 @@ createRoot(root).render(
 );
 
 // T-18: Service worker registration (FR-27 / AC-20).
-// Graceful failure: Safari private mode, quota exhaustion, and user
-// denial all cause register() to reject — the app proceeds without
-// offline support. AC-20 verifies degradation.
+// Production-only: the SW caches shell assets and API reads, which
+// interferes with Vite HMR and bun --hot in dev mode. In dev we
+// actively unregister any stale SW so changes are always visible.
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch((err) => {
-    console.warn("[pwa] SW registration failed:", err);
-  });
+  if (import.meta.env.PROD) {
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.warn("[pwa] SW registration failed:", err);
+    });
+  } else {
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      for (const reg of regs) reg.unregister();
+    });
+  }
 }

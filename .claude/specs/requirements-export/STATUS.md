@@ -37,4 +37,16 @@ review_passes: 0
 - 📄 Requirements: `.claude/specs/requirements-export/requirements.md`
 - 📄 Tasks: `.claude/specs/requirements-export/tasks.md` (11 tasks; small spec — no design/review)
 
+**Changelog:**
+- 2026-07-05: as-built traceability backfill — added `model-workspace-core` FR-13
+  (`model_not_found`, reused by T-04/T-05a) + FR-18 (`scopedNodeIds`, consumed by
+  T-02/T-07/T-11) upstream-dependency references to tasks.md so both trace; gave
+  T-04 an as-built Verification (unit-covered assembler/renderer + manual route
+  repro; integration deferred), recorded T-07 as **DEFERRED** with a manual repro
+  (its five `spec-export-*.integration.test.ts` files do not exist — blocked on
+  live Neo4j + unlanded `kpi-impact-mapping` routes), and gave T-09 a real
+  Verification (`pwa/__tests__/spec-export.test.ts` + typecheck; `specExport`
+  client shipped at `pwa/src/api.ts:1518-1531`). `spec-traceability.sh
+  .claude/specs/requirements-export` prints OK. No phase status changed.
+
 **Next**: Present tasks at the gate for approval; on approval, execute (small spec skips design + reviews). Execution is **blocked by build order** — all five dependencies (`story-spec-core`, `key-activity-optimizer`, `kpi-impact-mapping`, `ddd-system-modeling`) + transitive `model-workspace-core` must merge first (wave 5). Orchestrator: surface OQ-1 (in-process seam) + OQ-2 (hand-rolled Markdown) in the consolidated report (XD-17).

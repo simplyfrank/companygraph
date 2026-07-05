@@ -789,7 +789,8 @@ numeric sequence because stable IDs are never renumbered.)*
 - **Steps**: Add `models` client methods: `list`, `get`, `create`, `patch`, `archive`,
   `remove`, `listInstances` (typed against the T-01 shared schemas). No instantiate
   method (instance authoring is downstream, §3.4).
-- **Verification**: `bun run typecheck`; direct assertion credited to this
+- **Verification**: `pwa/src/__tests__/model-workspace.test.tsx` — plus
+  `bun run typecheck`; direct assertion credited to this
   task (rev 5, fresh-cycle N-01): the **ready-state list rendering** in
   `pwa/src/__tests__/model-workspace.test.tsx` consumes `api.models.list()`'s
   typed return shape end-to-end — that assertion is T-19's proof (T-20 owns
@@ -974,7 +975,8 @@ ineffective under Neo4j's read-committed isolation — B-01.)*
      deterministically even if any future edit reintroduces a gate bug.
   The one-sentence §4.4 doc half of C-13 belongs to the design author, not
   this task (durable anchor: Cross-cutting verification section, per N-03).
-- **Verification** *(hardened per B-01 — a 2-request race is probabilistic
+- **Verification**: `api/__tests__/module-fork.integration.test.ts`
+  *(hardened per B-01 — a 2-request race is probabilistic
   and would routinely pass against a broken gate)*: extend
   `api/__tests__/module-fork.integration.test.ts` —
   (a) **deterministic constraint arm**: after `applySchema`, `SHOW
@@ -1017,7 +1019,8 @@ user in rev-5 gate #1.)*
   `ModuleInstance`s about to be orphaned when that count is > 0 (read-only
   `MATCH` for the count; **no change to what is deleted**; the line is
   absent when the count is 0).
-- **Verification** *(automated per rev-5 tasks-review C-03 — the warning is
+- **Verification**: `api/__tests__/model-migration.integration.test.ts`
+  *(automated per rev-5 tasks-review C-03 — the warning is
   a testable output and the covering test already exercises the forced
   `--down` path)*: extend
   `api/__tests__/model-migration.integration.test.ts` — in the existing

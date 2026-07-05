@@ -20,6 +20,7 @@
     "graphology-metrics": "^2.4.0",
     "js-yaml": "^4.1.0",
     "json-schema-to-zod": "^2.6.0",
+    "kafkajs": "^2.2.4",
     "lru-cache": "^10.4.3",
     "neo4j-driver": "^5.26.0",
     "node-cron": "^3.0.3",
