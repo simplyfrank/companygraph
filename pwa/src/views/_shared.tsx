@@ -24,6 +24,18 @@ export function ErrorState({ message }: { message: string }) {
   return <div className={`${styles.state} ${styles.error}`} data-testid="error-state">Error: {message}</div>;
 }
 
+export function EmptyState({ what }: { what: string }) {
+  return <div className={styles.state} data-testid="empty-state">No {what} found.</div>;
+}
+
+export function ViewRegion({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section role="region" aria-label={label}>
+      {children}
+    </section>
+  );
+}
+
 // FR-14 / AC-11 — deep-link 404 panel. Mounted when an entity-detail
 // view's `api.get*(id)` returns `404 not_found`, or when the dispatcher
 // can't resolve a surface/tab combination. Always renders a tappable

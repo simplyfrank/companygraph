@@ -84,6 +84,8 @@ export const SURFACES: Surface[] = [
       { id: "risk",      label: "Risk" },
       { id: "kpi-management", label: "KPI Management" },
       { id: "okr-management", label: "OKR Management" },
+      // kpi-okr-performance-dashboards: exec performance tab
+      { id: "performance", label: "Performance" },
     ],
   },
   {

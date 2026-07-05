@@ -328,3 +328,130 @@ async function countForkNodes(instanceId: string): Promise<number> {
     await session.close();
   }
 }
+
+// T-24 (design-review C-13; rewritten per tasks-review B-01) — fork
+// concurrency gate: lock-first-then-recheck + uniqueness constraints.
+describe("integration: model-workspace-core T-24 fork concurrency gate", () => {
+  test("(a) deterministic constraint arm: uniqueness constraints exist, superseded indexes gone, duplicate forkLocalKey fails", async () => {
+    const driver = getDriver();
+    const session = driver.session({ defaultAccessMode: "READ" });
+    try {
+      const constraints = await session.run(
+        `SHOW CONSTRAINTS WHERE name IN [
+          'user_journey_fork_local_key_unique',
+          'activity_fork_local_key_unique'
+        ] RETURN name AS name`,
+      );
+      const names = constraints.records.map((r) => r.get("name") as string);
+      expect(names).toContain("user_journey_fork_local_key_unique");
+      expect(names).toContain("activity_fork_local_key_unique");
+
+      // Superseded lookup indexes are gone.
+      const indexes = await session.run(
+        `SHOW INDEXES WHERE name IN [
+          'user_journey_fork_local_key',
+          'activity_fork_local_key'
+        ] RETURN name AS name`,
+      );
+      const idxNames = indexes.records.map((r) => r.get("name") as string);
+      expect(idxNames).not.toContain("user_journey_fork_local_key");
+      expect(idxNames).not.toContain("activity_fork_local_key");
+    } finally {
+      await session.close();
+    }
+
+    // A direct-driver attempt to CREATE a second node with an existing
+    // forkLocalKey fails with ConstraintValidationFailed.
+    const inst = await newInstance();
+    await api("PATCH", `/models/${fx.modelId}/module-instances/${inst.id}/nodes/${inst.id}::a0`, {
+      description: "fork for constraint test",
+    });
+    const forked = await readInstance(inst.id);
+    const existingFlk = forked.content.activities[0]!.forkLocalKey!;
+    const wSession = driver.session();
+    try {
+      await expect(
+        wSession.executeWrite((tx) =>
+          tx.run(
+            `CREATE (n:Activity {id: $id, name: $name, description: $desc, createdAt: $now, updatedAt: $now, attributes_json: "{}", forkLocalKey: $flk})`,
+            { id: "01900000-0000-7000-8000-00000000dup1", name: "dup", desc: "dup", now: new Date().toISOString(), flk: existingFlk },
+          ),
+        ),
+      ).rejects.toThrow();
+    } finally {
+      await wSession.close();
+    }
+  });
+
+  test("(b) storage-level race loop: N concurrent forkInstance calls on fresh instances → exactly one materialized subtree each", async () => {
+    const driver = getDriver();
+    const { forkInstance } = await import("../src/storage/modules");
+    const N = 10;
+    for (let i = 0; i < N; i++) {
+      const inst = await newInstance();
+      // Fire paired concurrent forkInstance calls.
+      const [a, b] = await Promise.all([
+        forkInstance(driver, inst.id),
+        forkInstance(driver, inst.id),
+      ]);
+      // Both resolved without error.
+      expect(a).toBeDefined();
+      expect(b).toBeDefined();
+      // Exactly one materialized subtree — count live nodes with this
+      // instance's forkLocalKey prefix.
+      const count = await countForkNodes(inst.id);
+      expect(count).toBeGreaterThan(0);
+      // No duplicate forkLocalKey values.
+      const session = driver.session({ defaultAccessMode: "READ" });
+      try {
+        const dupes = await session.run(
+          `MATCH (n) WHERE n.forkLocalKey STARTS WITH $prefix
+           WITH n.forkLocalKey AS flk, count(*) AS cnt
+           WHERE cnt > 1
+           RETURN count(flk) AS dupes`,
+          { prefix: `${inst.id}::` },
+        );
+        expect((dupes.records[0]?.get("dupes") as number) ?? 0).toBe(0);
+        // No _forkLock property remains.
+        const lockCheck = await session.run(
+          `MATCH (i:ModuleInstance {id: $id}) WHERE i._forkLock IS NOT NULL RETURN count(i) AS c`,
+          { id: inst.id },
+        );
+        expect((lockCheck.records[0]?.get("c") as number) ?? 0).toBe(0);
+      } finally {
+        await session.close();
+      }
+    }
+  });
+
+  test("(c) HTTP smoke: two concurrent first edits on a fresh instance → both succeed, single subtree", async () => {
+    const inst = await newInstance();
+    const [p1, p2] = await Promise.all([
+      api<{ id: string }>("PATCH", `/models/${fx.modelId}/module-instances/${inst.id}/nodes/${inst.id}::a0`, {
+        description: "concurrent edit 1",
+      }),
+      api<{ id: string }>("PATCH", `/models/${fx.modelId}/module-instances/${inst.id}/nodes/${inst.id}::a1`, {
+        description: "concurrent edit 2",
+      }),
+    ]);
+    expect(p1.status).toBe(200);
+    expect(p2.status).toBe(200);
+    // Single subtree — no duplicate forkLocalKey values.
+    const count = await countForkNodes(inst.id);
+    expect(count).toBeGreaterThan(0);
+    const driver = getDriver();
+    const session = driver.session({ defaultAccessMode: "READ" });
+    try {
+      const dupes = await session.run(
+        `MATCH (n) WHERE n.forkLocalKey STARTS WITH $prefix
+         WITH n.forkLocalKey AS flk, count(*) AS cnt
+         WHERE cnt > 1
+         RETURN count(flk) AS dupes`,
+        { prefix: `${inst.id}::` },
+      );
+      expect((dupes.records[0]?.get("dupes") as number) ?? 0).toBe(0);
+    } finally {
+      await session.close();
+    }
+  });
+});

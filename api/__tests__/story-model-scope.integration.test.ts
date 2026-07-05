@@ -8,6 +8,7 @@ import {
   buildModelWithJourney,
   type JourneyFixture,
 } from "./helpers/model-fixtures";
+import { ensureStorySchema } from "./helpers/story-fixtures";
 
 // story-spec-core T-10 / AC-08 (NFR-02) — two-model isolation proof.
 // Read-side: model A's list returns A's attached stories and excludes
@@ -40,6 +41,7 @@ const listStories = async (modelId: string) =>
 
 describe("integration: story-spec-core AC-08 model isolation", () => {
   beforeAll(async () => {
+    await ensureStorySchema();
     a = await buildModelWithJourney(cleanup, "storyscopeA");
     b = await buildModelWithJourney(cleanup, "storyscopeB");
     const sa = await api<{ id: string }>("POST", `/models/${a.modelId}/stories`, {

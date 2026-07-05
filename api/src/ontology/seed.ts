@@ -139,6 +139,69 @@ export async function seedBoundedContexts(driver: Driver): Promise<void> {
         to: rel.to,
       });
     }
+
+    // Import shared domains — reusable workflow components not scoped
+    // to a single BusinessModel.  Each shared domain links to its
+    // bounded contexts via BELONGS_TO_SHARED_DOMAIN.
+    for (const sd of spec.sharedDomains || []) {
+      await session.run(`
+        MERGE (sd:SharedDomain {id: $id})
+        SET sd.name = $name,
+            sd.description = $description,
+            sd.tags = $tags
+      `, {
+        id: sd.id,
+        name: sd.name,
+        description: sd.description,
+        tags: sd.tags,
+      });
+      for (const bcName of sd.bounded_contexts || []) {
+        await session.run(`
+          MATCH (sd:SharedDomain {id: $sdId})
+          MATCH (bc:BoundedContext {name: $bcName})
+          MERGE (bc)-[:BELONGS_TO_SHARED_DOMAIN]->(sd)
+        `, {
+          sdId: sd.id,
+          bcName,
+        });
+      }
+    }
+
+    // Import namespaces — business model specific work separation.
+    // Each namespace is scoped to a BusinessModel via NAMESPACE_OF and
+    // links to its bounded contexts via IN_NAMESPACE.
+    for (const ns of spec.namespaces || []) {
+      await session.run(`
+        MERGE (ns:Namespace {id: $id})
+        SET ns.name = $name,
+            ns.description = $description,
+            ns.model_id = $model_id
+      `, {
+        id: ns.id,
+        name: ns.name,
+        description: ns.description,
+        model_id: ns.model_id,
+      });
+      // Link namespace to BusinessModel if it exists
+      await session.run(`
+        MATCH (ns:Namespace {id: $nsId})
+        MATCH (m:BusinessModel {id: $modelId})
+        MERGE (ns)-[:NAMESPACE_OF]->(m)
+      `, {
+        nsId: ns.id,
+        modelId: ns.model_id,
+      });
+      for (const bcName of ns.bounded_contexts || []) {
+        await session.run(`
+          MATCH (ns:Namespace {id: $nsId})
+          MATCH (bc:BoundedContext {name: $bcName})
+          MERGE (bc)-[:IN_NAMESPACE]->(ns)
+        `, {
+          nsId: ns.id,
+          bcName,
+        });
+      }
+    }
   } finally {
     await session.close();
   }

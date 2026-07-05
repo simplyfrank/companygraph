@@ -12,11 +12,7 @@
 import { getDriver } from "../neo4j/driver";
 import { createNodeLabel } from "../ontology/storage/node-labels";
 import { createEdgeType } from "../ontology/storage/edge-types";
-import {
-  parseRdfJsonLd,
-  parseRdfTurtle,
-  parseRdfNTriples,
-} from "../ontology/rdf/parser";
+import { parseRdfJsonLd, parseRdfTurtle, parseRdfNTriples, type ParsedOntology } from "../ontology/rdf/parser";
 import { ok, error, readJson } from "./_helpers";
 import { ontologyEvents } from "../ontology/events";
 
@@ -24,17 +20,17 @@ export async function handleRdfImport(req: Request): Promise<Response> {
   const driver = getDriver();
   const url = new URL(req.url);
   const format = url.searchParams.get("format") || "jsonld";
-  const actor = "system"; // TODO: Get from auth context
+  const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
 
   try {
-    const body = await readJson(req);
-    const content = body.content as string;
+    const body = await readJson(req) as { content?: string };
+    const content = body.content;
 
     if (!content) {
       return error(400, "invalid_payload", "Missing content field");
     }
 
-    let parsed: { classes: Array<{ name: string; description?: string; iri: string }>; properties: Array<{ name: string; description?: string; domain: string; range: string; iri: string }> };
+    let parsed: ParsedOntology;
 
     switch (format.toLowerCase()) {
       case "jsonld":
@@ -87,7 +83,7 @@ export async function handleRdfImport(req: Request): Promise<Response> {
             name: prop.name,
             description: prop.description || "",
             usage_example: "",
-            endpoints: [{ fromLabel: prop.domain, toLabel: prop.range }],
+            endpoints: [{ fromLabel: prop.domain ?? "Unknown", toLabel: prop.range ?? "Unknown" }],
             external_alignment: [{ source: "rdf_import", id: prop.iri }],
           },
           actor,
@@ -98,9 +94,13 @@ export async function handleRdfImport(req: Request): Promise<Response> {
       }
     }
 
-    // Only emit cache invalidation if the import fully succeeded.
     if (results.errors.length === 0) {
-      ontologyEvents.emit();
+      ontologyEvents.emit("ontology.changed", {
+        event_id: crypto.randomUUID(),
+        version_id: crypto.randomUUID(),
+        ts: new Date().toISOString(),
+        diff: [],
+      });
     }
     return ok(results);
   } catch (e) {

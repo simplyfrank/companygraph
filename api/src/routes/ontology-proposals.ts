@@ -35,7 +35,7 @@ export async function handleOntologyProposals(req: Request): Promise<Response> {
 
 export async function handleCreateOntologyProposal(req: Request): Promise<Response> {
   const driver = getDriver();
-  const actor = "system"; // TODO: Get from auth context
+  const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
 
   const body = await readJson(req);
   const parsed = ontologyProposalSchema.safeParse(body);
@@ -46,7 +46,12 @@ export async function handleCreateOntologyProposal(req: Request): Promise<Respon
   }
 
   const proposal = await createOntologyProposal(driver, parsed.data, actor);
-  ontologyEvents.emit();
+  ontologyEvents.emit("ontology.changed", {
+    event_id: proposal.id,
+    version_id: proposal.id,
+    ts: new Date().toISOString(),
+    diff: [],
+  });
   return ok(proposal);
 }
 
@@ -70,7 +75,7 @@ export async function handlePatchOntologyProposal(req: Request): Promise<Respons
   const driver = getDriver();
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
-  const actor = "system"; // TODO: Get from auth context
+  const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
 
   if (!id) {
     return error(400, "invalid_payload", "Missing proposal id");
@@ -85,7 +90,12 @@ export async function handlePatchOntologyProposal(req: Request): Promise<Respons
   }
 
   const proposal = await patchOntologyProposal(driver, id, parsed.data, actor);
-  ontologyEvents.emit();
+  ontologyEvents.emit("ontology.changed", {
+    event_id: id,
+    version_id: id,
+    ts: new Date().toISOString(),
+    diff: [],
+  });
   return ok(proposal);
 }
 
@@ -93,13 +103,18 @@ export async function handleDeleteOntologyProposal(req: Request): Promise<Respon
   const driver = getDriver();
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
-  const actor = "system"; // TODO: Get from auth context
+  const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
 
   if (!id) {
     return error(400, "invalid_payload", "Missing proposal id");
   }
 
   await deleteOntologyProposal(driver, id, actor);
-  ontologyEvents.emit();
+  ontologyEvents.emit("ontology.changed", {
+    event_id: id,
+    version_id: id,
+    ts: new Date().toISOString(),
+    diff: [],
+  });
   return ok({ success: true });
 }

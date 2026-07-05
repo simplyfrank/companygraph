@@ -42,7 +42,7 @@ export async function handleComplianceRules(req: Request): Promise<Response> {
 export async function handleCreateComplianceRule(req: Request): Promise<Response> {
   const driver = getDriver();
   const body = await readJson(req);
-  const actor = "system"; // TODO: Get from auth context
+  const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
 
   const parsed = complianceRuleSchema.safeParse(body);
   if (!parsed.success) {
@@ -52,7 +52,12 @@ export async function handleCreateComplianceRule(req: Request): Promise<Response
   }
 
   const rule = await createComplianceRule(driver, parsed.data, actor);
-  ontologyEvents.emit();
+  ontologyEvents.emit("ontology.changed", {
+    event_id: rule.id,
+    version_id: rule.id,
+    ts: new Date().toISOString(),
+    diff: [],
+  });
   return ok(rule);
 }
 
@@ -76,7 +81,7 @@ export async function handlePatchComplianceRule(req: Request): Promise<Response>
   const driver = getDriver();
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
-  const actor = "system"; // TODO: Get from auth context
+  const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
 
   if (!id) {
     return error(400, "invalid_payload", "Missing rule id");
@@ -91,7 +96,12 @@ export async function handlePatchComplianceRule(req: Request): Promise<Response>
   }
 
   const rule = await patchComplianceRule(driver, id, parsed.data, actor);
-  ontologyEvents.emit();
+  ontologyEvents.emit("ontology.changed", {
+    event_id: id,
+    version_id: id,
+    ts: new Date().toISOString(),
+    diff: [],
+  });
   return ok(rule);
 }
 
@@ -99,14 +109,19 @@ export async function handleDeleteComplianceRule(req: Request): Promise<Response
   const driver = getDriver();
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
-  const actor = "system"; // TODO: Get from auth context
+  const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
 
   if (!id) {
     return error(400, "invalid_payload", "Missing rule id");
   }
 
   await deleteComplianceRule(driver, id, actor);
-  ontologyEvents.emit();
+  ontologyEvents.emit("ontology.changed", {
+    event_id: id,
+    version_id: id,
+    ts: new Date().toISOString(),
+    diff: [],
+  });
   return noContent();
 }
 

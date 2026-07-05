@@ -3,13 +3,15 @@ feature: "model-workspace-core"
 created: "2026-07-04"
 author: "spec-author"
 status: "approved"
-revision: 4
-reviewing_requirements_revision: 4
+revision: 6
+reviewing_requirements_revision: 5
 reviewing_design_revision: 4
 review_pass_1: "approve (0 blockers, 3 concerns, 3 nits) — all folded into rev 2"
 review_pass_2: "revise of rev 2 (4 blockers, 3 concerns, 3 nits) folded into rev 3; final on-disk re-review: approve of rev 3 (0 blockers, 3 concerns, 2 nits; cap 2/2) — residuals + the requirements rev-4 C-10 sync folded into rev 4 (post-approval sync, not a new review pass)"
+review_cycle_2_pass_1: "approve of rev 4 (0 blockers, 3 concerns, 2 nits) — fresh post-execution cycle; superseded on disk by the rev-5 review below; its C-01/C-02/C-03/N-01/N-02 are folded into rev 5, which also added the gated delta tasks T-23..T-25 mandated by the fresh requirements pass-2 review (B-03/C-12) and the fresh design review (C-13/N-13)"
+review_cycle_3_pass_1: "revise of rev 5 (1 blocker, 3 concerns, 3 nits; pass 1/2 on the delta slice) — B-01 (T-24 gate ineffective under read-committed) + C-01/C-02/C-03 + N-01/N-02/N-03 all folded into rev 6; pass 2/2 remains available to close the phase"
 size: "large"
-total_tasks: 22
+total_tasks: 25
 ---
 
 # Tasks: model-workspace-core
@@ -20,7 +22,11 @@ total_tasks: 22
   / `Blocks`); no out-of-order execution. **T-22 is physically slotted between
   T-08 and T-09**, and **T-19 is physically slotted before T-18** (T-18's steps
   consume T-19's `api.ts` methods — resolves final-review C-01); IDs are out of
-  numeric sequence because stable IDs are never renumbered.
+  numeric sequence because stable IDs are never renumbered. **T-23…T-25
+  (added in rev 5, revised in rev 6 per the rev-5 tasks review — B-01,
+  C-01…C-03) are appended after T-21** and are **gated** — see the rev-5
+  preconditions; they never reorder or reopen T-01…T-22, which are executed
+  and verified (STATUS.md ledger).
 - **Deferred-green rule (resolves final-review C-02)**: integration tests
   `fetch` a running API on `127.0.0.1:8787`, so **HTTP-level** assertions
   (status codes; fixtures via `POST /models/:id/domains`,
@@ -69,7 +75,7 @@ total_tasks: 22
 
 | Design decision (rev 3) | Binding for execution | Locked in task |
 |-------------------------|-----------------------|----------------|
-| **§3.4 (B-02 resolution)** — every materialized fork node carries `forkLocalKey = "<instanceId>::<localKey>"` (the **full instance-qualified synthetic id**, never the bare snapshot key). Membership of a raw UUID = `forkLocalKey STARTS WITH "<instanceId>::"`; synthetic-id resolution = exact `forkLocalKey` equality; the forked read anchors on `{forkLocalKey: "<instanceId>::journey"}`. Index-backed (§4.3). | Fork writes the instance-qualified value; all three resolutions query that one property; the two lookup indexes exist. | T-08 (fork + resolution) + T-03 (indexes) + `module-fork.integration.test.ts` fixture (two instances of one module under one Domain → distinct subtrees) |
+| **§3.4 (B-02 resolution)** — every materialized fork node carries `forkLocalKey = "<instanceId>::<localKey>"` (the **full instance-qualified synthetic id**, never the bare snapshot key). Membership of a raw UUID = `forkLocalKey STARTS WITH "<instanceId>::"`; synthetic-id resolution = exact `forkLocalKey` equality; the forked read anchors on `{forkLocalKey: "<instanceId>::journey"}`. Index-backed (§4.3). | Fork writes the instance-qualified value; all three resolutions query that one property; the two lookups are index-backed. *(Rev 6, fresh tasks-review B-01: T-24 supersedes T-03's two lookup indexes with `forkLocalKey` **uniqueness constraints** on `UserJourney`/`Activity` — the constraint-backing RANGE indexes serve the same equality + `STARTS WITH` lookups, and the constraints make "globally unique by construction" deterministic under concurrency.)* | T-08 (fork + resolution) + T-03 (indexes; superseded by T-24's constraints) + `module-fork.integration.test.ts` fixture (two instances of one module under one Domain → distinct subtrees) |
 | **D-4** — requirements AC-06's "generic write on a version-owned node → `409 module_version_immutable`" arm is unreachable under the blob-snapshot model. A generic write to a `BusinessModuleVersion` node returns `409 model_lifecycle_route_required`; `module_version_immutable` is reachable **only** through the explicit-version publish collision (§4.4). | The AC-06 test asserts exactly this single reading. | T-06 (explicit-version collision — proven in `module-publish.integration.test.ts`) + T-08 + T-10 (generic-write 409s — proven in `module-fork.integration.test.ts` + `model-crud.integration.test.ts`) — crediting fixed per final-review N-02 |
 | **D-1** — no `?model=<id>` query param on any GET in this spec; scope resolves from the `:modelId` **path** param. | No GET gains a `?model=` param; isolation proven by the `scopedNodeIds` test + the path-scoped instance list. | T-04 (helper + test) + T-11 (instance list route) + `model-scope.integration.test.ts` |
 | **D-2** — instantiate body carries a **required `targetDomainId`** (FR-07's `{moduleId, version?}` is superseded). | `instanceCreateSchema` requires it; bad/foreign domain → 400. | T-01 + T-07 |
@@ -97,11 +103,47 @@ design §2.1 and `STATUS.md`.)
    as approve (of rev 3; cap 2/2) and design rev 4 as a post-approval
    reconciliation.
 
-**One orchestrator item remains before further source edits**: gate design
-rev 4 (`design.md` frontmatter `status: revised` → `approved`) without a new
-review pass — the cap is 2/2, the review approved rev 3, and rev 4 adds no
-contract beyond the requirements-mandated `--force`. `spec-gate-check` blocks
-source-file edits on design-named files while design status is not `approved`.
+**Rev-4 gate history (closed)**: design rev 4 was gated on disk — `design.md`
+frontmatter now reads `status: approved`. The former "one remaining item" of
+this section is done (fresh-cycle tasks-review C-02, design half).
+
+### Rev-5 gates (block **T-23…T-25 only** — T-01…T-22 are executed + verified)
+
+1. **User decision (requirements pass-2 B-03)**: confirm fix **option 1**
+   (`POST /api/v1/import` rejects lifecycle labels/edges with
+   `409 model_lifecycle_route_required`, write-nothing; lifecycle-aware
+   backup/restore explicitly out of scope with a named future owner) over
+   **option 2** (declare `data:write` import the sanctioned bulk/restore
+   escape hatch; NFR-04/FR-08 reworded, an AC pins the bypass). T-23 is
+   authored to option 1 — the reviewer's recommendation, matching the shipped
+   T-10 guard's philosophy. **If the user picks option 2, T-23 as authored is
+   invalid** (rev-5 tasks-review C-02): this artifact then requires a further
+   revision (rev 7) re-cutting T-23 as a requirements-wording + AC-pinning
+   task **before** execution — never a silent re-cut.
+2. **Requirements rev 5 lands and is gated** (applied orchestrator-side per
+   the pass-2 review's cap note): the chosen B-03 fix text + new **AC-22**,
+   the C-12 `POST /api/v1/nodes/:label` guard-arm parenthetical, the C-13
+   D-2/D-3 body fold, N-08's label-count wording, N-09's implicit-coverage
+   note. `requirements.md` frontmatter flips `revised` → `approved` only then
+   (fresh-cycle tasks-review C-02, requirements half — it must NOT flip while
+   the pass-2 revise verdict is unaddressed). **At this gate the orchestrator
+   additionally diffs the landed AC-22 text against T-23's Verification**
+   (rev-5 tasks-review C-02): the `409 model_lifecycle_route_required` code,
+   the write-nothing semantics, the lifecycle-free round-trip staying
+   unaffected, and the C-12 generic-create arm must all appear in AC-22 as
+   landed — and option 1 must be confirmed — before either frontmatter flips.
+   Stated plainly: **approval of this artifact is conditional until then** —
+   T-23 cites an AC that does not yet exist upstream, so it is unverifiable
+   against requirements text until rev 5 lands.
+3. **Orchestrator gates tasks rev 6** (`status: revised` → `approved`). A
+   further tasks-review pass is **not owed, but may be commissioned** (rev-5
+   tasks-review N-01 — new tasks are reviewable scope even when a prior
+   pass's verdict was approve; on-disk `review-*.md` files remain
+   authoritative over any ledger claim, per the C-01 resolution). The pass
+   commissioned on rev 5 returned **revise** (B-01); rev 6 folds every
+   finding, and the remaining pass 2/2 can close the phase. The matching
+   STATUS.md wording fix is orchestrator-side (this artifact does not edit
+   STATUS.md).
 
 ## Task-review pass 1 — resolutions (rev 2)
 
@@ -155,6 +197,50 @@ post-approval sync, not a new review pass.
 | **C-03** — preconditions recorded but not actioned on disk | Actioned: requirements rev 4 + STATUS.md correction are landed; preconditions section updated to reflect it; the one remaining orchestrator item (gate design rev 4) is named there. | preconditions |
 | N-01 — T-10's test-edit ownership implicit | Explicit step: T-10 **adds** the two generic-route 409 assertions to the existing test files. | T-10 |
 | N-02 — D-4 pins-row credit imprecise | Row now credits T-06's half to `module-publish.integration.test.ts` and T-10's generic-write half to the fork/crud files. | pins table |
+
+## Fresh post-execution review cycle (2026-07-04) — resolutions (rev 5)
+
+After T-01…T-22 executed and verified (STATUS.md ledger, 2026-07-04T20:07Z),
+the orchestrator commissioned a **fresh review cycle** of all three rev-4
+artifacts. On-disk verdicts: requirements pass 2 → **revise** (B-03 + C-12,
+C-13, N-08, N-09); design pass 1 → **approve** (C-13 fork race; N-13…N-16);
+tasks pass 1 → **approve** (C-01…C-03, N-01, N-02). Rev 5 folds every
+tasks-review finding and adds a **gated delta slice (T-23…T-25)** for the
+upstream findings that require source changes. The delta tasks execute only
+after the rev-5 gates in the preconditions section close.
+
+| Finding | Resolution | Where |
+|---------|------------|-------|
+| **req B-03** — `POST /api/v1/import` (MERGE-on-id, any label, `data:write`) bypasses the FR-08 lifecycle guard entirely, falsifying FR-08's "only through the lifecycle routes" and NFR-04's "enforced server-side" | New **T-23** implements the reviewer-prescribed **option 1**: import rejects lifecycle labels/edges (`409 model_lifecycle_route_required`, write-nothing), pending the requirements rev-5 fold (FR-08 amendment + new **AC-22** + a backup/restore scope boundary). Option 2 stays open until the user confirms — rev-5 gate #1. | T-23 |
+| **req C-12** — FR-08's guard parenthetical omits `POST /api/v1/nodes/:label`; the shipped guard covers it but no test pins the create arm | T-23 adds the generic-create 409 assertion to `model-crud.integration.test.ts` (rides with the same requirements rev-5 text fix). | T-23 |
+| **req C-13 / N-08 / N-09** — D-2/D-3 errata-only in the FR-06/FR-07 body rows; AC-01 label-count wording; domains route's implicit AC coverage unnamed | Requirements-text fixes only — no task impact. Owner: requirements rev 5 (orchestrator-side; rev-5 gate #2). | — |
+| **design C-13** — concurrent first-edit fork race: the shipped check (`readInstanceRow` → `row.forked`) and the materialization run in **separate** transactions, so two concurrent first edits can both materialize → duplicate `forkLocalKey`, breaking §3.4's "globally unique by construction" | New **T-24**: check-and-set inside **one `executeWrite`** whose first statement is the conditional gate `MATCH (i:ModuleInstance {id:$id}) WHERE i.forked = false SET i.forked = true` — the write-lock serializes racers; the loser takes the already-forked read-back path. The reviewer's belt-and-suspenders alternative (`forkLocalKey` uniqueness constraints) is not taken — flagged to the user. The §4.4 one-sentence doc half belongs to the design author at next touch. **[Superseded in rev 6 — rev-5 tasks-review B-01: that conditional-SET gate is Neo4j's documented lost-update pattern under read-committed (the `WHERE` filter is not re-evaluated after lock acquisition) and does NOT serialize racers. T-24 is rewritten with a lock-first-then-recheck gate AND the uniqueness constraints; see the rev-6 resolutions table and T-24 as now written.]** | T-24 |
+| **design N-13** — forced `--down` `DETACH DELETE`s the reference root, silently orphaning Model #1's `ModuleInstance`s (and, if forked, their live subtrees) | New **T-25** (doc-default per the nit's lighter option): script-header limitation under the existing "entered knowingly" block + one stderr warning with the about-to-be-orphaned instance count. The alternative (delete Model #1's instances on `--down`) is flagged to the user in rev-5 gate #1. | T-25 |
+| **design N-14/N-15/N-16** — "hash query param" wording (§4.9); `bun` vs `bun run` command drift; §3.3 snapshot example missing activity `description` | `design.md` text fixes; the review confirms shipped code is correct on all three. No task. Owner: design author at next touch. | — |
+| **tasks C-01** — the review ledger ("cap 2/2, no further review") and the commissioned fresh pass-1 review of rev 4 contradict each other | Reconciled: frontmatter `review_cycle_2_pass_1` + the rewritten STATUS.md record the fresh cycle explicitly; the **on-disk `review-*.md` files are authoritative**, superseding ledger claims that pointed at the overwritten rev-3 reviews. | frontmatter, STATUS.md |
+| **tasks C-02** — execution outran the stated gate: upstream frontmatters read `revised` while design-named source files were already edited | Design half resolved on disk (`design.md` is `approved`). Requirements half deliberately **not** flipped: the fresh pass-2 verdict is revise (B-03), so `requirements.md` stays `revised` until rev 5 folds the findings (rev-5 gate #2). Preconditions section rewritten to the current gates. | preconditions |
+| **tasks C-03** — `pwa/src/__tests__/model-workspace.test.tsx` (T-17/T-20 joint) had no creation owner, and T-17's slice risked needing T-21's view registration | Resolved **at execution exactly per the review's own recommendation**: T-17 created the file with the key→index unit assertions + a SURFACES-level render assertion needing no view registration (green at the T-17 checkpoint); T-20 extended it add-only. Recorded here so artifact and history agree; no further action. | this row |
+| **tasks N-01** — T-19's verification borrowed its proof wholesale from T-20's test | T-19's Verification now names the concrete assertion credited to it (the ready-state list rendering exercises `api.models.list()`'s typed return shape end-to-end). | T-19 |
+| **tasks N-02** — AC-20 (cross-cutting sweep) had no durable completion-hook anchor | Cross-cutting section now names the STATUS.md `verification_artifact` AC-20 line as the durable anchor (populated 2026-07-04). | cross-cutting section |
+
+## Tasks review of rev 5 (pass 1/2, 2026-07-04) — resolutions (rev 6)
+
+The on-disk `review-tasks.md` (pass 1/2 against rev 5, superseding the
+approve-of-rev-4 review) verdict is **revise** — 1 blocker, 3 concerns,
+3 nits, all confined to the gated delta slice T-23…T-25 (the reviewer
+re-verified T-01…T-22's on-disk claims and found them sound). Rev 6 folds
+every finding; pass 2/2 remains available to close the phase. No IDs
+renumbered; T-01…T-22 are untouched.
+
+| Finding | Resolution | Where |
+|---------|------------|-------|
+| **B-01** — T-24's prescribed conditional gate (`MATCH … WHERE i.forked = false SET i.forked = true`) is Neo4j's documented conditional-SET lost-update pattern: under read-committed the `WHERE` filter is evaluated **before** the `SET` acquires the node write-lock and is **not re-evaluated after** lock acquisition (Neo4j ops manual "Concurrent data access"; neo4j/neo4j #12823), so two concurrent first edits can both pass the filter and both materialize — reproducing the exact duplicate-`forkLocalKey` race T-24 exists to close. Its 2-request `Promise.all` race test would also routinely pass against the broken gate. | T-24 rewritten adopting **both** reviewer fixes: (1) **lock-first-then-recheck** — the transaction's first statement acquires the node lock with a dummy write **before** reading `forked` (`SET i._forkLock = timestamp()` … `WITH i WHERE i.forked = false SET i.forked = true RETURN count(i) AS won`), so the losing racer blocks, re-reads the committed `true`, and yields `won = 0` → read-back path; materialization stays in the same tx gated on `won = 1`; and (2) the belt-and-suspenders **`forkLocalKey` uniqueness constraints** on `UserJourney`/`Activity` (previously declined — now **in the task**, as the review requires at least one deterministic mechanism): the loser's `CREATE` fails deterministically with `ConstraintValidationFailed` → caught → read-back path; the constraints supersede T-03's two lookup indexes (a uniqueness constraint's backing RANGE index serves the same equality + `STARTS WITH` lookups). Verification hardened: the invariant is now constraint-deterministic, plus an N-iteration storage-level paired-`forkInstance` race loop replaces reliance on the single 2-request HTTP race (kept only as smoke). Files 2 → 3 (adds `api/src/neo4j/bootstrap.ts`; still ≤3). | T-24, pins table (§3.4 row) |
+| **C-01** — T-23 assumed a pre-write "validation pass" that `import.ts`'s write path does not have (only `?dryRun=true` has one — `dryRunPasses`, import.ts:112–139; the write path upserts row by row with partial-success semantics, import.ts:177–232), and its whole-payload 409 silently diverges from the route's per-row error-report contract; an all-lifecycle fixture would prove write-nothing vacuously | T-23 Steps now name the **new pre-scan loop** to be added ahead of phase 1 (mirroring `dryRunPasses`' shape over all node + edge rows) and state the **payload-atomic-vs-row-level contract distinction** in a handler comment so the implementer does not "fix" it back to row-level. Verification fixtures are now **mixed** (N valid ordinary rows + one lifecycle row) so the `/api/v1/stats`-unchanged assertion actually proves write-nothing. | T-23 |
+| **C-02** — T-23's AC target (AC-22) does not exist upstream yet: requirements is rev 4, `status: revised`, pass-2 B-03 open with the option-1/option-2 user decision pending — so tasks approval is conditional, and option 2 invalidates T-23 as authored | Consequence now stated plainly in the gates: gate #2 gains the orchestrator instruction to **diff the landed AC-22 against T-23's Verification** (409 code, write-nothing, lifecycle-free round-trip, C-12 create arm) and confirm option 1 before flipping either frontmatter; gate #1 states that option 2 requires a **rev 7 re-cutting T-23 before execution, never a silent re-cut**; "approval is conditional until requirements rev 5 lands" is written into gate #2. | Rev-5 gates #1, #2 |
+| **C-03** — T-25's stderr warning was verified only manually although `model-migration.integration.test.ts` already exercises the forced `--down` path; and the manual repro stranded the dev stack in the documented-unsupported state (re-apply after forced `--down` with user models trips the apply guard) | T-25 Verification now asserts the warning in `api/__tests__/model-migration.integration.test.ts` (spawn the script, capture stderr; the count line **appears** when ≥1 `ModuleInstance` exists and is **absent** when none do), with the manual repro demoted to a secondary check that now ends with the **recovery step** (delete the user model, or wipe + `bun run dev` + re-migrate) so the checkpoint is self-restoring. Files 1 → 2 (adds the test file, extend). | T-25 |
+| N-01 — gate #3 / STATUS.md asserted "no new tasks-review pass is owed", yet the orchestrator correctly commissioned one (new tasks are reviewable scope) | Gate #3 reworded to "not owed, but may be commissioned"; on-disk `review-*.md` files stay authoritative per the C-01 resolution; the STATUS.md wording half is orchestrator-side. | Rev-5 gate #3 |
+| N-02 — T-23 makes `import.ts` a third cross-spec coordination hotspot (it already carries `system-augmentation-model`'s `injectSystemKindDefault` injection at import.ts:177–180) with no seam discipline | T-23 gains an explicit **import.ts seam DoD** (add-only, self-contained pre-scan block; the injection and the per-row loop are not modified), mirroring T-08's seam DoD for `routes/models.ts`. | T-23 |
+| N-03 — the C-13 "§4.4 one-sentence doc half" hand-off had no durable anchor beyond STATUS.md hand-off #4 | Added to the Cross-cutting verification section (the AC-20-anchor pattern) so it survives ledger rewrites. | Cross-cutting section |
 
 ## Task list
 
@@ -703,8 +789,11 @@ numeric sequence because stable IDs are never renumbered.)*
 - **Steps**: Add `models` client methods: `list`, `get`, `create`, `patch`, `archive`,
   `remove`, `listInstances` (typed against the T-01 shared schemas). No instantiate
   method (instance authoring is downstream, §3.4).
-- **Verification**: `bun run typecheck`; consumed + asserted transitively by
-  `pwa/src/__tests__/model-workspace.test.tsx` (T-20).
+- **Verification**: `bun run typecheck`; direct assertion credited to this
+  task (rev 5, fresh-cycle N-01): the **ready-state list rendering** in
+  `pwa/src/__tests__/model-workspace.test.tsx` consumes `api.models.list()`'s
+  typed return shape end-to-end — that assertion is T-19's proof (T-20 owns
+  the remainder of the file).
 
 ### T-18 — Active-model shell context
 
@@ -774,11 +863,192 @@ numeric sequence because stable IDs are never renumbered.)*
   sibling routes renders the placeholder naming its owning spec and the active-model
   context is available there (AC-19).
 
+### T-23 — Import-route lifecycle guard (requirements pass-2 B-03, option 1)
+
+*(New in rev 5 — **gated**: executes only after rev-5 gates #1 and #2 close.
+Appended after T-21; stable IDs are never renumbered.)*
+
+- **Files** (3): `api/src/routes/import.ts` (modify),
+  `api/__tests__/model-import-guard.integration.test.ts` (new),
+  `api/__tests__/model-crud.integration.test.ts` (extend — the C-12 create arm)
+- **Implements**: requirements pass-2 B-03 required fix, option 1 (FR-08
+  guard-set extension; closes the forthcoming **AC-22**) + C-12's create-arm
+  pin; extends design §4.6's guard to the third write surface; supports NFR-04
+- **Complexity**: moderate
+- **Blocked by**: T-10 (guard module), T-13 (dispatch) — both landed; **gates:
+  rev-5 preconditions #1 + #2**
+- **Blocks**: —
+- **Steps**: In `api/src/routes/import.ts`, add a **new pre-scan loop ahead
+  of phase 1 (resolves rev-5 tasks-review C-01)**: the write path has **no**
+  pre-write validation pass today — only the `?dryRun=true` branch has one
+  (`dryRunPasses`, import.ts:112–139); the real write path zod-parses and
+  upserts **row by row with partial-success semantics** (import.ts:177–232),
+  so the guard cannot ride an existing pass. The new pre-scan (mirroring
+  `dryRunPasses`' shape) iterates **all** node + edge rows before any
+  `upsertNode`/`upsertEdge` executes, running the T-10 guards:
+  `assertNotLifecycleLabel(row.label)` for node rows,
+  `assertNotLifecycleEdge(row.type)` for edge rows (`LIFECYCLE_LABELS` =
+  `BusinessModel`/`BusinessModule`/`BusinessModuleVersion`/`ModuleInstance`;
+  `LIFECYCLE_EDGES` = `IN_MODEL`/`HAS_VERSION`/`INSTANTIATES`/`INSTANCE_IN`/
+  `FORKED_FROM`). A single offending row rejects the **whole payload** with
+  `409 model_lifecycle_route_required` and writes nothing. **Contract note
+  (C-01 — state it in a handler comment): this payload-atomic rejection is a
+  deliberate divergence from the route's established per-row error-report
+  contract** — correct for a security guard; do not "fix" it back to
+  row-level partial success during execution. **Import-seam DoD (resolves
+  rev-5 tasks-review N-02, mirroring T-08's seam DoD)**: `import.ts` is a
+  cross-spec coordination hotspot — it already carries
+  `system-augmentation-model`'s `injectSystemKindDefault` injection
+  (import.ts:177–180); this task is **add-only**: the pre-scan lands as one
+  self-contained block ahead of phase 1 and modifies neither the injection
+  nor the per-row upsert loop. Storage primitives untouched — additive
+  route-boundary rejection only, same philosophy as T-10. Handler comment
+  names lifecycle-aware backup/restore as out of scope with the owner the
+  requirements rev-5 scope boundary designates. **C-12 arm**: add one
+  assertion to `model-crud.integration.test.ts` — generic
+  `POST /api/v1/nodes/BusinessModel` → `409 model_lifecycle_route_required`
+  (the shipped T-10 guard already sits in the POST handler; this pins it).
+- **Verification**: `api/__tests__/model-import-guard.integration.test.ts` —
+  a **mixed** import payload (N valid ordinary node/edge rows + one
+  `BusinessModel` node row — mixed per C-01, so the stats assertion proves
+  write-nothing rather than passing vacuously on an all-lifecycle payload)
+  → 409 `model_lifecycle_route_required` **and** `/api/v1/stats` counts
+  unchanged, including the N valid rows (write-nothing); a mixed payload
+  whose offending row is an `IN_MODEL` edge → 409 + counts unchanged
+  likewise; a lifecycle-free payload still imports (round-trip unaffected
+  for ordinary graph data); plus the generic-create 409 assertion added to
+  `model-crud.integration.test.ts` (AC-22 once requirements rev 5 lands).
+
+### T-24 — Fork first-edit concurrency gate (design-review C-13; rewritten in rev 6 per tasks-review B-01)
+
+*(New in rev 5 — hardening. Not blocked by the B-03 requirements gate;
+executes after the orchestrator gates rev 6 — precondition #3. Rev 6
+replaces the rev-5 conditional-SET gate, which the rev-5 tasks review proved
+ineffective under Neo4j's read-committed isolation — B-01.)*
+
+- **Files** (3): `api/src/storage/modules.ts` (modify),
+  `api/src/neo4j/bootstrap.ts` (modify — constraints supersede T-03's
+  lookup indexes), `api/__tests__/module-fork.integration.test.ts` (extend)
+- **Implements**: fresh design-review C-13 recommendation as corrected by
+  rev-5 tasks-review B-01 — makes §3.4's "globally unique by construction"
+  true under concurrency; supports FR-08, NFR-03b, NFR-04
+- **Complexity**: complex *(rev 6: two coordinated mechanisms + a schema
+  supersession — no longer a one-judgment-call change)*
+- **Blocked by**: T-08, T-22 (both landed)
+- **Blocks**: —
+- **Steps** *(resolves rev-5 tasks-review B-01 — both of the review's fixes
+  are adopted; the rev-5 conditional gate `MATCH … WHERE i.forked = false
+  SET i.forked = true` must NOT be built: under read-committed the filter is
+  evaluated before the `SET` acquires the write lock and is not re-evaluated
+  after, so both racers pass it — Neo4j ops manual "Concurrent data access";
+  neo4j/neo4j #12823)*:
+  1. **Lock-first-then-recheck gate** — replace the read-then-write fork
+     check (`readInstanceRow` → `row.forked` at modules.ts:765, then
+     materialization in a **separate** `executeWrite` at modules.ts:793)
+     with check-and-set inside **one `executeWrite`** whose first statement
+     acquires the node's write lock via a dummy write **before** the
+     `forked` read: `MATCH (i:ModuleInstance {id:$id}) SET i._forkLock =
+     timestamp() WITH i WHERE i.forked = false SET i.forked = true RETURN
+     count(i) AS won`. The losing racer blocks on the lock at the dummy
+     `SET`, then re-reads the committed `forked = true`, is filtered out,
+     and returns `won = 0` → take the existing already-forked read-back path
+     (`forkLocalKey STARTS WITH "<instanceId>::"`). Materialization stays in
+     the **same transaction**, gated on `won = 1`. `REMOVE i._forkLock` as
+     the transaction's final statement so no scratch property persists; a
+     code comment names `_forkLock` as a lock-acquisition dummy write, never
+     projected at the REST boundary. Sequential external behavior is
+     unchanged (idempotent no-op on an already-forked instance).
+  2. **Deterministic belt-and-suspenders (previously declined; now in the
+     task per B-01)** — in `bootstrap.ts` `applySchema`, replace T-03's two
+     `forkLocalKey` lookup indexes with **uniqueness constraints**:
+     `DROP INDEX user_journey_fork_local_key IF EXISTS` /
+     `DROP INDEX activity_fork_local_key IF EXISTS`, then
+     `CREATE CONSTRAINT user_journey_fork_local_key_unique IF NOT EXISTS
+     FOR (n:UserJourney) REQUIRE n.forkLocalKey IS UNIQUE` and the
+     `Activity` twin. Neo4j exempts nodes missing the property, so the core
+     graph is unaffected, and the constraint's backing RANGE index serves
+     the same §3.4 equality + `STARTS WITH` lookups (the supersession is
+     recorded in the pins-table §3.4 row). In `forkInstance`, catch
+     `ConstraintValidationFailed` from the materialization `CREATE`s and
+     route it to the already-forked read-back path — the loser fails
+     deterministically even if any future edit reintroduces a gate bug.
+  The one-sentence §4.4 doc half of C-13 belongs to the design author, not
+  this task (durable anchor: Cross-cutting verification section, per N-03).
+- **Verification** *(hardened per B-01 — a 2-request race is probabilistic
+  and would routinely pass against a broken gate)*: extend
+  `api/__tests__/module-fork.integration.test.ts` —
+  (a) **deterministic constraint arm**: after `applySchema`, `SHOW
+  CONSTRAINTS` lists both `forkLocalKey` uniqueness constraints and the two
+  superseded lookup indexes are gone; a direct-driver attempt to `CREATE` a
+  second node with an existing `forkLocalKey` fails with
+  `ConstraintValidationFailed`; re-run `applySchema` → no-op (idempotent,
+  matching T-03's discipline). (b) **storage-level race loop**: N (≥10)
+  iterations, each on a **fresh** non-forked instance, firing paired
+  concurrent `forkInstance` calls (`Promise.all`); after every iteration
+  assert exactly **one** materialized subtree — the count of live nodes
+  `WHERE n.forkLocalKey STARTS WITH "<instanceId>::"` equals the snapshot
+  member count, **no duplicate `forkLocalKey` values**, and both calls
+  resolved without error (one won, one took the read-back path); also
+  assert no `_forkLock` property remains. (c) **HTTP smoke** (kept from
+  rev 5, demoted to smoke): one fresh instance, two concurrent first edits
+  via `Promise.all` (node PATCH on `<instanceId>::a0` + edge POST from
+  `<instanceId>::a1`) → both succeed, single subtree, no duplicates.
+
+### T-25 — Forced-`--down` orphaning note in the migration script (design-review N-13)
+
+*(New in rev 5 — doc-default resolution per the nit's lighter option; the
+alternative — delete Model #1's instances on `--down` — is flagged to the
+user in rev-5 gate #1.)*
+
+- **Files** (2): `api/src/scripts/migrate-retail-to-model.ts` (modify),
+  `api/__tests__/model-migration.integration.test.ts` (extend — resolves
+  rev-5 tasks-review C-03)
+- **Implements**: fresh design-review N-13 — documents that `--down`
+  `DETACH DELETE`s the reference root while `ModuleInstance`s `INSTANCE_IN`
+  it lose that edge and remain orphaned (forked subtrees stay live under
+  now-unscoped domains); supports FR-10, NFR-02 (honest reversibility
+  contract)
+- **Complexity**: simple
+- **Blocked by**: T-16 (landed)
+- **Blocks**: —
+- **Steps**: Script header gains the orphaning limitation under the existing
+  "entered knowingly" block (same tier as the re-apply-after-forced-`--down`
+  note); the `--down` path prints one stderr warning line with the count of
+  `ModuleInstance`s about to be orphaned when that count is > 0 (read-only
+  `MATCH` for the count; **no change to what is deleted**; the line is
+  absent when the count is 0).
+- **Verification** *(automated per rev-5 tasks-review C-03 — the warning is
+  a testable output and the covering test already exercises the forced
+  `--down` path)*: extend
+  `api/__tests__/model-migration.integration.test.ts` — in the existing
+  forced-`--down` coverage (AC-08), spawn the script (`Bun.spawn`, capture
+  stderr) and assert the orphan-count warning line **appears** (with the
+  correct count) when ≥1 `ModuleInstance` exists, and is **absent** when
+  none do; plus `grep -n orphan api/src/scripts/migrate-retail-to-model.ts`
+  shows the header limitation. Secondary manual check (self-restoring per
+  C-03): run `bun run migrate:model --down --force` (keyboard/CLI) against a
+  dev stack with one instantiated module — expect the stderr orphan-count
+  line and an unchanged exit code; **then recover the stack** (delete the
+  user model — or wipe Neo4j + `bun run dev` — and re-run
+  `bun run migrate:model`), since re-apply after a forced `--down` while
+  user models exist trips the T-16 apply guard by design.
+
 ## Cross-cutting verification (whole-spec)
 
 - **AC-20** (transpile clean + no `NODE_LABELS` edit): `bun run typecheck` exit 0;
   `manual: git diff shared/src/schema/nodes.ts` shows no additions to `NODE_LABELS`
   (verify after T-03). Not a standalone task — checked at the final validation sweep.
+  **Durable anchor (fresh-cycle N-02)**: the sweep result is recorded on the
+  STATUS.md `verification_artifact` AC-20 line (populated 2026-07-04); re-run
+  and re-record after the rev-5 delta (T-23…T-25) lands.
+- **Design C-13 doc half — open hand-off (durable anchor per rev-5
+  tasks-review N-03, same pattern as the AC-20 anchor above)**: `design.md`
+  §4.4 still owes the one-sentence note that the fork check-and-materialize
+  now runs as lock-first-then-recheck inside a single write transaction,
+  backed by the `forkLocalKey` uniqueness constraints (T-24 as rewritten in
+  rev 6). Owner: the design author at the next `design.md` touch — not any
+  task here. Recorded in this section so the hand-off survives ledger
+  rewrites; mirrored in STATUS.md hand-off #4.
 
 ## Validation checkpoints
 
@@ -788,6 +1058,7 @@ numeric sequence because stable IDs are never renumbered.)*
 | tasks with behaviour | the task's listed test (`bun test <path>` / `bun test:integration`) |
 | tasks touching pwa views (T-20) | `bun run scripts/design-conformance.ts --view <file>` for **every file the task touches** under `pwa/src/views/` — `.tsx` and `.module.css` each get their own invocation (pass-1 C-01) |
 | final task | `bun test` + `bun test:integration` (needs Neo4j) + full AC-01..AC-21 sweep + AC-20 (`git diff` NODE_LABELS) |
+| rev-5/6 delta (T-23…T-25) | `bun run typecheck` per task; `bun test:integration` for the **four** touched integration files (`model-import-guard`, `model-crud`, `module-fork`, `model-migration` — count corrected in rev 6: T-25's stderr assertion is now automated per C-03); the AC-22 arm counts only once requirements rev 5 lands (gate #2 diff, C-02); refresh the STATUS.md verification ledger (incl. the AC-20 anchor) |
 
 ## Traceability summary
 
@@ -800,9 +1071,9 @@ numeric sequence because stable IDs are never renumbered.)*
 | FR-05 Model CRUD + ordinal + delete | T-05, T-11 | AC-03 |
 | FR-06 module publish/versions | T-06, T-12 | AC-04 |
 | FR-07 instantiate (+ domain-attach setup, design §4.3/§5 — B-02) | T-01, T-05, T-07, T-11 | AC-05 |
-| FR-08 fork on edit + sibling edge routes + guards | T-08, T-22, T-10, T-11 | AC-06, AC-03 |
+| FR-08 fork on edit + sibling edge routes + guards (rev 5: + import surface per req B-03/C-12; + concurrency gate per design C-13) | T-08, T-22, T-10, T-11, T-23, T-24 | AC-06, AC-03, AC-22 (pending requirements rev 5) |
 | FR-09 explicit upgrade | T-09, T-11 | AC-07 |
-| FR-10 retail migration | T-16 | AC-08 |
+| FR-10 retail migration (rev 5: + forced-`--down` orphaning note per design N-13) | T-16, T-25 | AC-08 |
 | FR-11 Business Architect RBAC/persona | T-15 | AC-09 |
 | FR-12 route-permission mapping (incl. domains + edge routes) | T-13 | AC-10 |
 | FR-13 openapi + error codes | T-02, T-14 (envelope reachability: T-08, T-10, T-11, T-12, T-22) | AC-10 |
@@ -812,8 +1083,8 @@ numeric sequence because stable IDs are never renumbered.)*
 | FR-17 sibling placeholder | T-21 | AC-19 |
 | FR-18 model-scope helper | T-04, T-11 | AC-21 |
 | NFR-01 registry-only labels | T-03 | AC-01, AC-20 |
-| NFR-02 idempotent/reversible migration | T-16 | AC-08 |
-| NFR-03a/b isolation | T-04, T-08, T-11, T-22 | AC-21, AC-06 |
-| NFR-04 version immutability | T-06, T-08, T-10, T-22 | AC-04, AC-06 |
+| NFR-02 idempotent/reversible migration | T-16, T-25 | AC-08 |
+| NFR-03a/b isolation | T-04, T-08, T-11, T-22, T-24 | AC-21, AC-06 |
+| NFR-04 version immutability (rev 5: import surface closed per req B-03) | T-06, T-08, T-10, T-22, T-23 | AC-04, AC-06, AC-22 (pending) |
 | NFR-05 house rules | all | AC-20 |
 | NFR-06 tokens-only PWA | T-20 | AC-16 |

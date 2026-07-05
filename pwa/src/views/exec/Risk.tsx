@@ -142,10 +142,10 @@ export function ExecRisk() {
         <PieChartCard
           title="Status distribution"
           data={[
-            { label: "open", value: filtered.filter((r) => r.status === "open").length, color: STATUS_COLORS.open ?? "#f59e0b" },
-            { label: "mitigating", value: filtered.filter((r) => r.status === "mitigating").length, color: STATUS_COLORS.mitigating ?? "#3b82f6" },
-            { label: "accepted", value: filtered.filter((r) => r.status === "accepted").length, color: STATUS_COLORS.accepted ?? "#8b5cf6" },
-            { label: "resolved", value: filtered.filter((r) => r.status === "resolved").length, color: STATUS_COLORS.resolved ?? "#22c55e" },
+            { label: "open", value: filtered.filter((r) => r.status === "open").length, color: STATUS_COLORS.open ?? "var(--cat-1)" },
+            { label: "mitigating", value: filtered.filter((r) => r.status === "mitigating").length, color: STATUS_COLORS.mitigating ?? "var(--cat-2)" },
+            { label: "accepted", value: filtered.filter((r) => r.status === "accepted").length, color: STATUS_COLORS.accepted ?? "var(--cat-3)" },
+            { label: "resolved", value: filtered.filter((r) => r.status === "resolved").length, color: STATUS_COLORS.resolved ?? "var(--cat-4)" },
           ]}
           donut
         />

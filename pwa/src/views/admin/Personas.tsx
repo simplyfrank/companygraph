@@ -140,7 +140,7 @@ function PersonaCreateForm({
             ))}
           </select>
         </label>
-        {error && <div style={{ color: "var(--danger, #c0392b)" }}>{error}</div>}
+        {error && <div style={{ color: "var(--danger)" }}>{error}</div>}
         <Button tone="primary" disabled={saving}>
           {saving ? "Creating…" : "Create Persona"}
         </Button>

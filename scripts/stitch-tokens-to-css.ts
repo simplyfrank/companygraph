@@ -51,6 +51,7 @@ interface DesignSystem {
   };
   spacing: { [name: string]: string };
   roundness: { [name: string]: string };
+  motion?: { [name: string]: string };           // pwa-ux-conformance DD-02
   layout?: { [name: string]: string };          // companygraph addition — rail_width, topbar_h, etc.
   legacy_aliases?: { [legacyName: string]: string };
 }
@@ -245,6 +246,14 @@ function emitCss(ds: DesignSystem): string {
   for (const [name, value] of Object.entries(ds.roundness)) {
     const safeName = name === "default" ? "default" : name;
     out.push(`  --radius-${safeName}: ${value};`);
+  }
+
+  if (ds.motion && Object.keys(ds.motion).length > 0) {
+    out.push("");
+    out.push("  /* Motion — quiet, ≤200ms */");
+    for (const [name, value] of Object.entries(ds.motion)) {
+      out.push(`  --${name}: ${value};`);
+    }
   }
 
   out.push("");

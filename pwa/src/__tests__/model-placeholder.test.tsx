@@ -25,12 +25,18 @@ const REF_MODEL: ModelRead = {
 };
 
 // tab id → owning downstream spec, verbatim from the blueprint View Tree.
+// Rows retire as their owning specs land and swap the dispatch target:
+//  - "stories" retired 2026-07-04 — story-spec-core T-14 replaced the
+//    placeholder with the live StoryCatalog (see story-catalog.test.tsx).
+//  - "key-activities" retired 2026-07-05 — key-activity-optimizer T-14
+//    replaced the placeholder with the live KeyActivityBoard (see
+//    key-activity-board.test.tsx).
+//  - "systems" retired 2026-07-05 — ddd-system-modeling T-13 replaced
+//    the placeholder with the live SystemModeler (see
+//    system-modeler.test.tsx).
 const SIBLING_TABS: Array<[string, string]> = [
   ["canvas", "business-model-authoring"],
-  ["stories", "story-spec-core"],
-  ["key-activities", "key-activity-optimizer"],
   ["kpi-impact", "kpi-impact-mapping"],
-  ["systems", "ddd-system-modeling"],
   ["export", "requirements-export"],
 ];
 

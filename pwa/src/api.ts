@@ -6,6 +6,56 @@ import type {
   ProgressSnapshot,
 } from "@companygraph/shared/types";
 import type { GlossaryCollectionRead, GlossaryTermRead, OntologyProposalRead, ComplianceRuleRead, ComplianceRuleCreate, ComplianceRulePatch } from "@companygraph/shared/schema/ontology";
+// key-activity-optimizer T-13 — types inferred from the shared T-01
+// zod schemas (shared/src/schema/key-activity.ts).
+import type {
+  KeyActivityScores,
+  ActivityScoreRow,
+} from "@companygraph/shared/schema/key-activity";
+// kpi-okr-performance-dashboards T-12 — aggregate response types from
+// the shared zod contract (shared/src/schema/performance.ts).
+import type {
+  PerformanceSliceQuery,
+  KpiStatusResponse,
+  OkrPerformanceResponse,
+  JourneyAxisResponse,
+} from "@companygraph/shared/schema/performance";
+export type {
+  PerformanceSliceQuery,
+  KpiStatusResponse,
+  OkrPerformanceResponse,
+  JourneyAxisResponse,
+};
+
+export type { KeyActivityScores, ActivityScoreRow };
+export type { KeyActivityMark } from "@companygraph/shared/schema/key-activity";
+// ddd-system-modeling T-12 — types inferred from the shared T-01 zod
+// schemas (shared/src/schema/ddd-system.ts).
+import type {
+  CapabilityRead,
+  GapsResult,
+  ContextMapResult,
+} from "@companygraph/shared/schema/ddd-system";
+export type { CapabilityRead, GapsResult, ContextMapResult };
+export type {
+  NeededByItem,
+  SupportedByItem,
+  DetachedItem,
+  GapStepItem,
+  AugmentationMix,
+  KindCounts,
+} from "@companygraph/shared/schema/ddd-system";
+
+// kpi-impact-mapping T-13 — types inferred from the shared T-01 zod
+// schemas (shared/src/schema/kpi-impact.ts).
+import type {
+  KpiImpactMatrix,
+  KpiImpactRollup,
+  ImpactLinkRow,
+  ActivityLinkCreate,
+  StoryLinkCreate,
+} from "@companygraph/shared/schema/kpi-impact";
+export type { KpiImpactMatrix, KpiImpactRollup, ImpactLinkRow };
 
 // Re-export domain modules
 export { rdf, queryOntology, ontology, ontologyProposals } from "./api/ontology";
@@ -192,6 +242,15 @@ export const api = {
       const data = await json<unknown>("/api/v1/nodes/BoundedContext", withSignal(signal));
       return guardArray<unknown>(data, "getBoundedContextNodes");
     },
+    getSharedDomains: async (signal?: AbortSignal) => {
+      const data = await json<unknown>("/api/v1/ontology/shared-domains", withSignal(signal));
+      return guardArray<SharedDomainRow>(data, "getSharedDomains");
+    },
+    getNamespaces: async (modelId?: string, signal?: AbortSignal) => {
+      const qs = modelId ? `?model_id=${encodeURIComponent(modelId)}` : "";
+      const data = await json<unknown>(`/api/v1/ontology/namespaces${qs}`, withSignal(signal));
+      return guardArray<NamespaceRow>(data, "getNamespaces");
+    },
   },
 
   // kpi-okr-governance FR-10d/FR-15 — resource-shaped domain list for
@@ -199,6 +258,35 @@ export const api = {
   domains: {
     list: (signal?: AbortSignal) =>
       json<{ rows: DomainRow[] }>("/api/v1/domains", withSignal(signal)),
+  },
+
+  // kpi-okr-performance-dashboards T-12 (design §6 data layer, §4.7) —
+  // read-only performance aggregates for the #/exec/performance view.
+  // NEW object only (N-02): the per-domain okr.getPerformance below and
+  // kpi.list/domains.list are untouched — these methods are additional,
+  // not extensions of them. Types come from the shared zod contract.
+  performance: {
+    kpis: (slice: PerformanceSliceQuery, signal?: AbortSignal) => {
+      const params = new URLSearchParams();
+      if (slice.domain) params.set("domain", slice.domain);
+      if (slice.journey) params.set("journey", slice.journey);
+      if (slice.kind) params.set("kind", slice.kind);
+      const qs = params.toString();
+      return json<KpiStatusResponse>(
+        `/api/v1/analytics/performance/kpis${qs ? `?${qs}` : ""}`,
+        withSignal(signal),
+      );
+    },
+    okr: (domainId?: string, signal?: AbortSignal) =>
+      json<OkrPerformanceResponse>(
+        `/api/v1/analytics/performance/okr${domainId ? `?domain=${encodeURIComponent(domainId)}` : ""}`,
+        withSignal(signal),
+      ),
+    journeys: (domainId: string, signal?: AbortSignal) =>
+      json<JourneyAxisResponse>(
+        `/api/v1/analytics/performance/journeys?domain=${encodeURIComponent(domainId)}`,
+        withSignal(signal),
+      ),
   },
 
   // KPI/SLA management (KPI-SLA-01 through KPI-SLA-12)
@@ -369,6 +457,230 @@ export const api = {
       json<{ rows: JourneyHandoffRow[] }>(`/api/v1/query/journeyHandoffs/${encodeURIComponent(id)}`, withSignal(signal)),
     getTouchpoints: (id: string, signal?: AbortSignal) =>
       json<{ rows: JourneyTouchpointRow[] }>(`/api/v1/query/journeyTouchpoints/${encodeURIComponent(id)}`, withSignal(signal)),
+  },
+
+  // key-activity-optimizer T-13 (design §4.11, DD-07, FR-12/FR-13) —
+  // key-activity scores + mark/unmark client. Typed against the shared
+  // T-01 zod schemas. The BLOCK is exported (via `api`); json<T> stays
+  // private (DD-07).
+  keyActivities: {
+    list: (modelId: string, signal?: AbortSignal) =>
+      json<KeyActivityScores>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/key-activities`,
+        withSignal(signal),
+      ),
+
+    // JSON-returning 200 — json<T> is correct here.
+    mark: (modelId: string, activityId: string) =>
+      json<ActivityScoreRow>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/key-activities/${encodeURIComponent(activityId)}/mark`,
+        { method: "POST" },
+      ),
+
+    // final-review C-01 (pinned): the server returns 204 NO-BODY and
+    // json<T> unconditionally calls res.json() on an ok response — it
+    // would THROW on every successful unmark and trigger a spurious
+    // optimistic rollback. So unmark rides the raw fetch + res.ok
+    // pattern of stories.remove (below) — NEVER json<T>, and the
+    // shared json<T> helper is not modified (other consumers).
+    unmark: async (modelId: string, activityId: string): Promise<void> => {
+      const path = `/api/v1/models/${encodeURIComponent(modelId)}/key-activities/${encodeURIComponent(activityId)}/mark`;
+      const res = await fetch(path, { method: "DELETE" });
+      if (!res.ok) {
+        let detail = "";
+        try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+        throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+      }
+    },
+  },
+
+  // ddd-system-modeling T-12 (design §4.11, DD-11, FR-12/FR-13) —
+  // capability + system-model client. Typed against the shared T-01
+  // zod schemas. The three PUTs send method:"PUT" (the codebase's
+  // first PUT routes). `attributes` passes through UNTYPED — no
+  // systemKind reading and no vocabulary import here (rev-2
+  // tasks-review N-03); badge rendering via SYSTEM_KIND_LABELS lives
+  // in the SystemModeler view. 204-returning DELETEs ride the raw
+  // fetch + res.ok pattern (json<T> would throw on an empty body —
+  // same pinned rationale as keyActivities.unmark above).
+  capabilities: {
+    list: (modelId: string, signal?: AbortSignal) =>
+      json<CapabilityRead[]>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/capabilities`,
+        withSignal(signal),
+      ),
+    get: (modelId: string, capabilityId: string, signal?: AbortSignal) =>
+      json<CapabilityRead>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}`,
+        withSignal(signal),
+      ),
+    create: (modelId: string, body: { name: string; description?: string; attributes?: Record<string, unknown> }) =>
+      json<CapabilityRead>(`/api/v1/models/${encodeURIComponent(modelId)}/capabilities`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    patch: (modelId: string, capabilityId: string, body: { name?: string; description?: string; attributes?: Record<string, unknown> }) =>
+      json<CapabilityRead>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    remove: async (modelId: string, capabilityId: string): Promise<void> => {
+      const path = `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}`;
+      const res = await fetch(path, { method: "DELETE" });
+      if (!res.ok) {
+        let detail = "";
+        try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+        throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+      }
+    },
+    neededBy: {
+      put: (modelId: string, capabilityId: string, body: { activityId?: string; storyId?: string }) =>
+        json<CapabilityRead>(
+          `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}/needed-by`,
+          {
+            method: "PUT", // DD-11 — first PUT routes
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+      // Body-carrying DELETE (the source is a two-field union).
+      remove: async (
+        modelId: string,
+        capabilityId: string,
+        body: { activityId?: string; storyId?: string },
+      ): Promise<void> => {
+        const path = `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}/needed-by`;
+        const res = await fetch(path, {
+          method: "DELETE",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          let detail = "";
+          try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+          throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+        }
+      },
+    },
+    supportedBy: {
+      put: (modelId: string, capabilityId: string, body: { systemId: string }) =>
+        json<CapabilityRead>(
+          `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}/supported-by`,
+          {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+      remove: async (modelId: string, capabilityId: string, systemId: string): Promise<void> => {
+        const path = `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}/supported-by/${encodeURIComponent(systemId)}`;
+        const res = await fetch(path, { method: "DELETE" });
+        if (!res.ok) {
+          let detail = "";
+          try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+          throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+        }
+      },
+    },
+    context: {
+      put: (modelId: string, capabilityId: string, body: { boundedContextId: string }) =>
+        json<CapabilityRead>(
+          `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}/context`,
+          {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+      clear: async (modelId: string, capabilityId: string): Promise<void> => {
+        const path = `/api/v1/models/${encodeURIComponent(modelId)}/capabilities/${encodeURIComponent(capabilityId)}/context`;
+        const res = await fetch(path, { method: "DELETE" });
+        if (!res.ok) {
+          let detail = "";
+          try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+          throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+        }
+      },
+    },
+  },
+
+  systemModel: {
+    gaps: (modelId: string, signal?: AbortSignal) =>
+      json<GapsResult>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/system-model/gaps`,
+        withSignal(signal),
+      ),
+    contextMap: (modelId: string, signal?: AbortSignal) =>
+      json<ContextMapResult>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/system-model/context-map`,
+        withSignal(signal),
+      ),
+  },
+
+  kpiImpact: {
+    matrix: (modelId: string, signal?: AbortSignal) =>
+      json<KpiImpactMatrix>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/matrix`,
+        withSignal(signal),
+      ),
+    rollup: (modelId: string, signal?: AbortSignal) =>
+      json<KpiImpactRollup>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/rollup`,
+        withSignal(signal),
+      ),
+    listActivityLinks: (modelId: string, filters?: { activityId?: string; kpiId?: string }, signal?: AbortSignal) => {
+      const params = new URLSearchParams();
+      if (filters?.activityId) params.set("activityId", filters.activityId);
+      if (filters?.kpiId) params.set("kpiId", filters.kpiId);
+      const qs = params.toString();
+      return json<{ rows: ImpactLinkRow[] }>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/activity-links${qs ? `?${qs}` : ""}`,
+        withSignal(signal),
+      );
+    },
+    createActivityLink: (modelId: string, body: ActivityLinkCreate) =>
+      json<ImpactLinkRow>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/activity-links`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    deleteActivityLink: (modelId: string, linkId: string) =>
+      json<void>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/activity-links/${encodeURIComponent(linkId)}`,
+        { method: "DELETE" },
+      ),
+    listStoryLinks: (modelId: string, filters?: { storyId?: string; kpiId?: string }, signal?: AbortSignal) => {
+      const params = new URLSearchParams();
+      if (filters?.storyId) params.set("storyId", filters.storyId);
+      if (filters?.kpiId) params.set("kpiId", filters.kpiId);
+      const qs = params.toString();
+      return json<{ rows: ImpactLinkRow[] }>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/story-links${qs ? `?${qs}` : ""}`,
+        withSignal(signal),
+      );
+    },
+    createStoryLink: (modelId: string, body: StoryLinkCreate) =>
+      json<ImpactLinkRow>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/story-links`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    deleteStoryLink: (modelId: string, linkId: string) =>
+      json<void>(
+        `/api/v1/models/${encodeURIComponent(modelId)}/kpi-impact/story-links/${encodeURIComponent(linkId)}`,
+        { method: "DELETE" },
+      ),
   },
 };
 
@@ -573,6 +885,25 @@ export interface BoundedContextRow {
   entity_count: number;
   entities: string[];
   relationships: Array<{ type: string; target: string }>;
+  shared_domains: string[];
+  namespaces: string[];
+}
+
+export interface SharedDomainRow {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  bounded_contexts: string[];
+}
+
+export interface NamespaceRow {
+  id: string;
+  name: string;
+  description: string;
+  model_id: string;
+  model_name?: string | null;
+  bounded_contexts: string[];
 }
 
 export interface OntologyEdgeTypeCreate {
@@ -1090,3 +1421,200 @@ export const models = {
       withSignal(signal),
     ),
 };
+
+// ---------------------------------------------------------------------------
+// story-spec-core T-13 (design §4.11, FR-12/FR-13) — stories client.
+// Typed against the shared T-01 zod schemas; reuses the json<T>()
+// wrapper. Each read accepts an optional AbortSignal.
+// ---------------------------------------------------------------------------
+
+import type {
+  StoryRead,
+  StoryCreateInput,
+  StoryPatchInput,
+  AcRead,
+  AcCreateInput,
+  AcPatchInput,
+  BootstrapRequest,
+  BootstrapResult,
+} from "@companygraph/shared/schema/story-spec";
+
+export type { StoryRead, AcRead, BootstrapResult };
+
+const storiesBase = (modelId: string) =>
+  `/api/v1/models/${encodeURIComponent(modelId)}/stories`;
+const acsBase = (modelId: string, storyId: string) =>
+  `${storiesBase(modelId)}/${encodeURIComponent(storyId)}/acceptance-criteria`;
+
+export const stories = {
+  list: (modelId: string, signal?: AbortSignal) =>
+    json<StoryRead[]>(storiesBase(modelId), withSignal(signal)),
+
+  get: (modelId: string, storyId: string, signal?: AbortSignal) =>
+    json<StoryRead>(`${storiesBase(modelId)}/${encodeURIComponent(storyId)}`, withSignal(signal)),
+
+  create: (modelId: string, data: StoryCreateInput) =>
+    json<StoryRead>(storiesBase(modelId), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  patch: (modelId: string, storyId: string, data: StoryPatchInput) =>
+    json<StoryRead>(`${storiesBase(modelId)}/${encodeURIComponent(storyId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  remove: async (modelId: string, storyId: string): Promise<void> => {
+    const path = `${storiesBase(modelId)}/${encodeURIComponent(storyId)}`;
+    const res = await fetch(path, { method: "DELETE" });
+    if (!res.ok) {
+      let detail = "";
+      try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+      throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+    }
+  },
+
+  bootstrap: (modelId: string, data?: BootstrapRequest) =>
+    json<BootstrapResult>(`${storiesBase(modelId)}/bootstrap`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data ?? {}),
+    }),
+
+  acs: {
+    list: (modelId: string, storyId: string, signal?: AbortSignal) =>
+      json<AcRead[]>(acsBase(modelId, storyId), withSignal(signal)),
+
+    create: (modelId: string, storyId: string, data: AcCreateInput) =>
+      json<AcRead>(acsBase(modelId, storyId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+
+    patch: (modelId: string, storyId: string, acId: string, data: AcPatchInput) =>
+      json<AcRead>(`${acsBase(modelId, storyId)}/${encodeURIComponent(acId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+
+    remove: async (modelId: string, storyId: string, acId: string): Promise<void> => {
+      const path = `${acsBase(modelId, storyId)}/${encodeURIComponent(acId)}`;
+      const res = await fetch(path, { method: "DELETE" });
+      if (!res.ok) {
+        let detail = "";
+        try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+        throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+      }
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// requirements-export T-09 (FR-08, FR-09) — spec-export client.
+// Reuses the private json<T> wrapper for the JSON fetch; markdown
+// uses a raw text fetch (the body is Markdown, not JSON).
+// ---------------------------------------------------------------------------
+
+export const specExport = {
+  json: <T>(modelId: string, signal?: AbortSignal) =>
+    json<T>(
+      `/api/v1/models/${encodeURIComponent(modelId)}/spec-export?format=json`,
+      withSignal(signal),
+    ),
+
+  markdown: async (modelId: string, signal?: AbortSignal): Promise<string> => {
+    const path = `/api/v1/models/${encodeURIComponent(modelId)}/spec-export?format=markdown`;
+    const res = await fetch(path, withSignal(signal));
+    if (!res.ok) {
+      let detail = "";
+      try { detail = JSON.stringify(await res.json()); } catch { /* */ }
+      throw new Error(`${res.status} ${res.statusText} ${path} ${detail}`);
+    }
+    return res.text();
+  },
+};
+
+// ---------------------------------------------------------------------------
+// business-model-authoring T-06 (design §7) — authoring client + three
+// thin wrappers for mwc-owned routes the wizard calls. Consuming, not
+// duplicating: no handler logic re-implemented, no existing method
+// re-spelled. (TR2-B-01)
+// ---------------------------------------------------------------------------
+
+import type {
+  AuthoringApply,
+  AuthoringApplyResult,
+  AuthoringGraph,
+  DomainPatch,
+} from "@companygraph/shared/schema/authoring";
+
+export type { AuthoringApplyResult, AuthoringGraph };
+
+export const authoring = {
+  apply: (modelId: string, body: AuthoringApply) =>
+    json<AuthoringApplyResult>(
+      `/api/v1/models/${encodeURIComponent(modelId)}/authoring/apply`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ),
+
+  graph: (modelId: string, signal?: AbortSignal) =>
+    json<AuthoringGraph>(
+      `/api/v1/models/${encodeURIComponent(modelId)}/authoring/graph`,
+      withSignal(signal),
+    ),
+
+  patchDomain: (modelId: string, domainId: string, body: DomainPatch) =>
+    json<DomainRow>(
+      `/api/v1/models/${encodeURIComponent(modelId)}/domains/${encodeURIComponent(domainId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ),
+};
+
+// T-06 wrappers: three thin json<T> calls for mwc-owned routes.
+// modules.list → GET /api/v1/modules (new standalone export)
+export const modules = {
+  list: (signal?: AbortSignal) =>
+    json<InstanceRead[]>("/api/v1/modules", withSignal(signal)),
+};
+
+// Extend models with createDomain + createInstance (T-06 sanctioned wrappers)
+// These are added as methods on the existing `models` object via assignment
+// to avoid re-declaring the entire object.
+(models as Record<string, unknown>).createDomain = (
+  modelId: string,
+  data: { name: string; description?: string },
+) =>
+  json<DomainRow>(
+    `/api/v1/models/${encodeURIComponent(modelId)}/domains`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+  );
+
+(models as Record<string, unknown>).createInstance = (
+  modelId: string,
+  data: { moduleId: string; targetDomainId: string },
+) =>
+  json<InstanceRead>(
+    `/api/v1/models/${encodeURIComponent(modelId)}/module-instances`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+  );

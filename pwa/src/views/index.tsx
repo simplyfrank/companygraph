@@ -35,6 +35,7 @@ import { AnalyticsConsolidation } from "./analytics/Consolidation";
 import { AnalyticsSingleSystem } from "./analytics/SingleSystem";
 import { AnalyticsCriticalPaths } from "./analytics/CriticalPaths";
 import { AnalyticsComplexity } from "./analytics/Complexity";
+import { AnalyticsExecSummary } from "./analytics/ExecSummary";
 import { AnalyticsAi } from "./analytics/Ai";
 
 import { ApiEndpoints } from "./api/Endpoints";
@@ -48,12 +49,20 @@ import { ExecTransform } from "./exec/Transform";
 import { ExecRisk } from "./exec/Risk";
 import { ExecKpiManagement } from "./exec/KpiManagement";
 import { ExecOkrManagement } from "./exec/OkrManagement";
+// kpi-okr-performance-dashboards T-14 (FR-01): the Performance exec tab.
+import { PerformanceDashboard } from "./exec/PerformanceDashboard";
 
 import { DataMap } from "./data/Map";
 import { DataExport } from "./data/Export";
 
 import { ModelWorkspace } from "./model/ModelWorkspace";
 import { ModelTabPlaceholder } from "./model/ModelTabPlaceholder";
+import { StoryCatalog } from "./model/StoryCatalog";
+import { KeyActivityBoard } from "./model/KeyActivityBoard";
+import { SystemModeler } from "./model/SystemModeler";
+import { KpiImpactMatrix } from "./model/KpiImpactMatrix";
+import { ModelCanvas } from "./model/ModelCanvas";
+import { SpecExport } from "./model/SpecExport";
 
 import { AdminPersonas } from "./admin/Personas";
 import { AdminRbacRoles } from "./admin/RbacRoles";
@@ -123,6 +132,8 @@ const VIEWS: ViewMap = {
     // replacing the T-09 pending seam per that seam's comment.
     "critical-paths": () => <AnalyticsCriticalPaths />,
     ai:         () => <AnalyticsAi />,
+    // cto-analytics-reporting T-08 (FR-08): server-rendered exec-summary PDF launcher.
+    "exec-summary": () => <AnalyticsExecSummary />,
   },
   api: {
     endpoints: () => <ApiEndpoints />,
@@ -137,6 +148,8 @@ const VIEWS: ViewMap = {
     risk:             () => <ExecRisk />,
     "kpi-management": () => <ExecKpiManagement />,
     "okr-management": () => <ExecOkrManagement />,
+    // kpi-okr-performance-dashboards T-14: URL-first sliced dashboard.
+    "performance":    (r) => <PerformanceDashboard route={r} />,
   },
   data: {
     map:    () => <DataMap />,
@@ -154,12 +167,24 @@ const VIEWS: ViewMap = {
   // this feature (T-17 — one feature owns a file).
   model: {
     models:           () => <ModelWorkspace />,
-    canvas:           () => <ModelTabPlaceholder tab="Canvas" spec="business-model-authoring" />,
-    stories:          () => <ModelTabPlaceholder tab="Stories" spec="story-spec-core" />,
-    "key-activities": () => <ModelTabPlaceholder tab="Key Activities" spec="key-activity-optimizer" />,
-    "kpi-impact":     () => <ModelTabPlaceholder tab="KPI Impact" spec="kpi-impact-mapping" />,
-    systems:          () => <ModelTabPlaceholder tab="Systems" spec="ddd-system-modeling" />,
-    export:           () => <ModelTabPlaceholder tab="Export" spec="requirements-export" />,
+    canvas:           (r) => <ModelCanvas route={r} />,
+    // story-spec-core T-14 (FR-12): the Stories tab is live — StoryCatalog
+    // replaces the placeholder (the ONLY edit to this file;
+    // route.ts/SURFACES stay model-workspace-core's).
+    stories:          (r) => <StoryCatalog route={r} />,
+    // key-activity-optimizer T-14 (FR-12): the Key Activities tab is
+    // live — KeyActivityBoard replaces the placeholder (the ONLY edit
+    // to this file; route.ts/SURFACES stay model-workspace-core's).
+    "key-activities": (r) => <KeyActivityBoard route={r} />,
+    "kpi-impact":     (r) => <KpiImpactMatrix route={r} />,
+    // ddd-system-modeling T-13 (FR-12): the Systems tab is live —
+    // SystemModeler replaces the placeholder (the ONLY edit to this
+    // file; route.ts/SURFACES stay model-workspace-core's).
+    systems:          (r) => <SystemModeler route={r} />,
+    // requirements-export T-08 (FR-12): the Export tab is live —
+    // SpecExport replaces the placeholder (the ONLY edit to this file;
+    // route.ts/SURFACES stay model-workspace-core's).
+    export:           () => <SpecExport />,
   },
 };
 

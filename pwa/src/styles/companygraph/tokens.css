@@ -33,6 +33,29 @@
   --danger-text-strong: oklch(35% 0.16 25);
   --good-text: oklch(38% 0.08 145);
   --on-accent: oklch(100% 0 0);
+  --cat-1: oklch(70% 0.16 75);
+  --cat-2: oklch(62% 0.17 255);
+  --cat-3: oklch(58% 0.19 300);
+  --cat-4: oklch(64% 0.16 145);
+  --cat-5: oklch(60% 0.02 250);
+  --cat-6: oklch(66% 0.16 200);
+  --sev-1: oklch(64% 0.16 145);
+  --sev-2: oklch(75% 0.15 95);
+  --sev-3: oklch(70% 0.17 55);
+  --sev-4: oklch(60% 0.22 25);
+  --sev-5: oklch(48% 0.20 20);
+  --good-soft: oklch(95% 0.03 145);
+  --warn-soft: oklch(95% 0.04 80);
+  --danger-soft: oklch(95% 0.03 25);
+  --muted-soft: oklch(96% 0.004 250);
+  --info: oklch(60% 0.14 235);
+  --info-soft: oklch(95% 0.03 235);
+  --accent-bg: oklch(96% 0.03 255);
+  --hover: oklch(97% 0.004 250);
+  --accent-hover: oklch(52% 0.18 255);
+  --accent-fg: oklch(100% 0 0);
+  --ent-color: oklch(58% 0.18 255);
+  --edge-arrow: oklch(36% 0.12 250);
 
   /* Fonts — three native stacks (display / body / mono) */
   --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
@@ -63,6 +86,13 @@
   --radius-lg: 6px;
   --radius-pill: 10px;
   --radius-round: 50%;
+
+  /* Motion — quiet, ≤200ms */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-linear: linear;
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Typography scales — companygraph addition (h1/h2/h3/body/lede/mono/caption-mono) */
   --type-h1-family: "SF Pro Display", system-ui, sans-serif;
@@ -101,6 +131,42 @@
   --type-caption-mono-line-height: 1.4;
   --type-caption-mono-letter-spacing: 0.1em;
   --type-caption-mono-transform: uppercase;
+}
+
+/*
+ * Legacy aliases — DEPRECATED. Bridge for pre-companygraph components.
+ * Drop a row in design-system.yaml when the last consumer migrates.
+ */
+:root {
+  --success: var(--good);
+  --warning: var(--warn);
+  --rule: var(--border);
+  --border-subtle: var(--border);
+  --chip-bg: var(--surface-2);
+  --bg-subtle: var(--surface-2);
+  --bg-2: var(--surface-2);
+  --text: var(--fg);
+  --tone-good: var(--good);
+  --tone-warn: var(--warn);
+  --tone-danger: var(--danger);
+  --tone-accent: var(--accent);
+  --tone-neutral: var(--muted);
+  --warn-bg: var(--warn-soft);
+  --warn-fg: var(--warn-text);
+  --warning-bg: var(--warn-soft);
+  --warning-fg: var(--warn-text);
+  --warning-border: var(--warn);
+  --warning-bg-hover: var(--warn-soft);
+  --warning-soft: var(--warn-soft);
+  --success-subtle: var(--good-soft);
+  --success-soft: var(--good-soft);
+  --danger-subtle: var(--danger-soft);
+  --success-bg: var(--good-soft);
+  --success-fg: var(--good-text);
+  --error-bg: var(--danger-soft);
+  --error-fg: var(--danger-text);
+  --error: var(--danger);
+  --surface-3: var(--surface-2);
 }
 
 /* Utility classes for the named type scales */

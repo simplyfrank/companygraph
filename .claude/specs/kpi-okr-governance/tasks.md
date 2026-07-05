@@ -3,7 +3,7 @@ feature: "kpi-okr-governance"
 created: "2026-07-04"
 author: "spec-author (blueprint: business-modeling-studio, XD-16)"
 status: "approved"
-revision: 3
+revision: 4
 reviewing_requirements_revision: 2
 reviewing_design_revision: 2
 size: "large"
@@ -11,6 +11,24 @@ total_tasks: 21
 ---
 
 # Tasks: kpi-okr-governance
+
+## Revision 4 — post-execution erratum (rev-3 fresh-review dispositions)
+
+A fresh cold review of revision 3 (`review-tasks.md`, 2026-07-04,
+verdict **approve**, 0 blockers) confirmed the rev-3 erratum envelope,
+re-derived the plan's soundness against requirements rev 2 / design
+rev 2 / the blueprint, and verified the artifact's claims against the
+executed tree. Its findings are dispositioned here; the executed plan
+is otherwise unchanged from rev 3. No IDs renumbered; no scope,
+ordering, or verification change; execution (complete 2026-07-04) is
+unaffected.
+
+| Finding | Disposition |
+|---------|-------------|
+| C-01 (concern) | Git provenance: the spec directory and the implementation are uncommitted, so superseded plan revisions are not mechanically diffable and the T-20 PR-based verification cannot yet run. Process item, not a plan defect — carried in STATUS.md **Next** as a first-PR completion condition (commit spec artifacts at each approved revision + commit the implementation). No plan change. |
+| C-02 (concern) | AC-19 / the NFR-01 wall-time budget remain *asserted*, not *verified*, until the first PR's `integration` job runs green with wall-time recorded. This was already binding on T-20 ("NFR-01 checkpoint (binding)"); STATUS.md keeps the checkpoint explicitly open as a completion condition, not a follow-up nicety. No plan change. |
+| N-01 (nit) | Last `Blocks`/`Blocked by` asymmetry tidied under the review's standing "tidy only if the file is touched again" rule — this erratum is that touch: T-12 `Blocked by` += T-01 (T-12 consumes `slaCreateRequestSchema`/`slaPatchRequestSchema`; T-01 `Blocks` already listed T-12). Pure metadata — transitively implied via T-11 ← T-01 and executed in that order. Resolves: rev-3 review N-01. |
+| N-02 (nit) | STATUS.md header `review_passes` self-contradiction fixed on this STATUS touch, per the review's "fix on the next STATUS touch" sanction (the counter is per-phase and resets on phase advance; Design and Tasks each consumed their 2/2 cap — the phase table is the record). Resolves: rev-3 review N-02 (STATUS.md edit; recorded here for traceability). |
 
 ## Revision 3 — post-approval erratum (task-review pass 2 dispositions)
 
@@ -420,8 +438,10 @@ execution.
   — closes AC-02 (slas), AC-07, AC-12 (sla rows); serves FR-05, FR-10b,
   FR-11a, FR-13, FR-14
 - **Complexity**: moderate
-- **Blocked by**: T-03 (direct-driver `:SLA` cleanup — Resolves: pass-2
-  N-01b), T-11 (mirror the reviewed pattern)
+- **Blocked by**: T-01 (consumes `slaCreateRequestSchema`/
+  `slaPatchRequestSchema` — Resolves: rev-3 review N-01), T-03
+  (direct-driver `:SLA` cleanup — Resolves: pass-2 N-01b), T-11 (mirror
+  the reviewed pattern)
 - **Blocks**: T-13, T-14, T-15, T-20 (T-13 added — Resolves: N-01)
 - **Steps**: Exact mirror of T-11 on the SLA surface: seven required
   fields (`slaCreateRequestSchema`), its own PATCH allow-list,

@@ -33,7 +33,13 @@ import { ValidationError } from "../errors";
 
 const ACTOR = "system:story-spec";
 
-const STORY_NODE_LABELS = [
+// Exported for the integration-test self-heal helper
+// (api/__tests__/helpers/story-fixtures.ts): sibling test files in the
+// shared integration suite legitimately wipe + const-reseed the
+// ontology registry (ontology-seed / ontology-bootstrap-reconcile), so
+// story test files re-ensure these definitions through the API before
+// seeding fixtures.
+export const STORY_NODE_LABELS = [
   {
     name: "UserStory",
     description:
@@ -48,7 +54,7 @@ const STORY_NODE_LABELS = [
   },
 ] as const;
 
-const STORY_EDGE_TYPES = [
+export const STORY_EDGE_TYPES = [
   {
     name: "DESCRIBES_ACTIVITY",
     description:

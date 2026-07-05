@@ -26,6 +26,7 @@ interface CreateFormState {
   cycle_name: string;
   cycle_start: string;
   cycle_end: string;
+  domain_id: string;
   status: "draft" | "active" | "review" | "closed";
   review_cadence: "weekly" | "monthly" | "quarterly";
 }
@@ -36,6 +37,7 @@ const EMPTY_FORM: CreateFormState = {
   cycle_name: "",
   cycle_start: "",
   cycle_end: "",
+  domain_id: "",
   status: "draft",
   review_cadence: "monthly",
 };
@@ -86,6 +88,7 @@ export function ExecOkrManagement() {
           cycle_name: form.cycle_name,
           cycle_start: form.cycle_start,
           cycle_end: form.cycle_end,
+          domain_id: form.domain_id,
           status: form.status,
           review_cadence: form.review_cadence,
         },
@@ -240,6 +243,10 @@ export function ExecOkrManagement() {
           <label className={styles.field}>
             <span className={styles.label}>Cycle end</span>
             <input className={styles.input} type="date" value={form.cycle_end} onChange={field("cycle_end")} required />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>Domain ID</span>
+            <input className={styles.input} value={form.domain_id} onChange={field("domain_id")} placeholder="e.g. retail" required />
           </label>
           <label className={styles.field}>
             <span className={styles.label}>Status</span>

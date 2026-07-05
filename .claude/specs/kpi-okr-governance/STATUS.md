@@ -1,16 +1,16 @@
 # Spec: kpi-okr-governance
 **Size**: large | **Created**: 2026-07-04 | **Current Phase**: execution:complete
 
-review_passes: 1
+review_passes: 0 <!-- per-phase counter, reset on phase advance (current phase: execution — no review). Design and Tasks each consumed their 2/2 cap; the phase table below is the record. Fixes rev-3 task-review N-02 (the former "1" contradicted the pass-2/2 rows). The two 2026-07-04 out-of-band confirmation reviews are recorded in their phase rows and do NOT count against any cap. -->
 
 | Phase | Status | Approved By | Date |
 |-------|--------|-------------|------|
 | Requirements | approved (rev 2) | single-shot gate (XD-17) | 2026-07-04 |
 | Req Review | revise → addressed in rev 2 (2 blockers, 4 concerns, 2 nits — all resolved) | - | 2026-07-04 |
 | Design | approved (rev 2) | single-shot gate (XD-17) | 2026-07-04 |
-| Design Review | approve on pass 2/2 (pass 1: 2 blockers, 3 concerns, 3 nits — all resolved in rev 2; pass 2: 0 blockers, 1 concern + 2 nits handed to tasks) | - | 2026-07-04 |
-| Tasks | approved (rev 3 — rev 2 plan unchanged; rev 3 is a post-approval erratum recording pass-2 dispositions C-01/N-01/N-02, each sanctioned "no re-review needed" by review-tasks.md) | - | 2026-07-04 |
-| Task Review | approve (pass 2/2 on rev 2; cap reached — rev 3 erratum applies only the reviewer's own sanctioned fixes, no third pass) | - | 2026-07-04 |
+| Design Review | approve on pass 2/2 (pass 1: 2 blockers, 3 concerns, 3 nits — all resolved in rev 2; pass 2: 0 blockers, 1 concern + 2 nits handed to tasks). Out-of-band cold confirmation review 2026-07-04 (current `review-design.md`): approve, 0 blockers; doc-only amendments sanctioned "no re-review" (C-02a–c landed-form accounting, N-01 V-05 row, N-02 `<main>` contingency fold) pending a design.md touch — see Next | - | 2026-07-04 |
+| Tasks | approved (rev 4 — executed plan unchanged. Rev 3 = pass-2 erratum C-01/N-01/N-02, each sanctioned "no re-review needed". Rev 4 = rev-3 fresh-review erratum: N-01 dependency tidy under its "if touched again" sanction; C-01/C-02 carried to Next) | - | 2026-07-04 |
+| Task Review | approve (pass 2/2 on rev 2; cap reached — rev 3 erratum applies only the reviewer's own sanctioned fixes, no third pass). Fresh cold review of rev 3, 2026-07-04 (current `review-tasks.md`): approve, 0 blockers, 2 concerns (C-01 git provenance, C-02 AC-19/NFR-01 pending first PR) + 2 nits (N-01/N-02) — dispositioned in tasks.md rev 4; out-of-band, not counted against the cap | - | 2026-07-04 |
 | Execution | **complete** (T-01…T-21) | implementer | 2026-07-04 |
 
 **Verification:**
@@ -54,7 +54,7 @@ review_passes: 1
 **Artifacts:**
 - 📄 Requirements: `.claude/specs/kpi-okr-governance/requirements.md` (rev 2, approved)
 - 📄 Design: `.claude/specs/kpi-okr-governance/design.md` (rev 2, approved)
-- 📄 Tasks: `.claude/specs/kpi-okr-governance/tasks.md` (rev 3, approved — 21 tasks, all executed; rev 3 = post-approval erratum: T-21 sweep narrowed to the owned `error-scenarios/exec/{kpi-management,okr-management}` subtrees for any re-run (pass-2 C-01; the 2026-07-04 execution ran the full tree green), dependency-symmetry tidy (N-01), `App.tsx` line-number citations dropped (N-02))
+- 📄 Tasks: `.claude/specs/kpi-okr-governance/tasks.md` (rev 4, approved — 21 tasks, all executed; rev 3 = post-approval erratum: T-21 sweep narrowed to the owned `error-scenarios/exec/{kpi-management,okr-management}` subtrees for any re-run (pass-2 C-01; the 2026-07-04 execution ran the full tree green), dependency-symmetry tidy (N-01), `App.tsx` line-number citations dropped (N-02); rev 4 = rev-3 fresh-review erratum: T-12 `Blocked by` += T-01 (last symmetry residue, review-sanctioned), C-01/C-02 process items carried to Next)
 - 📝 Reviews: `review-requirements.md`, `review-design.md`, `review-tasks.md`
 
 ## Consolidated-report flags (XD-17 single-shot — no mid-run user gate)
@@ -87,6 +87,26 @@ create and PATCH round-trips completed within the same millisecond
 test-side with `await Bun.sleep(2)` before the PATCH in both files (spec-owned
 test files only; no route changes). Post-fix: 8/8 consecutive green runs.
 
+## Re-verification addendum (2026-07-04, third implementer pass)
+
+Execution was already complete (T-01…T-21) on entry; this pass re-ran every
+deterministic gate against the current tree (concurrent specs in flight) and
+confirmed no regression:
+`bun run typecheck` (pass) · `bun run test` (387 + 71 pass, 0 fail) ·
+the ten owned integration suites (`--test-name-pattern '^integration:'`,
+`--max-concurrency 1`, root `.env` sourced per §4.8a) **run twice
+back-to-back** against the same live stack — 71/71 green both runs (AC-20) ·
+`cd pwa && bunx vitest run src/__tests__/exec-kpi-management.test.tsx
+src/__tests__/exec-okr-management.test.tsx` (6/6) · narrowed
+`error-scenarios/exec/{kpi-management,okr-management}` sweep (3 files/3 tests,
+rev-3 T-21 binding form) · `bun run scripts/design-conformance.ts --view …`
+on both owned views (both exit 0, clean) · `api.cypher` grep on both views
+(no matches). No source edits were needed; STATUS.md is the only file touched
+by this pass. One operational note: running the suites via bare `bun test`
+without sourcing the root `.env` fails kpi-measurements with ECONNREFUSED
+(Postgres maps to host port **5433**) — always use
+`bun run test:integration` / the §4.8a env-sourcing form locally.
+
 ## Not caused by this spec (pre-existing/foreign failures at verification time)
 
 `bun run test:integration` carries 6 failures owned by other specs / the baseline, present before this
@@ -96,4 +116,8 @@ spec's first edit (recorded baseline 2026-07-04): 3× `ontology-bootstrap-reconc
 1× `model-workspace-core` label-registration (that spec is mid-execution in the same working tree).
 None touch files this spec owns.
 
-**Next**: first PR — record the `integration` job wall-time in the PR description (NFR-01 checkpoint, AC-19).
+**Next**: first PR — three open items close together there (completion conditions, not follow-up niceties):
+
+1. **Commit provenance** (task-review rev-3 C-01): commit the spec artifacts (and going forward, at each approved revision — archive superseded review texts, e.g. `review-design.pass1.md`, instead of overwriting, per design-review C-01) plus the implementation, so plan errata are diffable and the T-20 PR-based verification can run.
+2. **AC-19 / NFR-01 proof** (task-review rev-3 C-02): open the PR's `integration` job, confirm green (postgres service healthy, migrations "applied", hard-asserted boot, suites pass), record wall-time in the PR description; if > ~4 min apply the design §4.8 trim levers in order.
+3. **Design doc amendments** (out-of-band design review, sanctioned "no re-review"): three one-line landed-form corrections to §4.7/§4.9 (`export` keyword on `errorEnvelopeSchema`), §4.8 (CI boots `bun run src/server.ts`, not `bun run start`), §4.8a (root-anchored `.env` sourcing); plus N-01 (add a V-05 row for the vacuous FR-02 "time filters" phrase) and N-02 (fold the resolved `<main>`-landmark contingency). These are design.md edits — a design-author touch, not tasks.

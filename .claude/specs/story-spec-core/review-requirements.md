@@ -2,99 +2,70 @@
 feature: "story-spec-core"
 reviewing: "requirements"
 reviewing_revision: 3
-artifact: ".claude/specs/story-spec-core/requirements.md (rev 3 — responds to the pass-2 review of rev 2)"
+artifact: ".claude/specs/story-spec-core/requirements.md (rev 3)"
 reviewer: "spec-review-agent"
 verdict: "approve"
-review_pass: 2
-reviewed_at: "2026-07-04"
+review_pass: 1
+reviewed_at: "2026-07-05"
 ---
 
-# Review: story-spec-core / requirements (confirming re-review of rev 3 — final pass)
+# Review: story-spec-core / requirements (fresh cold pass 1/2 over rev 3)
 
-Reviewed cold against `.claude/skills/spec-review/SKILL.md`,
-`.claude/specs/blueprint.md` (View Tree line 102/113: `#/model/stories` →
-`StoryCatalog`, owner `story-spec-core`; XD-01/02/06/08/09/10/18; UX-01..06),
-`.claude/CLAUDE.md`, `.claude/specs/model-workspace-core/requirements.md`
-(FR-08/FR-11/FR-12/FR-15/FR-17/FR-18, DEC-01(a) closed), and the live codebase:
+> Note on review history: this file supersedes an earlier recorded review of the
+> same artifact. This pass was performed **cold** — every claim in rev 3 was
+> re-verified from scratch against the blueprint, the `model-workspace-core`
+> spec, and the code on disk; the historical findings the document cites
+> (B-01…B-03, C-01…C-07, N-01…N-05) were independently re-checked, not taken on
+> trust. Finding IDs below continue the historical sequence (C-10+, N-07+) to
+> avoid colliding with IDs quoted inside `requirements.md`.
 
-- `api/src/storage/model-scope.ts` — `scopedNodeIds(driver, modelId)` +
-  `scopedWhereFragment` on disk with the exact signature cited; its header (mwc
-  N-04) confirms the C-07 pinned-module premise verbatim ("for a NON-forked
-  instance the pinned journey content is not a set of live nodes … resolve it
-  from the version's snapshot_json").
-- `pwa/src/lib/userStories.ts` — 53 lines as stated; `formulateUserStories(data,
-  journeyName)`, `goalPhrase` = `` `the ${journeyName.toLowerCase()} workflow
-  completes` ``, primary role/location = column-membership `[0]`-order,
-  `persona = primaryRole?.name ?? "user"` — FR-08's formulation and NFR-04's
-  "cannot literally share one input object" framing are both accurate.
-- `api/src/ontology/storage/{node-labels,edge-types}.ts` — `createNodeLabel` /
-  `createEdgeType` exist; endpoint pairs written as `_OntologyEdgeEndpoint`
-  rows; **both are strict CREATE → `409 name_conflict`** (see C-08 below).
-- `api/src/scripts/register-model-labels.ts` — the mwc precedent this spec's
-  registration path mirrors; idempotency there is swallow-409, not MERGE.
-- `api/src/errors.ts` — zero collisions for the five new + one reserved code.
-- `api/src/auth/rbac-permissions.ts` — `ROUTE_PERMISSIONS` with
-  `models/:modelId/*` rows and specific-before-parameterized ordering, as FR-11
-  assumes; `api/src/scripts/seed-rbac-roles.ts` on disk.
-- `pwa/src/views/index.tsx:158` — `stories: () => <ModelTabPlaceholder
-  tab="Stories" spec="story-spec-core" />` is exactly the slot FR-12 replaces;
-  `pwa/src/context/ActiveModelContext.tsx`, `ModelTabPlaceholder.tsx`, catalog
-  `Card/DataTable/Modal/SidePanel`, `pwa/src/styles/companygraph/tokens.css`,
-  and `scripts/design-conformance.ts --view` all on disk as cited.
-- `shared/src/schema/{nodes,edges}.ts` — no `UserStory` / `AcceptanceCriterion`
-  / `DESCRIBES_ACTIVITY` / `STORY_FOR_ROLE` / `ACCEPTANCE_OF` collisions.
+Reviewed against:
+
+- `.claude/skills/spec-review/SKILL.md` (criteria + severity + verdict rules).
+- `.claude/specs/blueprint.md` — View Tree lines 102/113 (`#/model/stories` →
+  `StoryCatalog`, owner `story-spec-core`), UX-01…UX-06, XD-01/02/06/08/09/10/18.
+- `.claude/CLAUDE.md` house rules (zod-only, no tsc, loopback, central router
+  gate + `api/src/auth/`, `/api/v1/` mount, en-US identifiers).
+- `.claude/specs/model-workspace-core/requirements.md` — FR-05 (route
+  convention), FR-08 (fork surface), FR-11 (`business_architect` seed), FR-15
+  (active-model context + persistence), FR-17 (`ModelTabPlaceholder` slot),
+  FR-18 (`scopedNodeIds` helper), DEC-01(a) closed (shared reference nodes).
+- Codebase verification (all confirmed on disk):
+  - `api/src/storage/model-scope.ts:22` — `scopedNodeIds(driver, …)` +
+    `scopedWhereFragment` exist with the cited signature; its own usage comment
+    (line 51) matches the spec's `scopedNodeIds(driver, modelId)` citation.
+  - `pwa/src/lib/userStories.ts` — exactly 53 lines; `formulateUserStories(data,
+    journeyName)`; `goalPhrase` = `` `the ${journeyName.toLowerCase()} workflow
+    completes` `` (line 20); `primaryRole = roles[0]` (line 31); `persona =
+    primaryRole?.name ?? "user"` (line 34). FR-08's formulation and NFR-04's
+    "cannot literally share one input object" framing are both accurate.
+  - `api/src/ontology/storage/node-labels.ts:126` ("createNodeLabel — strict
+    CREATE. 409 name_conflict on duplicate") and `edge-types.ts:206`
+    ("createEdgeType — strict CREATE; 409 on duplicate name") — **not**
+    MERGE-on-name; see C-10. Endpoint pairs are `_OntologyEdgeEndpoint` rows as
+    FR-03 states.
+  - `api/src/scripts/register-model-labels.ts:15-16` — the mwc precedent
+    achieves idempotency by swallowing `409 name_conflict` on re-run.
+  - `api/src/auth/rbac-permissions.ts:279-291` — `ROUTE_PERMISSIONS` rows for
+    the story surface with correct specific-before-parameterized ordering
+    (`bootstrap` and the `acceptance-criteria` sub-routes precede the
+    `:storyId` rows), exactly as FR-11 requires.
+  - `api/src/errors.ts:52-56` — the five FR-10 codes present, additive;
+    `story_duplicate_for_activity` deliberately absent (comment at line 48),
+    consistent with FR-10's "reserved, not thrown".
+  - `pwa/src/views/index.tsx:166` — the `stories` `renderView` slot (the FR-12
+    replacement point); `pwa/src/context/ActiveModelContext.tsx`,
+    `ModelTabPlaceholder.tsx`, `pwa/src/styles/companygraph/tokens.css`,
+    `scripts/design-conformance.ts`, `shared/src/schema/kpi-sla.ts`
+    (`userStoryKPISchema` at line 105) all on disk as cited.
 
 ## Verdict
 
-**approve** — zero open blockers. Rev 3 lands every pass-2 finding exactly as
-prescribed and each resolution verifies against the blueprint and the shipped
-code. Two new concerns and one nit are recorded for the design/tasks phases;
-none rises to blocker level because the requirement outcomes they touch are
-correct and testable as written — only a mechanism description and downstream
-phase-sync need attention.
-
-## Resolved prior findings
-
-Pass 1 (rev 1 → rev 2): ~~B-01~~, ~~B-02~~, ~~C-01~~..~~C-05~~,
-~~N-01~~..~~N-03~~ — all confirmed resolved in the pass-2 review; still intact
-in rev 3.
-
-Pass 2 (rev 2 → rev 3):
-
-- ~~B-03~~ → **resolved.** XD-18 is now cited in the Source column of FR-05,
-  FR-09, and FR-11; the UX/XD conformance table carries an explicit XD-18 row
-  naming AC-19 as the closing AC with AC-06/AC-07/AC-09/AC-11 as supporting
-  coverage; and **AC-19** is the explicit end-to-end AC the mandate demands:
-  seeded `(:Role)-[:EXECUTES]->(:Activity)` structure (≥2 activities, distinct
-  roles), a **real `business_architect` session through the central router
-  gate** (not a synthetic permission stub), bootstrap → one `derived:true`
-  story per activity with `DESCRIBES_ACTIVITY` + `STORY_FOR_ROLE` to the
-  executing role + a starter G/W/T AC, then a same-session PATCH clearing
-  `derived` — with a named integration test
-  (`api/__tests__/story-xd18-role-path.integration.test.ts`). This matches the
-  blueprint XD-18 text (line 173) for the story-surface half; the
-  `EXECUTES`-core half remains with `business-model-authoring` as XD-18 itself
-  assigns. Traceable into design/tasks now that requirements states it.
-- ~~C-06~~ → **resolved.** FR-05 now requires the write-side scope check on
-  `POST` create and `PATCH` re-point (`activityId` ∈
-  `scopedNodeIds(driver, :modelId)`, else `404 story_activity_not_in_model`);
-  the code is added to FR-10's additive set (distinct from
-  `story_activity_required` = missing); AC-08 gained the negative-write
-  assertions (create with a model-B-only activity id **and** a re-point, both
-  rejected, model B's list unchanged). No collision in `api/src/errors.ts`.
-  `roleId` correctly exempted per mwc DEC-01(a) (shared reference nodes —
-  verified closed in mwc requirements Risk 1).
-- ~~C-07~~ → **resolved.** Scope Boundaries now states the pinned-module
-  boundary as intended behavior: stories/ACs attach only to materialized
-  (in-model or forked) activities; pinned non-forked module content is out of
-  story reach until forked (fork surface = mwc FR-08, verified that FR owns the
-  fork trigger); bootstrap reports such activities in neither `created` nor
-  `skipped`; design is directed to hint "fork first, then generate" in the
-  empty state. Matches the shipped `model-scope.ts` header exactly.
-- ~~N-04~~ → **resolved.** FR-12/NFR-06 cite the real path
-  `pwa/src/styles/companygraph/tokens.css` (file exists).
-- ~~N-05~~ → **resolved.** Frontmatter is now `status: "revised", revision: 3`
-  — no longer anticipates the review outcome.
+**approve** — zero blockers. Rev 3 is internally consistent, traceable to the
+blueprint and its dependency's real interfaces, and every FR/NFR is closed by a
+testable AC with a named verification artifact. The remaining findings are one
+mechanism mis-description (C-10), two contract/semantics gaps that design must
+pin (C-11, C-12), and two nits — none changes a requirement outcome.
 
 ## Blockers
 
@@ -102,96 +73,110 @@ None.
 
 ## Concerns
 
-- **C-08 — FR-01/FR-02 misstate the registry idempotency mechanism.** Both FRs
+- **C-10 — FR-01/FR-02 misstate the registry idempotency mechanism.** Both FRs
   claim idempotent registration via "MERGE-on-name semantics of the registry
-  path". That is not what the dependency provides: `createNodeLabel`
-  (`api/src/ontology/storage/node-labels.ts:126` — "strict CREATE. 409
-  name_conflict on duplicate") and `createEdgeType` (`edge-types.ts:206`) are
-  strict CREATEs. The mwc precedent this spec mirrors
-  (`api/src/scripts/register-model-labels.ts`) achieves idempotency by
-  **swallowing `409 name_conflict`** on re-run — "every createNodeLabel /
-  createEdgeType call swallows `409 name_conflict` (already registered) so
-  re-runs are no-ops". The requirement outcome (idempotent, no duplicate rows —
-  AC-01) is correct and testable regardless, so this is not a blocker, but the
-  feature brief requires citing dependencies' **real** interfaces.
-  **Recommendation:** design must specify the swallow-409 registration pattern
-  (per `register-model-labels.ts`) and not inherit the "MERGE-on-name" wording;
-  if requirements is touched again for any reason, fix the parenthetical in
-  FR-01/FR-02.
-- **C-09 — Rev-3 deltas post-date the approved design and the tasks draft;
-  downstream phases must absorb them.** STATUS.md shows design already approved
-  and a 16-task draft covering "all 18 ACs" — requirements now has **19** ACs.
-  The rev-3 additions that must ripple: (1) AC-19 + its named integration test
-  (one new task or an extension of the RBAC/bootstrap test tasks); (2) the
-  `story_activity_not_in_model` code in the errors task (T-03) and the FR-05
-  create/re-point scope check in the routes task; (3) the AC-08 negative-write
-  assertions in the isolation test task (T-10); (4) the "fork first, then
-  generate" empty-state hint (Scope Boundaries directive to design).
-  **Recommendation:** land these as design/tasks errata before task review
-  closes; the task reviewer should verify all 19 ACs are covered, not 18.
+  path". The dependency's real interface is the opposite: `createNodeLabel`
+  (`api/src/ontology/storage/node-labels.ts:126`) and `createEdgeType`
+  (`edge-types.ts:206`) are **strict CREATE → `409 name_conflict`**. The
+  sanctioned idempotency pattern is the caller swallowing the 409, per the mwc
+  precedent (`api/src/scripts/register-model-labels.ts:15-16`: "every
+  createNodeLabel / createEdgeType call swallows `409 name_conflict` … so
+  re-runs are no-ops"). The requirement *outcome* (idempotent, no duplicate
+  rows — AC-01) is correct and testable either way, so this is not a blocker.
+  **Recommendation:** design specifies the swallow-409 registration pattern and
+  does not inherit the "MERGE-on-name" wording; if requirements is revised for
+  any other reason, fix the parenthetical in FR-01/FR-02.
+- **C-11 — AC `ordinal` collision/normalization semantics unspecified.** FR-02
+  says `ordinal` orders ACs within a story (1-based); FR-06 `PATCH` may set
+  `ordinal` to any int; FR-13 supports reorder (spec'd as up/down buttons).
+  Nothing forbids two ACs of the same story sharing an `ordinal` after a PATCH,
+  and nothing defines list order under a tie or whether gaps left by `DELETE`
+  are renumbered. "List ordered by `ordinal` ASC" (AC-04) is not deterministic
+  under ties. **Recommendation:** design must pin one of: (a) up/down = swap
+  semantics (two PATCHes or one transactional swap) with a documented
+  `ordinal, createdAt` tiebreak on reads, or (b) server-side renormalization on
+  write. Requirements need not change; the AC-04 test should then assert the
+  chosen tie behavior.
+- **C-12 — FR-09's `{activityIds}` rejection path names no error code.** FR-09
+  says each supplied id "must be a scoped activity of `:modelId`" but, unlike
+  the analogous FR-05 check (`404 story_activity_not_in_model`), names no code
+  for a violation, and no AC exercises the bootstrap-body negative case (AC-08
+  covers only the FR-05 create/re-point side). FR-10's "at minimum" keeps this
+  additive, so not blocking. **Recommendation:** design states that the
+  bootstrap body check reuses `story_activity_not_in_model` (preferred — same
+  invariant, same code) and the bootstrap integration test (AC-07's file) gains
+  the negative case.
 
 ## Nits
 
-- **N-06** — FR-09's optional `{activityIds}` says each id "must be a scoped
-  activity of `:modelId`" but names no rejection code for a violation, while
-  the analogous FR-05 check names `story_activity_not_in_model`. Design should
-  state that the bootstrap body check reuses the same code (or names its own);
-  FR-10's "at minimum" leaves room either way.
+- **N-07 — AC-15 is `manual:` but the check is a deterministic CLI.**
+  `scripts/design-conformance.ts` exits non-zero on violations; the artifact
+  itself flags this (Risk 7). Tasks should promote it to an automated
+  checkpoint rather than a manual repro.
+- **N-08 — FR-08 pins a file path that design owns.**
+  `api/src/storage/story-derive.ts` is named in a requirement; the artifact
+  half-acknowledges this is a design decision (Risk 6). A pure, I/O-free
+  derivation module arguably belongs outside `storage/`. Requirements should
+  state the module contract (pure, Neo4j-free, unit-testable) and leave the
+  path to design.
 
-## Completeness / Traceability
+## Traceability check
 
 | Check | Result |
 |-------|--------|
-| Every FR reaches ≥1 AC (and vice versa) | pass — table below; no orphan FRs/ACs |
-| Routes/views match the blueprint View Tree verbatim | pass — `#/model/stories` → `StoryCatalog` (blueprint lines 102, 113), no invented/renamed routes; `route.ts` untouched (mwc owns it); replacement happens at the designated `renderView` `stories` slot (`pwa/src/views/index.tsx:158`) |
-| UX-* allowances covered in ACs | pass — UX-01 (AC-10/12/13/14), UX-02 (AC-15, real conformance CLI), UX-03 (n/a with populated Platforms & Input-Modes + Native Conflicts tables and justification), UX-04 (NFR-06), UX-05 (AC-16), UX-06 (FR-12/FR-14, AC-17) |
-| XD-* cross-cutting decisions honoured | **pass** — XD-01 (registry-only labels/edges, AC-01/02/18 guard), XD-02 (Neo4j only, no new store), XD-06 (activity-join scoping, AC-08), XD-08 (`business_architect` write path, FR-11), XD-09 (generate-then-edit, FR-08/09, AC-06/07), XD-10 (structured G/W/T, FR-02/06, NFR-03, AC-04), **XD-18 (AC-19 + conformance row — B-03 closed)** |
-| House rules (CLAUDE.md) honoured | pass — zod-only, no tsc, loopback, central router gate + `api/src/auth/` only (FR-11 explicit), all routes under `/api/v1/`, en-US identifiers |
-| No ownership conflict with another spec | pass — mwc surfaces consumed not re-specced; out-of-scope owners named (kpi-impact-mapping, ddd-system-modeling, business-model-authoring, key-activity-optimizer, requirements-export); `UserStory.id` join-key boundary flagged for kpi-impact-mapping |
-| Dependencies list real files/modules | pass — every cited file verified on disk with matching interface (one mechanism mis-description → C-08) |
-| No naming collisions (labels/edges/error codes/routes) | pass — grep-verified against `shared/src/schema/*`, `api/src/errors.ts`, `rbac-permissions.ts` |
+| Every FR reaches design file-changes / a task | n/a at this phase — every FR/NFR reaches ≥1 AC (table below); no orphan FRs or ACs |
+| Every AC is closed by a task with Verification | n/a at this phase — every AC names its verification artifact inline (test path or `manual:` repro with input mode + observable outcome) |
+| Routes/views match the blueprint View Tree verbatim | **pass** — `#/model/stories` → `StoryCatalog` (blueprint lines 102, 113); no invented or renamed routes; `route.ts` explicitly untouched (mwc owns it); replacement happens at the designated `renderView` `stories` slot |
+| UX-* allowances covered in ACs (pwa/ specs) | **pass** — UX-01: AC-10/12/13/14 (all four states); UX-02: AC-15 + NFR-06 (real tokens path verified); UX-03: n/a with populated Platforms & Input-Modes + Native Conflicts tables and an explicit no-canvas/no-gesture justification; UX-04: NFR-06; UX-05: AC-16 (keyboard walk, focus order, ARIA landmark); UX-06: FR-12 verbatim route + FR-14/AC-17 (deep link + active model survive reload) |
+| XD-* cross-cutting decisions honoured | **pass** — XD-01 (registry-only labels/edges; AC-01/02/18 + `git diff` guard), XD-02 (Neo4j only, no new store — NFR-01), XD-06 (activity-join model scoping; AC-08 asserts story-id *non*-membership in `scopedNodeIds`), XD-08 (`business_architect` write path, FR-11), XD-09 (generate-then-edit, FR-08/09, AC-06/07), XD-10 (structured G/W/T only, FR-02/06, NFR-03, AC-04), XD-18 (explicit closing AC-19 through the real router gate + conformance-table row + Source citations in FR-05/09/11) |
+| House rules (CLAUDE.md) honoured | **pass** — zod-only, no tsc, loopback, central router gate + `api/src/auth/` only (FR-11 explicit: "no per-route auth check"), all routes under `/api/v1/`, en-US identifiers |
+| No file ownership conflict with another spec | **pass** — mwc surfaces (route.ts, SURFACES, active-model context, `scopedNodeIds`, rbac seed) consumed, never re-specced; out-of-scope items each name an owner (kpi-impact-mapping, ddd-system-modeling, business-model-authoring, key-activity-optimizer, requirements-export); the `UserStory.id` join-key boundary is flagged for kpi-impact-mapping so it cannot invent a parallel story identity |
+| Dependencies list real files/modules | **pass** — every cited file verified on disk with matching interface; one mechanism mis-description → C-10 |
+| No naming collisions (labels / edge types / error codes / routes) | **pass** — no `UserStory`/`AcceptanceCriterion`/`DESCRIBES_ACTIVITY`/`STORY_FOR_ROLE`/`ACCEPTANCE_OF` in the compile-time consts; FR-10's codes are additive in `api/src/errors.ts`; the story `ROUTE_PERMISSIONS` rows collide with nothing |
 
 ### FR/NFR → AC coverage
 
 | Requirement | Covered by | Notes |
 |-------------|-----------|-------|
-| FR-01 UserStory label (registry) | AC-01, AC-18 | OK; **C-08** wording (mechanism) |
-| FR-02 AcceptanceCriterion label (G/W/T) | AC-01, AC-04, AC-18 | OK; **C-08** wording |
-| FR-03 story→structure edges + cardinality | AC-02 | OK — cardinality decided in-FR |
-| FR-04 ACCEPTANCE_OF edge | AC-02, AC-04, AC-05 | OK |
-| FR-05 Story CRUD + write-side scope check | AC-03, AC-08, AC-19 | OK — C-06 closed |
-| FR-06 AC CRUD | AC-04 | OK |
-| FR-07 cascade + detached indicator | AC-05, AC-11 | OK — single-tx DETACH DELETE |
-| FR-08 server derivation | AC-06 | OK — projection + tiebreak well-defined |
-| FR-09 bootstrap | AC-07, AC-13, AC-19 | OK; **N-06** (bootstrap body rejection code unnamed) |
-| FR-10 API contract / error codes | AC-04, AC-08, AC-09 | OK — reserved code handled honestly |
-| FR-11 route permissions + business_architect | AC-09, AC-19 | OK — XD-18 cited |
-| FR-12 StoryCatalog + 4 states | AC-10, AC-12, AC-13, AC-14, AC-15 | OK — route verbatim |
-| FR-13 detail/edit/AC editing | AC-11, AC-16 | OK |
-| FR-14 model-scoped catalog + reload | AC-10, AC-17 | OK |
-| NFR-01 registry-only | AC-01, AC-02, AC-18 | OK |
-| NFR-02 model isolation (read + write side) | AC-08 | OK — both sides now asserted |
-| NFR-03 structured-AC invariant | AC-04 | OK |
+| FR-01 `UserStory` label (registry) | AC-01, AC-18 | OK; C-10 mechanism wording |
+| FR-02 `AcceptanceCriterion` label (G/W/T) | AC-01, AC-04, AC-18 | OK; C-10 wording; C-11 ordinal ties |
+| FR-03 story→structure edges + cardinality | AC-02 | OK — `1..*` decided in-FR, reserved code handled honestly |
+| FR-04 `ACCEPTANCE_OF` edge | AC-02, AC-04, AC-05 | OK |
+| FR-05 story CRUD + write-side scope check | AC-03, AC-08, AC-19 | OK — negative write asserted both directions (create + re-point) |
+| FR-06 AC CRUD | AC-04 | OK; C-11 (tie order under PATCH ordinal) |
+| FR-07 cascade + detached indicator | AC-05, AC-11 | OK — single-tx DETACH DELETE, activity/role survival asserted |
+| FR-08 server derivation | AC-06 | OK — projection + `createdAt`-then-`id` tiebreak makes parity well-defined; orphan fallback has its own case |
+| FR-09 bootstrap | AC-07, AC-13, AC-19 | OK; C-12 (body-scope rejection code unnamed) |
+| FR-10 API contract / error codes | AC-04, AC-08, AC-09 | OK |
+| FR-11 route permissions + `business_architect` | AC-09, AC-19 | OK — XD-18 cited; ordering rule verified against `rbac-permissions.ts` |
+| FR-12 StoryCatalog + 4 states | AC-10, AC-12, AC-13, AC-14, AC-15 | OK — route verbatim, real tokens path |
+| FR-13 detail/edit/AC editing | AC-11, AC-16 | OK; reorder default = buttons (no gesture), Native Conflicts stays clean |
+| FR-14 model-scoped catalog + reload | AC-10, AC-17 | OK — consumes mwc FR-15, does not re-implement |
+| NFR-01 registry-only, no new store | AC-01, AC-02, AC-18 | OK — `git diff` guard on the consts |
+| NFR-02 model isolation (read + write side) | AC-08 | OK — activity-join mechanism stated precisely, incl. why story-id membership would be wrong |
+| NFR-03 structured-AC invariant | AC-04 | OK — single enforcement point named |
 | NFR-04 derivation fidelity | AC-06 | OK |
 | NFR-05 house rules | AC-18 | OK |
-| NFR-06 tokens-only styling | AC-15 | OK — real path |
-| Blueprint XD-18 mandate | **AC-19** (+ AC-06/07/09/11 supporting) | **closed — was B-03** |
+| NFR-06 tokens-only styling | AC-15 | OK |
+| Blueprint XD-18 mandate (story-surface half) | AC-19 (+ AC-06/07/09/11 supporting) | OK — real session through the real gate, not a permission stub |
 
 ## Summary
 
-- Rev 3 is a precise, minimal revision: it lands the pass-2 blocker exactly as
-  prescribed (XD-18 citations + AC-19 + conformance row) and both concerns and
-  both nits, and every claim it adds checks out against the blueprint and the
-  code on disk — including the subtle ones (pinned-module snapshot boundary,
-  `scopedNodeIds` membership semantics, the client derivation's `[0]`-order
-  primary).
-- What's done well: the model-scoping mechanism note (stories resolved through
-  the activity join, with AC-08 asserting story-id **non**-membership) and the
-  NFR-04 parity-harness framing are unusually rigorous requirements writing —
-  they close off the two easiest ways this feature could have shipped subtly
-  wrong.
-- Remaining work is downstream: fix the "MERGE-on-name" mechanism wording in
-  design (C-08), and reconcile the already-drafted design/tasks with the rev-3
-  deltas — 19 ACs, one new error code, negative-write assertions, and the
-  fork-first empty-state hint (C-09). Neither requires another requirements
-  pass; the review cap for this phase is now consumed.
+- Solid: the model-scoping mechanism note (stories resolved through the
+  `DESCRIBES_ACTIVITY` activity join, with AC-08 explicitly asserting that a
+  story id is *not* in `scopedNodeIds`) and the NFR-04 parity-harness framing
+  are rigorous — they close off the two easiest ways this feature could ship
+  subtly wrong (silent empty-set scoping, and an ill-defined parity assertion
+  against an order-unstable client function).
+- Solid: XD-18 is closed properly — AC-19 is a genuine end-to-end AC (seeded
+  `Role-EXECUTES-Activity` structure, real `business_architect` session through
+  the central gate, per-role `STORY_FOR_ROLE`, derived-flag lifecycle), not a
+  paraphrase of the mandate.
+- The common thread in the findings is *mechanism precision at the dependency
+  boundary*: the registry's strict-CREATE/swallow-409 reality (C-10), the
+  bootstrap body's unnamed rejection code (C-12), and ordinal tie semantics
+  (C-11) are all places where requirements states the right outcome but design
+  must pin the exact mechanism. Do C-10 first — it is the only claim in the
+  document that contradicts a dependency's real interface.
+- No blocker; concerns are addressable in the design phase without a
+  requirements revision.

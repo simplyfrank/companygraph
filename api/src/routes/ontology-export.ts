@@ -88,6 +88,48 @@ export async function handleOntologyExport(req: Request): Promise<Response> {
     type: record.get("type"),
   }));
 
+  // Fetch shared domains with their bounded contexts
+  const sharedDomainsResult = await session.run(`
+    MATCH (sd:SharedDomain)
+    OPTIONAL MATCH (bc:BoundedContext)-[:BELONGS_TO_SHARED_DOMAIN]->(sd)
+    WITH sd, collect(DISTINCT bc.name) as bounded_contexts
+    RETURN sd.id as id,
+           sd.name as name,
+           sd.description as description,
+           sd.tags as tags,
+           bounded_contexts
+    ORDER BY sd.name
+  `);
+
+  const sharedDomains = sharedDomainsResult.records.map((record) => ({
+    id: record.get("id"),
+    name: record.get("name"),
+    description: record.get("description") ?? "",
+    tags: record.get("tags") ?? [],
+    bounded_contexts: record.get("bounded_contexts") as string[],
+  }));
+
+  // Fetch namespaces with their business model and bounded contexts
+  const namespacesResult = await session.run(`
+    MATCH (ns:Namespace)
+    OPTIONAL MATCH (bc:BoundedContext)-[:IN_NAMESPACE]->(ns)
+    WITH ns, collect(DISTINCT bc.name) as bounded_contexts
+    RETURN ns.id as id,
+           ns.name as name,
+           ns.description as description,
+           ns.model_id as model_id,
+           bounded_contexts
+    ORDER BY ns.name
+  `);
+
+  const namespaces = namespacesResult.records.map((record) => ({
+    id: record.get("id"),
+    name: record.get("name"),
+    description: record.get("description") ?? "",
+    model_id: record.get("model_id"),
+    bounded_contexts: record.get("bounded_contexts") as string[],
+  }));
+
   await session.close();
 
   const body = {
@@ -96,6 +138,8 @@ export async function handleOntologyExport(req: Request): Promise<Response> {
     boundedContexts,
     entities,
     boundedContextRelationships,
+    sharedDomains,
+    namespaces,
   };
 
   if (format === "yaml") {

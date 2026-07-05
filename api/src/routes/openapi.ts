@@ -70,8 +70,42 @@ import {
   bootstrapRequestSchema,
   bootstrapResultSchema,
 } from "@companygraph/shared/schema/story-spec";
+import {
+  subScoresSchema,
+  keyActivityMarkSchema,
+  activityScoreRowSchema,
+  keyActivityScoresSchema,
+} from "@companygraph/shared/schema/key-activity";
+import {
+  capabilityCreateSchema,
+  capabilityPatchSchema,
+  capabilityReadSchema,
+  neededBySchema,
+  supportedBySchema,
+  contextAssignSchema,
+  gapsResultSchema,
+  contextMapResultSchema,
+} from "@companygraph/shared/schema/ddd-system";
+import {
+  specExportQuerySchema,
+  specDocumentSchema,
+} from "@companygraph/shared/schema/spec-export";
+import {
+  authoringApplySchema,
+  authoringApplyResultSchema,
+  authoringGraphSchema,
+  domainPatchSchema,
+} from "@companygraph/shared/schema/authoring";
+import {
+  activityLinkCreateSchema,
+  storyLinkCreateSchema,
+  impactLinkRowSchema,
+  kpiImpactMatrixSchema,
+  kpiImpactRollupSchema,
+} from "@companygraph/shared/schema/kpi-impact";
 import { ERROR_CODES } from "../errors";
 import { registerKpiOkrPaths } from "./openapi-kpi-okr";
+import { registerPerformancePaths } from "./openapi-performance";
 
 // Static Route[] declared right here (design-review B-02 — OpenAPI
 // generator owns its own route table, no inter-task module dependency).
@@ -814,6 +848,172 @@ export function getOpenApiDoc(): object {
     },
   });
 
+  // ── key-activity-optimizer T-10 (design §4.9, FR-10) — key-activity
+  // surface. Generated from the same T-01 zod definitions used at
+  // runtime (no hand-maintained copy); the new `activity_not_found`
+  // code surfaces through the shared errorEnvelopeSchema enum. The
+  // mark/unmark 404s follow the story routes' combined-404 convention
+  // (model_not_found | activity_not_found — cold-pass B-01 sequencing).
+  registry.register("KeyActivitySubScores", subScoresSchema);
+  registry.register("KeyActivityMark", keyActivityMarkSchema);
+  registry.register("KeyActivityScoreRow", activityScoreRowSchema);
+  registry.register("KeyActivityScores", keyActivityScoresSchema);
+
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/key-activities",
+    description: "Live descriptive graph scores + ranking over the model's scoped Activity set (FR-06; centrality, critical-path position, handoff density — XD-11, no recommendations). Unknown model → 404 model_not_found; an existing model with zero scoped activities → 200 rows:[] / meta.activityCount:0, never a 404.",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: keyActivityScoresSchema } } },
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/key-activities/{activityId}/mark",
+    description: "Mark a model-scoped Activity as key (FR-07, XD-03): snapshots the SERVER-computed live scores into attributes.keyActivity (attribute-preserving lock-first write; no request body — a client can never supply a snapshot). Returns the updated rank row.",
+    responses: {
+      200: { description: "marked", content: { "application/json": { schema: activityScoreRowSchema } } },
+      404: err("model_not_found | activity_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/key-activities/{activityId}/mark",
+    description: "Unmark a key activity (FR-08): deletes the attributes.keyActivity key, restoring attributes byte-equal to pre-mark (NFR-03). Idempotent — unmarking an unmarked activity is a true no-op 204, never a 404.",
+    responses: {
+      204: { description: "unmarked" },
+      404: err("model_not_found | activity_not_found"),
+    },
+  });
+
+  // ── ddd-system-modeling T-11 (design §4.9, FR-10) — capability +
+  // system-model surface. Generated from the same T-01 zod definitions
+  // used at runtime (no hand-maintained copy); the three new
+  // ERROR_CODES members (capability_not_found,
+  // bounded_context_not_found, system_not_found) surface through the
+  // shared errorEnvelopeSchema enum. The three PUT registrations are
+  // the document's FIRST `put` operations (DD-11 — the generator's
+  // RouteConfig Method union includes 'put').
+  registry.register("CapabilityCreate", capabilityCreateSchema);
+  registry.register("CapabilityPatch", capabilityPatchSchema);
+  registry.register("Capability", capabilityReadSchema);
+  registry.register("CapabilityNeededBy", neededBySchema);
+  registry.register("CapabilitySupportedBy", supportedBySchema);
+  registry.register("CapabilityContextAssign", contextAssignSchema);
+  registry.register("SystemModelGaps", gapsResultSchema);
+  registry.register("SystemModelContextMap", contextMapResultSchema);
+
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/system-model/gaps",
+    description: "Support-gap analysis (FR-07/FR-08): unsupportedSteps + capabilityGaps (step items carry describingStories — DD-15), capabilitiesWithoutSystem, per-model orphanSystems (DD-18), and the augmentation mix per capability + model roll-up (the `unknown` bucket is defensive). Read-only, bounded, deterministic.",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: gapsResultSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/system-model/context-map",
+    description: "Context map (FR-09): contexts holding ≥1 model-scoped capability, each with its capabilities + inter-context relationships resolved to targetId (DD-07), plus the unassigned bucket. Read-only — no BoundedContext/relationship is created or mutated (NFR-04).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: contextMapResultSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/capabilities",
+    description: "List the model's capabilities (FR-04) — membership rides CAPABILITY_IN_MODEL (DD-02); rows carry neededByCount/supportingSystemCount + assigned context. Unknown model → 200 [] (the pinned list-[]-vs-create-404 asymmetry).",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.array(capabilityReadSchema) } } },
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/capabilities",
+    description: "Create a capability (FR-04): 201 + server UUIDv7 + the CAPABILITY_IN_MODEL membership edge written atomically in the create tx. Unknown model → 404 model_not_found.",
+    request: { body: { content: { "application/json": { schema: capabilityCreateSchema } } } },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: capabilityReadSchema } } },
+      400: err("invalid_payload"),
+      404: err("model_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}",
+    description: "Capability detail (FR-04): embeds neededBy (activity|story), supportedBy (each with systemKind), assignedContext, and the detached[] indicator field (DD-13). Cross-model → 404 capability_not_found.",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: capabilityReadSchema } } },
+      404: err("capability_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}",
+    description: "Patch a capability — omitted fields are never clobbered (FR-04).",
+    request: { body: { content: { "application/json": { schema: capabilityPatchSchema } } } },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: capabilityReadSchema } } },
+      400: err("invalid_payload"),
+      404: err("capability_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}",
+    description: "Delete a capability + all four edge types in one DETACH DELETE tx (FR-06, AC-05); the far-end Activity/UserStory/System/BoundedContext/BusinessModel nodes survive.",
+    responses: {
+      204: { description: "deleted" },
+      404: err("capability_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "put", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}/needed-by",
+    description: "Map an Activity or UserStory need onto the capability (FR-05) — exactly one of {activityId,storyId}; idempotent MERGE (DD-06); the target is validated in-model (strict scopedNodeIds arm, DD-16 — an orphan target → 404 not_found with details.field).",
+    request: { body: { content: { "application/json": { schema: neededBySchema } } } },
+    responses: {
+      200: { description: "mapped", content: { "application/json": { schema: capabilityReadSchema } } },
+      400: err("invalid_payload | edge_endpoint_label_mismatch"),
+      404: err("capability_not_found | not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}/needed-by",
+    description: "Remove a needed-by mapping (FR-05). Body-carrying DELETE — the source is a two-field union that does not path-encode cleanly (precedent: module-instances edges DELETE).",
+    request: { body: { content: { "application/json": { schema: neededBySchema } } } },
+    responses: {
+      204: { description: "removed" },
+      404: err("capability_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "put", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}/supported-by",
+    description: "Map a supporting System onto the capability (FR-05) — idempotent MERGE (DD-06); unknown system → 404 system_not_found.",
+    request: { body: { content: { "application/json": { schema: supportedBySchema } } } },
+    responses: {
+      200: { description: "mapped", content: { "application/json": { schema: capabilityReadSchema } } },
+      400: err("invalid_payload | edge_endpoint_label_mismatch"),
+      404: err("capability_not_found | system_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}/supported-by/{systemId}",
+    description: "Remove a supporting-system mapping (FR-05).",
+    responses: {
+      204: { description: "removed" },
+      404: err("capability_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "put", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}/context",
+    description: "Assign the capability's bounded context (FR-05) — REPLACES any prior assignment in one tx (at-most-one, FR-03); unknown context → 404 bounded_context_not_found.",
+    request: { body: { content: { "application/json": { schema: contextAssignSchema } } } },
+    responses: {
+      200: { description: "assigned", content: { "application/json": { schema: capabilityReadSchema } } },
+      400: err("invalid_payload | edge_endpoint_label_mismatch"),
+      404: err("capability_not_found | bounded_context_not_found"),
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/capabilities/{capabilityId}/context",
+    description: "Unassign the capability's bounded context (FR-05).",
+    responses: {
+      204: { description: "unassigned" },
+      404: err("capability_not_found"),
+    },
+  });
+
   registry.registerPath({
     method: "get", path: "/api/v1/openapi.json",
     description: "FR-16 — the v1 contract as a self-describing OpenAPI 3.1 document. Generated at server boot from the same zod definitions used at runtime; no hand-maintained copy.",
@@ -822,7 +1022,157 @@ export function getOpenApiDoc(): object {
     },
   });
 
+  // requirements-export T-06 (FR-06) — spec-export route + schemas.
+  registry.register("SpecDocument", specDocumentSchema);
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/spec-export",
+    description: "Assembled business specification document (FR-01). ?format=json (default) → application/json; ?format=markdown → text/markdown. Section failures degrade to empty shapes with meta.degraded (FR-03).",
+    request: { params: z.object({ modelId: z.string() }), query: specExportQuerySchema },
+    responses: {
+      200: {
+        description: "assembled spec document",
+        content: {
+          "application/json": { schema: specDocumentSchema },
+          "text/markdown": { schema: z.string() },
+        },
+      },
+      400: err("unsupported_export_format"),
+      404: err("model_not_found"),
+    },
+  });
+
   registerKpiOkrPaths(registry); // kpi-okr-governance FR-12 (design §4.7)
+  registerPerformancePaths(registry); // kpi-okr-performance-dashboards FR-09 (design §4.6)
+
+  // business-model-authoring T-13 (FR-13, DD-06) — three route paths.
+  registry.register("AuthoringApply", authoringApplySchema);
+  registry.register("AuthoringApplyResult", authoringApplyResultSchema);
+  registry.register("AuthoringGraph", authoringGraphSchema);
+  registry.register("DomainPatch", domainPatchSchema);
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/authoring/apply",
+    description: "Batched authoring write: mint ids, scope-validate, land via realImport (FR-07). 200 even when all rows fail; 400 reserved for envelope parse failure.",
+    request: {
+      params: z.object({ modelId: z.string() }),
+      body: { content: { "application/json": { schema: authoringApplySchema } } },
+    },
+    responses: {
+      200: { description: "imported (partial successes carry errors[])", content: { "application/json": { schema: authoringApplyResultSchema } } },
+      400: { description: "envelope-level validation failure", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      404: { description: "model not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/authoring/graph",
+    description: "Model-scoped id-based graph projection (FR-09). Journeys with topologically ordered activities + shared roles/systems/locations by id.",
+    request: { params: z.object({ modelId: z.string() }) },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: authoringGraphSchema } } },
+      404: { description: "model not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/models/{modelId}/domains/{domainId}",
+    description: "Edit-in-place for a model-scoped domain (FR-03, DD-08). name and/or description; omitted fields untouched.",
+    request: {
+      params: z.object({ modelId: z.string(), domainId: z.string() }),
+      body: { content: { "application/json": { schema: domainPatchSchema } } },
+    },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: nodeReadSchema } } },
+      400: { description: "validation error (empty body)", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      404: { description: "model or domain not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+
+  // ── kpi-impact-mapping T-10 (design §7, §5, FR-10, AC-17) — 8 routes
+  // generated from the same T-01 zod definitions. The new error codes
+  // (kpi_not_found, impact_link_not_found) surface through the shared
+  // errorEnvelopeSchema enum.
+  registry.register("ActivityLinkCreate", activityLinkCreateSchema);
+  registry.register("StoryLinkCreate", storyLinkCreateSchema);
+  registry.register("ImpactLinkRow", impactLinkRowSchema);
+  registry.register("KpiImpactMatrix", kpiImpactMatrixSchema);
+  registry.register("KpiImpactRollup", kpiImpactRollupSchema);
+
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/kpi-impact/matrix",
+    description: "Activity × KPI coverage matrix with gap detection (FR-05/FR-06). Read-only, model-scoped.",
+    request: { params: z.object({ modelId: z.string() }) },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: kpiImpactMatrixSchema } } },
+      404: { description: "model not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/kpi-impact/rollup",
+    description: "Per-KPI roll-up with measured status + aggregate impact weight (FR-08/FR-09). Degrades to no_data, never 500.",
+    request: { params: z.object({ modelId: z.string() }) },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: kpiImpactRollupSchema } } },
+      404: { description: "model not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/kpi-impact/activity-links",
+    description: "List activity→KPI impact links (FR-03). Optional ?activityId= / ?kpiId= filters.",
+    request: { params: z.object({ modelId: z.string() }) },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.object({ rows: z.array(impactLinkRowSchema) }) } } },
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/kpi-impact/activity-links",
+    description: "Create/update an activity→KPI impact link (FR-01). MERGE-on-pair — no duplicate edge.",
+    request: {
+      params: z.object({ modelId: z.string() }),
+      body: { content: { "application/json": { schema: activityLinkCreateSchema } } },
+    },
+    responses: {
+      201: { description: "created/updated", content: { "application/json": { schema: impactLinkRowSchema } } },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      404: { description: "activity_not_found / kpi_not_found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/kpi-impact/activity-links/{linkId}",
+    description: "Delete an activity→KPI impact link (FR-03). 204 on success, 404 if not found.",
+    request: { params: z.object({ modelId: z.string(), linkId: z.string() }) },
+    responses: {
+      204: { description: "deleted" },
+      404: { description: "impact_link_not_found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/models/{modelId}/kpi-impact/story-links",
+    description: "List story→KPI impact links (FR-03). Optional ?storyId= / ?kpiId= filters.",
+    request: { params: z.object({ modelId: z.string() }) },
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: z.object({ rows: z.array(impactLinkRowSchema) }) } } },
+    },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/models/{modelId}/kpi-impact/story-links",
+    description: "Create/update a story→KPI impact link (FR-02). MERGE-on-pair — no duplicate edge.",
+    request: {
+      params: z.object({ modelId: z.string() }),
+      body: { content: { "application/json": { schema: storyLinkCreateSchema } } },
+    },
+    responses: {
+      201: { description: "created/updated", content: { "application/json": { schema: impactLinkRowSchema } } },
+      400: { description: "validation error", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      404: { description: "story_not_found / kpi_not_found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "delete", path: "/api/v1/models/{modelId}/kpi-impact/story-links/{linkId}",
+    description: "Delete a story→KPI impact link (FR-03). 204 on success, 404 if not found.",
+    request: { params: z.object({ modelId: z.string(), linkId: z.string() }) },
+    responses: {
+      204: { description: "deleted" },
+      404: { description: "impact_link_not_found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
 
   const generator = new OpenApiGeneratorV31(registry.definitions);
   return generator.generateDocument({

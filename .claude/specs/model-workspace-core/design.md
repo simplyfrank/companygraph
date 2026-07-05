@@ -3,8 +3,8 @@ feature: "model-workspace-core"
 created: "2026-07-04"
 author: "spec-author"
 status: "approved"
-revision: 4
-reviewing_requirements_revision: 4
+revision: 5
+reviewing_requirements_revision: 5
 dec_01: "closed — option (a), shared reference nodes (requirements rev 4, C-07; silent-accept per XD-17)"
 size: "large"
 ---
@@ -83,6 +83,46 @@ size: "large"
 > D-5)** → §6/§8 AC-16 use the enforced **two** `--view <file>` invocations
 > (`.tsx` and `.module.css`). No stable IDs (FR-*, AC-*, DEC-01, §-numbers)
 > were renumbered.
+>
+> **Revision 5 (2026-07-05) — doc-only fold of the fresh design-review
+> residuals (approve verdict, pass 1/2; no contract change beyond what
+> requirements rev 5 + tasks rev 6 already gated) plus realignment to
+> requirements rev 5 (B-03 option 1) and the T-24 rewrite (tasks-review
+> B-01).** The fresh design review approved rev 4 with 0 blockers and left
+> C-13 + N-13…N-16 as "design author at next touch" items (STATUS hand-off
+> #4); requirements rev 5 (user decision 2026-07-05) extended FR-08/NFR-04 to
+> the import surface and added AC-22; tasks rev 6 rewrote T-24 after its
+> review proved the originally-prescribed fork gate ineffective. This
+> revision lands all of it in the design text; the shipped code (T-23…T-25,
+> landed 2026-07-05) was already built to these contracts, so every claim
+> below is verified as-built. The `approved` stamp carries per the same
+> orchestrator single-shot convention used for requirements rev 5.
+> - **C-13 (as corrected by tasks-review B-01):** §4.4 specifies the fork
+>   first-edit concurrency gate — lock-first-then-recheck inside **one**
+>   `executeWrite`, plus `forkLocalKey` **uniqueness constraints** as the
+>   deterministic backstop (§4.3 — they supersede rev 4's two lookup
+>   indexes). The review's original conditional-SET gate is recorded as
+>   **rejected** (§9): it is Neo4j's documented lost-update pattern under
+>   read-committed and must not be built.
+> - **Requirements rev-5 B-03 (option 1) + C-12:** §4.6 gains the third
+>   guard surface — `POST /api/v1/import` pre-scans every node/edge row
+>   ahead of phase 1 and rejects the whole payload `409
+>   model_lifecycle_route_required`, write-nothing (T-23); §8 gains the
+>   AC-22 row and AC-03 gains the generic-create arm; §7 gains
+>   `api/src/routes/import.ts`.
+> - **N-13:** §4.7 documents the forced-`--down` `ModuleInstance` orphaning
+>   (doc-default per T-25: header limitation + stderr orphan-count warning;
+>   deletion semantics unchanged).
+> - **N-14:** §4.9 says **hash** query param (`#/model/models?model=<id>`) —
+>   `location.search` is invisible to the hash router.
+> - **N-15:** the canonical design-conformance invocation is pinned as the
+>   `bun run scripts/design-conformance.ts --view …` form (§6, §8);
+>   requirements AC-16's `bun scripts/…` spelling is the same script under
+>   Bun — one form is quoted everywhere here and in T-20's DoD.
+> - **N-16:** §3.3's snapshot example now carries `description` on the
+>   activity rows, matching the shipped serializer (checksum-relevant — a
+>   verbatim re-implementation now computes the same checksum as the code).
+> No stable IDs (FR-*, AC-*, DEC-01, §-numbers) were renumbered.
 
 ## 1. Overview
 
@@ -219,6 +259,21 @@ Not a deviation: FR-08's "sibling edge route" is **fully specified** (§4.4,
 B-03 option (a)) rather than descoped, so the design matches the requirements
 text on that point.
 
+### 2.2 Fresh-cycle findings ledger (rev 5)
+
+The post-execution fresh review cycle (design pass 1: **approve**) and the
+parallel requirements pass 2 / tasks reviews left the items below to this
+revision. Where they now live:
+
+| Finding | Source | Resolution | Where |
+|---------|--------|-----------|-------|
+| C-13 fork first-edit race | design review (approve residual), corrected by tasks-review B-01 | lock-first-then-recheck single-tx gate + `forkLocalKey` uniqueness constraints (T-24) | §4.3, §4.4, §8 AC-06, §9 |
+| B-03 import bypass (option 1, user-decided 2026-07-05) + C-12 create arm | requirements review pass 2 | import pre-scan guard, payload-atomic 409, write-nothing (T-23); generic-create 409 pinned | §4.6, §5, §7, §8 AC-03/AC-22 |
+| N-13 forced-`--down` instance orphaning | design review | documented limitation + stderr orphan-count warning, doc-default (T-25) | §4.7, §8 AC-08 |
+| N-14 `?model=` param is a **hash** query param | design review | wording fixed; AC-18's playwright spec asserts the hash URL shape | §4.9 |
+| N-15 `bun` vs `bun run` command drift | design review | `bun run scripts/design-conformance.ts --view …` pinned as the one quoted form | §6, §8 AC-16 |
+| N-16 snapshot example missing activity `description` | design review | example fixed to the shipped (checksum-covered) shape | §3.3 |
+
 ## 3. Data model
 
 All four labels + five edges (N-10 count, per requirements NFR-01 rev 4) are
@@ -261,7 +316,7 @@ Top-level: envelope + `version:int` (monotonic per module) + `publishedAt:ISO` +
 ```jsonc
 {
   "journey": { "name": "...", "description": "...", "attributes": {…} },
-  "activities": [ { "localKey": "a0", "name": "...", "attributes": {…} }, … ],
+  "activities": [ { "localKey": "a0", "name": "...", "description": "...", "attributes": {…} }, … ],  // N-16: description present on every activity row (checksum-covered)
   "precedes":   [ { "from": "a0", "to": "a1" }, … ],   // intra-subtree order
   "roleRefs":     [ { "activityKey": "a0", "roleId": "…" }, … ],   // EXECUTES → shared Role
   "systemRefs":   [ { "activityKey": "a0", "systemId": "…" }, … ], // USES_SYSTEM → shared System
@@ -352,7 +407,11 @@ instance-qualified synthetic id** — `"<instanceId>::journey"` on the journey,
 (bare keys `journey`/`a0`/`a1`… are deterministically identical across every fork
 of a version, and `a0, a1, …` collide across modules too, which is exactly the
 B-02 ambiguity). Because `localKey`s are unique within a snapshot and an instance
-forks at most once, `forkLocalKey` values are **globally unique by construction**.
+forks at most once, `forkLocalKey` values are **globally unique by
+construction** — and, since rev 5, that uniqueness is **enforced
+deterministically** by `forkLocalKey` uniqueness constraints on
+`UserJourney`/`Activity` (§4.3, T-24), so it holds even under concurrent
+first edits (§4.4 gate, C-13).
 Three previously-undefined steps now have queryable definitions:
 
 1. **Post-fork synthetic-id resolution** is a direct property match —
@@ -502,11 +561,20 @@ FR-18).
 **Constraints** (added to `applySchema`, `api/src/neo4j/bootstrap.ts`, after the
 registry loop, `IF NOT EXISTS` so re-run is a no-op): `CREATE CONSTRAINT
 business_model_ordinal_unique … FOR (m:BusinessModel) REQUIRE m.ordinal IS
-UNIQUE`, plus two **lookup indexes for the B-02 anchor** — `CREATE INDEX
-user_journey_fork_local_key IF NOT EXISTS FOR (n:UserJourney) ON
-(n.forkLocalKey)` and `CREATE INDEX activity_fork_local_key IF NOT EXISTS FOR
-(n:Activity) ON (n.forkLocalKey)` — so §3.4's equality and `STARTS WITH`
-resolutions are index-backed. **At-most-one-reference** is *not* expressible as a Neo4j Community
+UNIQUE`, plus two **`forkLocalKey` uniqueness constraints for the B-02
+anchor** (rev 5 — T-24, per tasks-review B-01, **superseding** rev 4's two
+lookup indexes): `applySchema` first `DROP INDEX
+user_journey_fork_local_key IF EXISTS` / `DROP INDEX
+activity_fork_local_key IF EXISTS`, then `CREATE CONSTRAINT
+user_journey_fork_local_key_unique IF NOT EXISTS FOR (n:UserJourney) REQUIRE
+n.forkLocalKey IS UNIQUE` and the `Activity` twin
+(`activity_fork_local_key_unique`). Neo4j exempts nodes missing the
+property, so ordinary (non-fork) nodes are unaffected, and each
+constraint's backing RANGE index serves §3.4's equality and `STARTS WITH`
+resolutions exactly as the old lookup indexes did — plus the constraints
+make duplicate-`forkLocalKey` materialization fail deterministically
+(`ConstraintValidationFailed`), the belt-and-suspenders half of the §4.4
+fork gate (C-13). **At-most-one-reference** is *not* expressible as a Neo4j Community
 constraint (no partial/conditional constraints); of the two feasible mechanisms
 requirements FR-05 (rev-4 N-06) names, this design **picks the transactional
 check** — `createModel`/migration refuse to create a second `isReference:true`
@@ -554,6 +622,27 @@ Documented limitation.
   now has a queryable definition). Fork is **per-instance and lazy** (only on
   first edit or explicit call), and journey-level, so fan-out is bounded
   (Risk 2).
+  **Concurrency gate (Resolves: C-13, as corrected by tasks-review B-01;
+  built by T-24).** Two concurrent *first* edits (nodes route + edges route,
+  or two clients) must not both materialize. The check-and-set runs inside
+  **one `executeWrite`** whose first statement acquires the instance node's
+  write lock via a dummy write **before** reading `forked`:
+  `MATCH (i:ModuleInstance {id:$id}) SET i._forkLock = timestamp() WITH i
+  WHERE i.forked = false SET i.forked = true RETURN count(i) AS won`. The
+  losing racer blocks on the lock at the dummy `SET`, re-reads the committed
+  `forked = true`, is filtered out, and gets `won = 0` → it takes the
+  already-forked read-back path above. Materialization stays in the **same
+  transaction**, gated on `won = 1`; `REMOVE i._forkLock` is the
+  transaction's final statement so no scratch property persists (`_forkLock`
+  is a lock-acquisition dummy, never projected at the REST boundary).
+  Belt-and-suspenders: the §4.3 `forkLocalKey` uniqueness constraints make a
+  losing racer's `CREATE` fail deterministically
+  (`ConstraintValidationFailed` — caught and routed to the read-back path)
+  even if a future edit reintroduces a gate bug. Note: the plain
+  conditional-SET gate *without* the lock-first dummy write is Neo4j's
+  documented lost-update pattern under read-committed and is rejected (§9).
+  Sequential external behavior is unchanged (idempotent no-op 200 on an
+  already-forked instance).
 - **Fork trigger — the dedicated model-scoped write route is the only place it
   lives** (FR-08; **Resolves: B-01**). `PATCH /api/v1/models/:modelId/
   module-instances/:instanceId/nodes/:nodeId` (+ the sibling edge route) resolves

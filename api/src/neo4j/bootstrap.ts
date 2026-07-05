@@ -34,6 +34,8 @@ import { ontologyEvents } from "../ontology/events";
 import { runSystemKindMigration } from "../ontology/system-kind-migration";
 import { registerModelSchema } from "../scripts/register-model-labels";
 import { registerStorySchema } from "../scripts/register-story-labels";
+import { registerCapabilitySchema } from "../scripts/register-capability-labels";
+import { registerKpiImpactEdges } from "../scripts/register-kpi-impact-edges";
 
 export async function applySchema(driver: Driver): Promise<void> {
   // Step 1: meta-schema for the registry itself.
@@ -74,6 +76,28 @@ export async function applySchema(driver: Driver): Promise<void> {
   // endpoints are checked (assertEndpointLabelsExist).
   await registerStorySchema(driver);
 
+  // Step 3d (ddd-system-modeling T-02 / FR-01–02, NFR-01): register the
+  // BoundedContext registry row (DD-14 — the row exists nowhere else;
+  // seedBoundedContexts writes only data nodes), the Capability label,
+  // and the four capability edges (NEEDS_CAPABILITY ×2 pairs,
+  // SUPPORTED_BY, ASSIGNED_TO_CONTEXT, CAPABILITY_IN_MODEL) through the
+  // runtime registry (never the compile-time consts). Idempotent —
+  // name_conflict is swallowed inside registerCapabilitySchema. Runs
+  // AFTER step 3b (BusinessModel row must pre-exist for
+  // CAPABILITY_IN_MODEL) and AFTER step 3c (UserStory row must
+  // pre-exist for the second NEEDS_CAPABILITY pair) — createEdgeType
+  // runs assertEndpointLabelsExist — and BEFORE step 4 so the registry
+  // iteration below creates the per-label id constraints on the same
+  // boot.
+  await registerCapabilitySchema(driver);
+
+  // Step 3e (kpi-impact-mapping T-09 / DD-02, XD-01): register the
+  // IMPACTS_KPI edge type (UserStory → KPI) through the runtime registry.
+  // Idempotent — name_conflict is swallowed inside registerKpiImpactEdges.
+  // Runs AFTER step 3c (UserStory) and the core-label seed (KPI) so the
+  // edge endpoints exist for assertEndpointLabelsExist — and BEFORE step 4.
+  await registerKpiImpactEdges(driver);
+
   // Step 4: iterate the registry and ensure per-label / per-type data
   // constraints exist. All statements use `IF NOT EXISTS` so re-running
   // is a no-op (AC-04 / AC-14).
@@ -107,21 +131,32 @@ export async function applySchema(driver: Driver): Promise<void> {
 
     // model-workspace-core T-03 (design §4.3): BusinessModel.ordinal
     // uniqueness (server-assigned max+1; concurrent double-create loses
-    // one side → bounded retry in storage/models.ts), plus the two
-    // forkLocalKey lookup indexes backing the §3.4 B-02 instance anchor
-    // (equality + STARTS WITH resolutions are index-backed). All
-    // IF NOT EXISTS → re-run is a no-op.
+    // one side → bounded retry in storage/models.ts). T-24 supersedes the
+    // two forkLocalKey lookup indexes with uniqueness constraints — the
+    // constraint's backing RANGE index serves the same equality + STARTS
+    // WITH lookups while also preventing duplicate forkLocalKey values
+    // under concurrent fork races (B-01). Neo4j exempts nodes missing the
+    // property, so the core graph is unaffected. All IF NOT EXISTS →
+    // re-run is a no-op.
     await session.run(
       `CREATE CONSTRAINT business_model_ordinal_unique IF NOT EXISTS
        FOR (m:BusinessModel) REQUIRE m.ordinal IS UNIQUE`,
     );
+    // T-24: drop the superseded lookup indexes, then create uniqueness
+    // constraints (idempotent — DROP IF EXISTS + CREATE IF NOT EXISTS).
     await session.run(
-      `CREATE INDEX user_journey_fork_local_key IF NOT EXISTS
-       FOR (n:UserJourney) ON (n.forkLocalKey)`,
+      `DROP INDEX user_journey_fork_local_key IF EXISTS`,
     );
     await session.run(
-      `CREATE INDEX activity_fork_local_key IF NOT EXISTS
-       FOR (n:Activity) ON (n.forkLocalKey)`,
+      `DROP INDEX activity_fork_local_key IF EXISTS`,
+    );
+    await session.run(
+      `CREATE CONSTRAINT user_journey_fork_local_key_unique IF NOT EXISTS
+       FOR (n:UserJourney) REQUIRE n.forkLocalKey IS UNIQUE`,
+    );
+    await session.run(
+      `CREATE CONSTRAINT activity_fork_local_key_unique IF NOT EXISTS
+       FOR (n:Activity) REQUIRE n.forkLocalKey IS UNIQUE`,
     );
   } finally {
     await session.close();

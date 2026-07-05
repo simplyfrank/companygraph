@@ -2,7 +2,7 @@
 feature: "requirements-export"
 created: "2026-07-04"
 author: "spec-author (blueprint: business-modeling-studio, XD-14)"
-status: "draft"
+status: "approved"
 revision: 1
 size: "small"
 ---

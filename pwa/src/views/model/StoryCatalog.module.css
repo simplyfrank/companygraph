@@ -1,0 +1,192 @@
+/* story-spec-core T-14 (NFR-06, UX-02) — tokens-only: every value is a
+   var(--…) declared in pwa/src/styles/companygraph/tokens.css. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.headActions,
+.emptyActions,
+.detailActions,
+.acActions,
+.flags {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.emptyLede {
+  margin: 0 0 var(--space-md);
+  color: var(--muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+}
+
+.hint {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--type-caption-mono-size);
+  font-family: var(--type-caption-mono-family);
+}
+
+.actionError {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: var(--type-body-size);
+}
+
+.errorWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.rowButton {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowButton:hover,
+.rowButton:focus-visible {
+  text-decoration: underline;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  font-size: var(--type-caption-mono-size);
+  font-family: var(--type-caption-mono-family);
+  text-transform: var(--type-caption-mono-transform);
+  line-height: var(--type-caption-mono-line-height);
+}
+
+.badgeDerived {
+  color: var(--accent-700);
+  background: var(--accent-soft);
+  border-color: var(--accent-300);
+}
+
+.badgeDetached {
+  color: var(--danger-text);
+  background: var(--surface-2);
+  border-color: var(--danger);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.narrative {
+  margin: 0;
+  font-size: var(--type-h3-size);
+  line-height: var(--type-body-line-height);
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+}
+
+.meta dt {
+  color: var(--muted);
+  font-size: var(--type-caption-mono-size);
+  font-family: var(--type-caption-mono-family);
+  text-transform: var(--type-caption-mono-transform);
+}
+
+.meta dd {
+  margin: 0;
+  font-size: var(--type-body-size);
+}
+
+.acHeading {
+  margin: 0;
+  font-size: var(--type-body-size);
+  color: var(--muted);
+}
+
+.acList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.acRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.acClauses {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+}
+
+.ordinal {
+  color: var(--muted-2);
+  font-family: var(--font-mono);
+  font-size: var(--type-caption-mono-size);
+}
+
+.form,
+.acForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.clauseLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--type-caption-mono-size);
+  font-family: var(--type-caption-mono-family);
+  text-transform: var(--type-caption-mono-transform);
+  color: var(--muted);
+}
+
+.clauseLabel input {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--type-body-size);
+}
+
+.clauseLabel input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+}

@@ -17,9 +17,13 @@ export async function handleBoundedContexts(): Promise<Response> {
       MATCH (bc:BoundedContext)
       OPTIONAL MATCH (e:Entity)-[:PART_OF]->(bc)
       OPTIONAL MATCH (bc)-[r:UPSTREAM_OF|DOWNSTREAM_OF]->(other:BoundedContext)
+      OPTIONAL MATCH (bc)-[:BELONGS_TO_SHARED_DOMAIN]->(sd:SharedDomain)
+      OPTIONAL MATCH (bc)-[:IN_NAMESPACE]->(ns:Namespace)
       WITH bc, 
            collect(DISTINCT e.name) as entities,
-           collect(DISTINCT { type: type(r), target: other.name }) as relationships
+           collect(DISTINCT { type: type(r), target: other.name }) as relationships,
+           collect(DISTINCT sd.name) as shared_domains,
+           collect(DISTINCT ns.name) as namespaces
       RETURN bc.id as id,
              bc.name as name,
              bc.description as description,
@@ -30,7 +34,9 @@ export async function handleBoundedContexts(): Promise<Response> {
              bc.jira_projects as jira_projects,
              size(entities) as entity_count,
              entities,
-             relationships
+             relationships,
+             shared_domains,
+             namespaces
       ORDER BY bc.name
     `);
 
@@ -46,6 +52,8 @@ export async function handleBoundedContexts(): Promise<Response> {
       entity_count: record.get("entity_count"),
       entities: record.get("entities") as string[],
       relationships: record.get("relationships"),
+      shared_domains: record.get("shared_domains") as string[],
+      namespaces: record.get("namespaces") as string[],
     }));
 
     return ok(contexts);

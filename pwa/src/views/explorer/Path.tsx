@@ -299,7 +299,7 @@ function PathHops({ path }: { path: HydratedPath }) {
                 padding: "6px 10px",
                 border: "1px solid var(--rule)",
                 borderRadius: 6,
-                background: "var(--bg-2, #fafafa)",
+                background: "var(--surface-2)",
                 fontSize: 13,
               }}
             >

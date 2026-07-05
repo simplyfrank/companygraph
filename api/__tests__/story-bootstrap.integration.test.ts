@@ -7,6 +7,7 @@ import {
   buildModelWithJourney,
   type JourneyFixture,
 } from "./helpers/model-fixtures";
+import { ensureStorySchema } from "./helpers/story-fixtures";
 
 // story-spec-core T-07 / AC-07 — bootstrap derives + persists one
 // EDITABLE derived:true story + starter Given/When/Then AC per scoped
@@ -49,6 +50,7 @@ const listStories = async (modelId: string) =>
 
 describe("integration: story-spec-core AC-07 bootstrap", () => {
   beforeAll(async () => {
+    await ensureStorySchema();
     f = await buildModelWithJourney(cleanup, "storyboot");
     other = await buildModelWithJourney(cleanup, "storybootB");
   });

@@ -2,7 +2,7 @@
 feature: "requirements-export"
 created: "2026-07-04"
 author: "spec-author (blueprint: business-modeling-studio, XD-14)"
-status: "draft"
+status: "approved"
 revision: 1
 reviewing_requirements_revision: "1 (small spec — no requirements review per size rules; XD-17 single-shot)"
 reviewing_design_revision: "n/a (small spec — no design phase; requirements → tasks → execute)"

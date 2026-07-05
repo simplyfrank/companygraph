@@ -1,5 +1,5 @@
 # Spec: kpi-impact-mapping
-**Size**: medium | **Created**: 2026-07-04 | **Current Phase**: tasks:draft
+**Size**: medium | **Created**: 2026-07-04 | **Current Phase**: execution:complete
 
 review_passes: 0
 <!-- Per-phase review counter for the HARD CAP (1 review + max 1 re-review).
@@ -13,8 +13,8 @@ review_passes: 0
 | Req Review | approve (0 blockers, pass 2/2) | - | 2026-07-04 |
 | Design | approved | design review pass 1/1 (approve) | 2026-07-04 |
 | Design Review | approve (0 blockers, 2 concerns, 3 nits) | - | 2026-07-04 |
-| Tasks | draft | - | 2026-07-04 |
-| Execution | pending | - | - |
+| Tasks | approved | orchestrator (XD-17 single-shot) | 2026-07-05 |
+| Execution | complete | - | 2026-07-05 |
 
 <!-- Medium spec: Task Review row omitted (design + design review kept). -->
 <!-- 14 FRs, 17 ACs, 7 NFRs. design.md: 13 DDs, 15 file changes (6 new, 9 modify), 8 routes/handlers.
@@ -27,8 +27,13 @@ review_passes: 0
        N-03 (8 handlers, not 6) → T-08/T-09. -->
 
 **Verification:**
-- `verified_at`: <YYYY-MM-DD>
-- `verification_artifact`: <test path OR manual: <one-line procedure with input mode + observable outcome>>
+- `verified_at`: 2026-07-05
+- `verification_artifact`: **Unit (green here):** `shared/src/schema/__tests__/kpi-impact.test.ts` + `api/__tests__/kpi-impact-matrix.test.ts` → 34 pass; `pwa/src/__tests__/kpi-impact-matrix.test.tsx` + `pwa/src/__tests__/kpi-impact-matrix-states.test.tsx` → 5 pass (vitest/jsdom). **Gates (green here):** `bun run typecheck` exit 0; `bun run scripts/design-conformance.ts --view pwa/src/views/model/KpiImpactMatrix.tsx` and `…/KpiImpactMatrix.module.css` → both PASS (tokens-only, catalog components); OpenAPI generation exposes all 8 `/models/:modelId/kpi-impact/*` operations + `kpi_not_found`/`impact_link_not_found` in the `ErrorEnvelope.code` enum; AC-15 `git diff shared/src/schema/{nodes,edges}.ts` → no `NODE_LABELS`/`EDGE_ENDPOINTS` additions. **Integration (parse/typecheck clean here; require live Neo4j to RUN — not available in this env):** `api/__tests__/kpi-impact-{activity-links,story-links,links-crud,matrix,gaps,rollup,authz}.integration.test.ts`. **E2e (requires full stack):** `pwa/playwright/kpi-impact-matrix-context.spec.ts`.
+
+**AC coverage (unit vs integration vs manual):**
+- **Unit (verified green in this env):** AC-04, AC-05, AC-16 (matrix/gap/storyLinkCount math via `assembleMatrix`), AC-06 status-derivation + last-element `latestValue` (`assembleRollup`/`deriveStatus`), and the T-01 schema-boundary cases (feed FR-01/02/04) — `api/__tests__/kpi-impact-matrix.test.ts` + `shared/.../kpi-impact.test.ts`. AC-08, AC-09, AC-10, AC-11 (view ready/loading/empty/error + gaps strip) — the two `pwa/src/__tests__/kpi-impact-matrix*.test.tsx`. AC-12 (design-conformance) + AC-15 (no schema-array edit) + AC-17 (OpenAPI generation) — deterministic gates run above.
+- **Integration (files written + parse/typecheck clean; require live Neo4j to RUN, unavailable here):** AC-01 (activity-links), AC-02 (story-links + `IMPACTS_KPI` runtime edge), AC-03 (list/delete + mis-routed id), AC-04/AC-16 (matrix over Neo4j), AC-05 (gaps incl. base-route undirected via `POST /kpi-alignments`), AC-06 (rollup over seeded `:KPIMeasurement`), AC-07 (authz mapping via `getRoutePermission`/`isPublicRoute` + model isolation), AC-17 (openapi over the live server) — the 7 `api/__tests__/kpi-impact-*.integration.test.ts` + the running server.
+- **Manual / e2e (require full `bun run dev` stack, unavailable here):** AC-13 (keyboard reachability of gaps strip → link editor KPI select/direction toggle/weight-slider `aria-valuenow` → Escape returns focus) — manual repro per tasks.md T-14; AC-14 (deep-link + active-model survive reload) — `pwa/playwright/kpi-impact-matrix-context.spec.ts`.
 
 **Artifacts:**
 - 📄 Requirements: `.claude/specs/kpi-impact-mapping/requirements.md` (approved)

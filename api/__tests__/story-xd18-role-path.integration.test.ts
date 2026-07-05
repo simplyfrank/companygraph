@@ -28,6 +28,7 @@ process.env.ONELOGIN_ISSUER = "https://test.invalid";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createSession } from "../src/auth/oauth";
 import { seedRbacRoles } from "../src/scripts/seed-rbac-roles";
+import { registerStorySchema } from "../src/scripts/register-story-labels";
 import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 
 // Dynamic import AFTER the env assignment (module bodies run after
@@ -84,6 +85,13 @@ async function call(
 
 describe("integration: story-spec-core AC-19 XD-18 role→activity→story end-to-end path", () => {
   beforeAll(async () => {
+    // Self-heal: sibling ontology tests in the shared suite wipe +
+    // const-reseed the registry; re-ensure the story labels/edges
+    // exist before dispatching (idempotent; this file's in-process
+    // dispatch shares this process's caches, so a direct-driver
+    // re-registration is sufficient here).
+    await registerStorySchema(getDriver());
+
     // Real RBAC seed (idempotent MERGE) so business_architect carries
     // story:read + story:write.
     await seedRbacRoles();

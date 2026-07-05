@@ -50,6 +50,18 @@ const MODEL_NODE_LABELS = [
       "Per-model pin of a BusinessModuleVersion (INSTANTIATES) inside a BusinessModel (INSTANCE_IN). Copy-on-writes a local journey subtree into the model on first edit (forked=true + FORKED_FROM).",
     usage_example: "(mi:ModuleInstance {forked:false})-[:INSTANTIATES]->(:BusinessModuleVersion)",
   },
+  {
+    name: "SharedDomain",
+    description:
+      "Reusable workflow component domain not scoped to a single BusinessModel. Bounded contexts reference shared domains via BELONGS_TO_SHARED_DOMAIN. Enables cross-model reuse of common components (reference data, pricing engines, workflow patterns).",
+    usage_example: "(bc:BoundedContext)-[:BELONGS_TO_SHARED_DOMAIN]->(sd:SharedDomain {name:'Shared Pricing Engine'})",
+  },
+  {
+    name: "Namespace",
+    description:
+      "Business model specific work separation. Partitions work within a BusinessModel so different teams or individuals can work independently without naming conflicts. Linked to BusinessModel via NAMESPACE_OF and to BoundedContexts via IN_NAMESPACE.",
+    usage_example: "(bc:BoundedContext)-[:IN_NAMESPACE]->(ns:Namespace {name:'Retail Operations'})-[:NAMESPACE_OF]->(m:BusinessModel)",
+  },
 ] as const;
 
 const MODEL_EDGE_TYPES = [
@@ -84,6 +96,27 @@ const MODEL_EDGE_TYPES = [
       "Set when a ModuleInstance copy-on-writes: records the source BusinessModuleVersion the materialized local subtree was forked from.",
     usage_example: "(mi:ModuleInstance {forked:true})-[:FORKED_FROM]->(v:BusinessModuleVersion)",
     endpoints: [{ fromLabel: "ModuleInstance", toLabel: "BusinessModuleVersion" }],
+  },
+  {
+    name: "BELONGS_TO_SHARED_DOMAIN",
+    description:
+      "Links a BoundedContext to a SharedDomain — declares that the bounded context is part of a reusable workflow component shared across business models.",
+    usage_example: "(bc:BoundedContext)-[:BELONGS_TO_SHARED_DOMAIN]->(sd:SharedDomain)",
+    endpoints: [{ fromLabel: "BoundedContext", toLabel: "SharedDomain" }],
+  },
+  {
+    name: "IN_NAMESPACE",
+    description:
+      "Links a BoundedContext to a Namespace — declares that the bounded context's work belongs to a specific team or individual's namespace within a BusinessModel.",
+    usage_example: "(bc:BoundedContext)-[:IN_NAMESPACE]->(ns:Namespace)",
+    endpoints: [{ fromLabel: "BoundedContext", toLabel: "Namespace" }],
+  },
+  {
+    name: "NAMESPACE_OF",
+    description:
+      "Links a Namespace to its owning BusinessModel — scopes the namespace to a single model for work separation.",
+    usage_example: "(ns:Namespace)-[:NAMESPACE_OF]->(m:BusinessModel)",
+    endpoints: [{ fromLabel: "Namespace", toLabel: "BusinessModel" }],
   },
 ] as const;
 
@@ -135,7 +168,7 @@ if (import.meta.main) {
   const { getDriver, closeDriver } = await import("../neo4j/driver");
   try {
     await registerModelSchema(getDriver());
-    console.log("register-model-labels: 4 labels + 5 edge types ensured (idempotent)");
+    console.log("register-model-labels: 6 labels + 8 edge types ensured (idempotent)");
   } finally {
     await closeDriver();
   }

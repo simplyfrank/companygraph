@@ -227,7 +227,7 @@ function RbacRoleForm({
           </div>
         )}
 
-        {error && <div style={{ color: "var(--danger, #c0392b)" }}>{error}</div>}
+        {error && <div style={{ color: "var(--danger)" }}>{error}</div>}
         <Button tone="primary" disabled={saving}>
           {saving ? "Saving…" : existing ? "Update Role" : "Create Role"}
         </Button>

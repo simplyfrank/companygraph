@@ -1,0 +1,173 @@
+/* kpi-impact-mapping T-14 (design §6, NFR-07) — tokens only
+   (pwa/src/styles/companygraph/tokens.css). */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.gridHeader {
+  display: grid;
+  gap: var(--space-xs);
+  font-weight: var(--type-h3-weight);
+  font-size: var(--type-body-size);
+  color: var(--muted);
+  padding: var(--space-sm);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.gridRow {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.gridRow:hover {
+  background: var(--surface-2);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  min-height: var(--space-3xl);
+  cursor: pointer;
+}
+
+.cellEmpty {
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+
+.cellLinked {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--type-caption-mono-size);
+  font-weight: var(--type-body-weight);
+}
+
+.gapsStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--warn);
+}
+
+.gapItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--type-body-size);
+}
+
+.rollupPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+
+.rollupRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--type-body-size);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-caption-mono-size);
+  font-weight: var(--type-body-weight);
+}
+
+.statusOnTrack {
+  background: var(--surface-2);
+  color: var(--good-text);
+}
+
+.statusWarning {
+  background: var(--surface-2);
+  color: var(--warn-text);
+}
+
+.statusCritical {
+  background: var(--surface-2);
+  color: var(--danger-text);
+}
+
+.statusNoData {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.linkEditor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+  color: var(--muted);
+}
+
+.select {
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: var(--type-body-size);
+}
+
+.range {
+  width: 100%;
+}
+
+.toggleGroup {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-2xl);
+  text-align: center;
+}

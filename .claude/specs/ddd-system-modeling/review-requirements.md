@@ -1,172 +1,199 @@
 ---
 feature: "ddd-system-modeling"
 reviewing: "requirements"
-artifact: ".claude/specs/ddd-system-modeling/requirements.md (revised, rev 2)"
+artifact: ".claude/specs/ddd-system-modeling/requirements.md (rev 2)"
 reviewer: "spec-review-agent"
 verdict: "approve"
-reviewed_at: "2026-07-04"
-review_pass: "2 of 2"
+reviewed_at: "2026-07-05"
+review_pass: "cold review of rev 2 (the rev-1 review consumed the first pass; this is the second and final pass under the 1-review + 1-re-review cap)"
 ---
 
-# Review: ddd-system-modeling / requirements.md (rev 2, pass 2)
+# Review: ddd-system-modeling / requirements.md (rev 2)
 
-Re-reviewed cold against the governing skill (`.claude/skills/spec-review/SKILL.md`),
-the app blueprint (`.claude/specs/blueprint.md`, XD-01/05/06/08/15/17, View Tree,
-UX-01..06), `.claude/CLAUDE.md`, the declared dependencies
-(`model-workspace-core` requirements+design, `story-spec-core` requirements,
-`system-augmentation-model` schema), and the live codebase
-(`api/src/routes/ontology-bounded-contexts.ts`, `api/src/auth/rbac-permissions.ts`,
-`api/src/errors.ts`, `api/src/storage/model-scope.ts`,
-`shared/src/schema/system-kind.ts`, `pwa/src/components/{Card,DataTable,Pill,Modal,SidePanel}.tsx`).
+Cold review under `.claude/skills/spec-review/SKILL.md`, checked against
+`.claude/CLAUDE.md`, the app blueprint (`.claude/specs/blueprint.md` —
+XD-01/02/05/06/08/11/15/17, View Tree, UX-01..06), the dependency specs
+(`model-workspace-core`, `story-spec-core`, `system-augmentation-model`), and
+the live codebase. Every cross-spec and codebase claim below was re-derived
+from its primary source, not taken from the artifact's changelog or from the
+previously on-disk review.
 
-This is pass 2 of at most 2. Rev 2 states it "addresses every finding in
-`review-requirements.md` (pass 1)". I verified each pass-1 finding against reality
-rather than accepting the changelog at face value.
+**Process note:** the workflow invoked this as "pass 1", but a pass-1 review of
+rev 1 (verdict *revise*) is what produced rev 2, and a review of rev 2 was
+already on disk. This document supersedes the on-disk rev-2 review; findings it
+first recorded that I independently re-verified are carried with their original
+IDs (C-05, C-06, N-04..N-07) so IDs stay stable.
 
----
+## Prior-finding disposition (rev-1 findings, independently verified)
 
-## Pass-1 findings — disposition (all verified against reality)
+- ~~B-01~~ → **resolved (verified).** `model-workspace-core` FR-08 rejects any
+  generic edge write on lifecycle edge types (incl. `IN_MODEL`) with
+  `409 model_lifecycle_route_required` — confirmed in
+  `.claude/specs/model-workspace-core/requirements.md` FR-08. Rev 2's
+  spec-owned `CAPABILITY_IN_MODEL` edge (FR-02d) sidesteps the collision with
+  zero coordinated change to the dependency; AC-02/AC-21 assert `IN_MODEL` and
+  the frozen consts stay untouched.
+- ~~B-02~~ → **resolved (verified).** `model-workspace-core` FR-18 defines
+  `scopedNodeIds` exactly as rev 2's FR-06 note restates it (`Domain`s linked
+  `IN_MODEL` + transitive `PART_OF` descendants + `ModuleInstance`s and their
+  forked-subtree nodes; `System`/`Role`/`Location` shared per DEC-01).
+  Membership now rides `CAPABILITY_IN_MODEL`, written in the FR-04 create tx,
+  so orphan-sourced capabilities cannot vanish; AC-06b proves it. One residual
+  ambiguity in the FR-05 validation leg → new **C-08** below.
+- ~~C-01~~ → **resolved (verified).**
+  `api/src/routes/ontology-bounded-contexts.ts:22` really collects
+  `collect(DISTINCT { type: type(r), target: other.name })` — name-keyed,
+  exactly as FR-09 states. The spec's own read resolving
+  `{ type, targetId, targetName }` is the right fix; AC-08 asserts the id.
+- ~~C-02~~ → **resolved.** FR-03/FR-08 recorded as DECIDED under single-shot
+  (XD-17, blueprint:172); OQ-1/OQ-2 closed with the decision inlined, not
+  deferred.
+- ~~C-03~~ → **resolved.** Capability derivation is a named out-of-scope line
+  with rationale (manual-only authoring); cannot creep back at design time.
+- ~~C-04~~ → **resolved, with the rationale overstated** → C-05 (carried).
+- ~~N-03~~ → **resolved.** NFR-07's 500 ms budget is explicitly non-AC-gated;
+  the AC-gated obligation is the bounded-round-trip shape.
 
-### ~~B-01~~ → resolved (verified)
-Pass 1 flagged that reusing `model-workspace-core`'s `IN_MODEL` edge for
-`Capability → BusinessModel` collides with its lifecycle-edge guard. **Verified:**
-`model-workspace-core` FR-08 (requirements.md:134) rejects any generic edge write
-targeting a lifecycle edge type — `IN_MODEL` named first — with
-`409 model_lifecycle_route_required`. Rev 2 registers a **new, spec-owned**
-`CAPABILITY_IN_MODEL` (`Capability → BusinessModel`) edge type (FR-02d), written by
-this spec's own capability-create tx (FR-04), with **no** touch to `IN_MODEL`
-(NFR-01, AC-02 asserts no `Capability→BusinessModel` pair was added to `IN_MODEL`,
-AC-21 asserts no const edit). This is clean ownership with no coordinated change to
-the dependency. Correct resolution.
+## Findings
 
-### ~~B-02~~ → resolved (verified)
-Pass 1 flagged that the FR-06 note over-stated `scopedNodeIds`'s set and that
-membership-through-`NEEDS_CAPABILITY`-source would silently drop a capability whose
-only source is an orphan activity. **Verified:** `model-workspace-core` FR-18
-(requirements.md:142) + design §4.2 define the set as `Domain`s linked `IN_MODEL`
-+ their transitive `PART_OF*` descendants + `ModuleInstance`s, with
-`System`/`Role`/`Location` **excluded** (DEC-01(a)); `story-spec-core` FR-08
-confirms orphan activities are a real, contemplated state. Rev 2's mechanism note
-(under FR-06) now restates the helper's actual set correctly and makes
-`CAPABILITY_IN_MODEL` the authoritative membership key, written at create for
-**every** capability including orphan-sourced ones; **AC-06b** proves the
-orphan-sourced capability still appears. `scopedNodeIds` is retained (consumed, not
-re-implemented) only to validate `needed-by` targets and compute the activity-side
-gap analysis. Correct and load-bearing resolution.
+### Blockers
 
-### ~~C-01~~ → resolved (verified)
-Pass 1 flagged name-keyed context relationships as insufficient for deep-linking.
-**Verified:** `api/src/routes/ontology-bounded-contexts.ts` collects
-`{ type: type(r), target: other.name }` — name-keyed. Rev 2 FR-09 runs this spec's
-**own** Neo4j read resolving each `UPSTREAM_OF`/`DOWNSTREAM_OF` target to
-`{ type, targetId, targetName }`; AC-08 asserts the far context's `id` is present.
-Resolved.
+None.
 
-### ~~C-02~~ → resolved
-FR-03 (cardinality) and FR-08 (`USES_SYSTEM` reconciliation) are now recorded as
-**DECIDED** under single-shot (XD-17, verified in blueprint:34 — "Mode:
-single-shot"), no longer "orchestrator to confirm." OQ-1/OQ-2 in Risks are marked
-CLOSED with the decision inlined. Resolved.
+### Concerns
 
-### ~~C-03~~ → resolved
-Capability derivation/bootstrap is now a named out-of-scope line in Scope
-Boundaries (closes OQ-3), with the rationale that a capability is a modeling
-judgment (not a mechanical activity projection like `story-spec-core`'s bootstrap).
-Resolved — it cannot creep in at design time.
+- **C-05 (carried, re-verified) — FR-11's ordering rationale overstates the
+  matcher semantics.** FR-11 claims "A row placed out of this order would let a
+  sub-route resolve to the wrong permission." Verified against
+  `api/src/auth/rbac-permissions.ts`: `matchSegments` (line 338) rejects on
+  **segment count first** (`if (pattern.length !== path.length) return false`),
+  and the file's own comment (lines 258–260) says ordering "only bites
+  same-length literal-vs-param rows — kept as forward-proofing." The 4-segment
+  `.../capabilities/:capabilityId` row can never shadow the 5/6-segment
+  sub-routes, and the `system-model/*` literals cannot be shadowed either (the
+  literal `capabilities` segment mismatches). The mandated order is harmless
+  house convention, but the load-bearing claim is false for this route set.
+  **Recommendation:** design keeps the enumerated order as convention and
+  states the true matcher semantics so no task wastes effort "proving" a
+  precedence the matcher makes moot; AC-09's assertion passes either way.
+- **C-06 (carried, re-verified) — FR-05 introduces `PUT` where the API has
+  none.** There is no `"PUT"` route anywhere in `api/src/router.ts` or
+  `ROUTE_PERMISSIONS` today (grep-verified). Feasible — dispatch and
+  `getRoutePermission` are method-generic — but there is zero prior art for
+  PUT in router dispatch, the RBAC table, or the OpenAPI generator.
+  **Recommendation:** design explicitly covers PUT in the dispatch arm, the
+  RBAC rows, and verifies the OpenAPI generator emits `put` operations — or
+  switches the idempotent mapping writes to `POST` if it can't. Do not leave
+  this to task-time discovery.
+- **C-07 (new) — `DELETE .../needed-by` is under-identified for a
+  many-to-many edge.** FR-03 makes `NEEDS_CAPABILITY` many-to-many, yet FR-05
+  specs a single `DELETE .../needed-by` "(removes it)" with no path parameter —
+  unlike its sibling `DELETE .../supported-by/:systemId`, which names its
+  target. With several needed-by sources, "it" is ambiguous; the only reading
+  is a body-carrying DELETE, which is atypical and unprecedented in this API.
+  AC-04's "each `DELETE` removes its edge" does not pin the shape either.
+  Relatedly, the `PUT` body `{ activityId?, storyId? }` marks both optional
+  with no exactly-one-of rule. **Recommendation:** design should (a) shape the
+  delete as `DELETE .../needed-by/:sourceId` (mirroring `supported-by`), (b)
+  add the corresponding row to FR-11's ordered `ROUTE_PERMISSIONS` enumeration
+  (which currently lists `.../needed-by` without a parameterized variant), and
+  (c) give the PUT body a zod exactly-one-of refinement
+  (`activityId` XOR `storyId`).
+- **C-08 (new) — FR-05's orphan-activity validation leg is undefined as
+  written.** The FR-06 mechanism note says a `needed-by` target is valid if
+  the activity is "∈ `scopedNodeIds(modelId)` **or**, for an orphan activity,
+  one reachable from `:modelId` by the story-spec join." But `story-spec-core`
+  NFR-02 resolves membership *through* `scopedNodeIds` (a story is in model A
+  iff its `DESCRIBES_ACTIVITY` activity ∈ `scopedNodeIds(A)`), so an orphan
+  activity — by definition outside `scopedNodeIds` — is not reachable by that
+  join either; the second leg is vacuous as specified. The sound reading (and
+  the one AC-06b actually exercises, since its orphan mapping is seeded, not
+  created via FR-05): scope validation applies **at mapping time** against
+  `scopedNodeIds`, and orphanhood is a *later* state (an activity un-parented
+  after mapping) that `CAPABILITY_IN_MODEL` membership survives.
+  **Recommendation:** design defines the FR-05 validation as
+  scopedNodeIds-membership at mapping time only, drops or precisely defines
+  the "story-spec join" leg, and AC-06b's test notes state how the orphan
+  mapping comes to exist (direct graph seed or scoped-then-orphaned sequence).
+  Not a blocker: the governing invariant (visibility rides
+  `CAPABILITY_IN_MODEL`, FR-02d/NFR-02) is unambiguous and testable.
 
-### ~~C-04~~ → resolved (verified)
-FR-11 now enumerates the full ordered `ROUTE_PERMISSIONS` list (1) `system-model/*`
-literals, (2) `.../capabilities` collection, (3) capability sub-routes, (4) last the
-parameterized `:capabilityId`. **Verified:** `api/src/auth/rbac-permissions.ts:319`
-iterates `ROUTE_PERMISSIONS` first-match-wins, so the precedence is genuinely
-load-bearing and the enumerated order is correct (more-specific before
-less-specific). AC-09 asserts `:capabilityId` resolves correctly despite its
-sub-routes. Resolved.
+### Nits
 
-### ~~N-03~~ → resolved
-NFR-07 now explicitly states the < 500 ms budget is a design/perf-hygiene target,
-not AC-gated; the AC-gated obligation is the shape (bounded round-trips / no N+1).
-Resolved.
-
-N-01 (storage-module home) and N-02 (one-type-two-pairs vs two edge types) remain
-correctly deferred to design as design items (Risks 7, 8); ACs are written to the
-one-type default and hedge correctly.
-
----
-
-## New findings (rev 2)
-
-No new blockers. No new concerns. Two optional nits below.
-
-### N-04 (nit) — `system_not_found` vs `model-workspace-core`/graph-core prior art
-FR-10 adds `system_not_found` as a new additive code. `model_not_found` already
-exists in `api/src/errors.ts:36` (FR-10 correctly says it is reused). Confirm at
-design that `system_not_found` is not already introduced by a sibling wave-3 spec
-touching systems before minting it, to avoid a duplicate-code enum assertion
-failure — FR-10 already states "codes already in the enum are reused, not
-duplicated," so this is a design-time grep, not a requirements gap.
-
-### N-05 (nit) — FR-05 bounded-context existence check has no single-lookup route
-FR-05 validates the `BoundedContext` exists on `PUT .../context`. The existing
-bounded-contexts surface exposes only the list route (`GET
-/api/v1/ontology/bounded-contexts`), no `GET /:id`. A direct `MATCH (:BoundedContext
-{id})` suffices and NFR-04 (read-and-extend, no CRUD) permits a read; note for
-design so it does not reach for a non-existent single-lookup route. Not a
-requirements blocker.
-
----
+- **N-04 (carried)** — FR-10 mints `system_not_found`; before design freezes
+  the code list, grep sibling wave-3 specs so a duplicate enum entry doesn't
+  trip the exhaustiveness assertion. (Verified absent from `api/src/errors.ts`
+  today; `model_not_found` is present at line 37 to reuse.)
+- **N-05 (carried)** — FR-05's `BoundedContext` existence check has no
+  single-lookup route to lean on (only the list route exists); a direct
+  `MATCH (:BoundedContext {id:$id})` read is fine under NFR-04. Design note.
+- **N-06 (carried, re-verified)** — FR-10 cites "the `envelope.test.ts`
+  reachability assertion"; no such file exists. The walk-every-code assertion
+  lives in `api/__tests__/ontology-envelope.test.ts`. Cite the real path in
+  design so task verification fields point at a real file.
+- **N-07 (carried, process)** — the artifact frontmatter pre-declares
+  `status: "approved"`. Status should be set by the workflow after the
+  verdict, not by the artifact.
+- **N-08 (new)** — FR-12 cites bare `tokens.css`; the real path is
+  `pwa/src/styles/companygraph/tokens.css` (story-spec-core FR-12 already
+  corrected this in its own text). Use the real path in design.
+- **N-09 (new, positive-settling)** — Risk row 8 (N-02) defers "one edge type,
+  two endpoint pairs" to design with a split-type fallback. Verified settled:
+  `createEdgeType` natively takes `endpoints: ReadonlyArray<EdgeEndpointPair>`
+  (`api/src/ontology/storage/edge-types.ts:58`), so the one-type default is
+  supported and the fallback can be dropped from design consideration.
 
 ## Completeness / Traceability
 
-| FR | Covered by | Notes |
-|----|-----------|-------|
-| FR-01 Capability label (registry) | AC-01, AC-21; NFR-01 | Registry path verified feasible (story-spec-core/model-workspace-core prior art). Idempotent registration. Sound. |
-| FR-02 mapping + scoping edges (registry) | AC-02 | Four edge types incl. spec-owned `CAPABILITY_IN_MODEL`; AC-02 asserts `IN_MODEL` untouched (B-01). Sound. |
-| FR-03 cardinality (DECIDED) | AC-04 | Now settled under XD-17 (C-02 resolved). Many-to-many `SUPPORTED_BY` underpins AC-07. Sound. |
-| FR-04 Capability CRUD | AC-03, AC-06b, AC-15 | Create writes `CAPABILITY_IN_MODEL` at birth; `404 model_not_found` on unknown `:modelId` (code exists, verified). Sound. |
-| FR-05 mapping routes | AC-04 | Existence checks → `404 *_not_found`. BC single-lookup — N-05 (design detail). Sound. |
-| FR-06 cascade + model-scoping note | AC-05, AC-06b | `DETACH DELETE` over `(cap)`; far-end nodes preserved. Scoping note now matches real `scopedNodeIds` (B-02 resolved). Sound. |
-| FR-07 support-gap analysis | AC-06, AC-07, AC-11 | Four categories + augmentation mix; membership via `CAPABILITY_IN_MODEL` (B-02 correct). Sound. |
-| FR-08 `USES_SYSTEM` reconciliation (DECIDED) | AC-06 | Dual-path coverage + `capabilityGaps` category; settled under XD-17 (C-02). Sound. |
-| FR-09 context map | AC-08, AC-12 | Own read resolves relationship `targetId` (C-01 resolved). Reads bounded-contexts surface (verified). Sound. |
-| FR-10 API contract / error codes | AC-09 | `capability_not_found`/`bounded_context_not_found`/`system_not_found` correctly absent from enum (additive); `model_not_found` reused (verified). N-04 design grep. Sound. |
-| FR-11 route-permission mapping | AC-09 | Full ordered list enumerated; first-match-wins semantics verified (C-04 resolved). Central-gate-only auth. Sound. |
-| FR-12 SystemModeler view | AC-10..AC-17 | Route `#/model/systems` verbatim (blueprint:86/97 verified); all four states; catalog components verified present; `Pill` reuse. Sound. |
-| FR-13 detail + mapping editing | AC-13, AC-18 | Keyboard-reachable; detached indicator; inline aug-mix. Sound. |
-| FR-14 model-scoped + reload survival | AC-19 | Consumes `useActiveModel()` (dep, expected wave-3 sequencing). Isolation via `CAPABILITY_IN_MODEL`. Sound. |
-| FR-15 `systemKind` read-path repoint (should) | AC-20 | Scoped to "where SystemModeler touches system rendering." Sound. |
-| NFR-01 registry-only | AC-21 | Consts frozen incl. no `IN_MODEL` pair (B-01). Sound. |
-| NFR-02 model isolation | AC-06b, AC-09 | Rides `CAPABILITY_IN_MODEL`, not `scopedNodeIds` membership (B-02). Sound. |
-| NFR-03 augmentation vocab reuse | AC-07, AC-20 | Import-only; module verified (`SYSTEM_KINDS`/`SYSTEM_KIND_LABELS`/`systemKindSchema`). Sound. |
-| NFR-04 bounded-contexts read-and-extend | AC-08 | Verified surface exists; no CRUD. Sound. |
-| NFR-05 house rules | AC-21 | zod-only, loopback, central-gate auth, `/api/v1/`, en-US. Sound. |
-| NFR-06 tokens/catalog | AC-17 | design-conformance gate. Sound. |
-| NFR-07 perf | — | Non-AC-gated by design (N-03 resolved); shape is AC-gated via integration correctness. Sound. |
+| FR / NFR | Covered by | Verified against | Notes |
+|----------|-----------|------------------|-------|
+| FR-01 `Capability` runtime label | AC-01, AC-21 | `createNodeLabel` (`api/src/ontology/storage/node-labels.ts`); idempotence-by-code precedent real (`api/src/scripts/register-story-labels.ts` swallows `name_conflict` by code) | Sound; XD-01 names `Capability` explicitly (blueprint:156) |
+| FR-02 four registry edge types incl. `CAPABILITY_IN_MODEL` | AC-02 | `createEdgeType` + `_OntologyEdgeEndpoint` rows; multi-pair endpoints native (N-09) | Sound; B-01 resolution clean |
+| FR-03 cardinality (DECIDED) | AC-03 (exactly-one `CAPABILITY_IN_MODEL`), AC-04 | XD-17 single-shot (blueprint:172) | Sound; premise of AC-07 mix |
+| FR-04 Capability CRUD | AC-03, AC-06b, AC-15 | `model_not_found` reusable (`api/src/errors.ts:37`); route pattern precedent `story-spec-core` FR-05 | Sound |
+| FR-05 mapping routes | AC-04 | Router method-generic; **no PUT prior art → C-06**; delete shape → **C-07**; orphan leg → **C-08**; BC lookup → N-05 | Sound with concerns pinned for design |
+| FR-06 cascade + scoping note | AC-05, AC-06b | `scopedNodeIds` set matches `model-workspace-core` FR-18 verbatim; `api/src/storage/model-scope.ts` on disk | Sound; B-02 resolution load-bearing |
+| FR-07 support-gap analysis (4 categories + mix) | AC-06, AC-07, AC-11 | Blueprint feature-inventory scope line (blueprint:186) | Sound |
+| FR-08 `USES_SYSTEM` reconciliation (DECIDED) | AC-06 | graph-core `USES_SYSTEM` real | Sound; `capabilityGaps` well-defined, no double-count |
+| FR-09 context map, id-keyed relationships | AC-08, AC-12 | `ontology-bounded-contexts.ts:22` name-keyed shape confirmed | Sound; C-01 fix correct |
+| FR-10 API contract / additive codes | AC-09 | New codes absent from enum (additive); reachability test path wrong → N-06 | Sound |
+| FR-11 route permissions + ordering | AC-09 | First-match loop + segment-count-first matcher → **C-05**; `business_architect` seeded by `model-workspace-core` FR-11, `seed-rbac-roles.ts` on disk | Sound minus overstated rationale; C-07(b) touches the enumeration |
+| FR-12 SystemModeler view | AC-10, AC-14..AC-17 | `#/model/systems` → `SystemModeler` verbatim (blueprint:105,116); placeholder real (`pwa/src/views/index.tsx:172`, `spec="ddd-system-modeling"`); catalog `Card`/`DataTable`/`Pill`/`Modal`/`SidePanel` + `scripts/design-conformance.ts` on disk | Sound; tokens path nit N-08 |
+| FR-13 detail + mapping editing | AC-13, AC-18 | Catalog `SidePanel`/`Modal` exist | Sound |
+| FR-14 model scoping + reload | AC-10, AC-19 | `pwa/src/context/ActiveModelContext.tsx` on disk; dep FR-15 persistence | Sound |
+| FR-15 shadow-`kind` repoint (should) | AC-20 | `system-augmentation-model` STATUS.md (lines 169–182) assigns exactly this scope; `pwa/src/lib/journeyData.ts:189` legacy read confirmed | Sound; correctly scoped to "where it touches system rendering" |
+| NFR-01 registry-only, no `IN_MODEL` touch | AC-21 | Frozen consts; lifecycle guard confirmed | Sound |
+| NFR-02 model isolation via `CAPABILITY_IN_MODEL` | AC-06b, AC-09 | Membership key unambiguous | Sound (C-08 is the only fuzzy edge, validation-side) |
+| NFR-03 vocabulary reuse | AC-07, AC-20 | `shared/src/schema/system-kind.ts:9–15` exports confirmed | Sound |
+| NFR-04 bounded-contexts read-and-extend | AC-08 | Surface exists; no CRUD | Sound |
+| NFR-05 house rules | AC-21 | zod-only, loopback, central gate, `/api/v1/` | Sound |
+| NFR-06 tokens/catalog | AC-17 | design-conformance gate real | Sound |
+| NFR-07 perf shape | — | Explicitly non-AC-gated (N-03 resolved) | Acceptable |
 
-**AC coverage:** AC-01..AC-21 each trace to ≥1 FR/NFR; no orphan ACs. View states
-loading/empty/error/ready → AC-14/AC-15/AC-16/AC-10-13. Platforms & Input-Modes and
-Native-Conflicts tables present and populated with a defensible non-canvas
-justification (Risk 4). Every AC carries a Platforms column and a Verification
-artifact (test path or `manual:` repro with input mode + observable outcome).
+**AC coverage:** AC-01..AC-21 (incl. AC-06b) each trace to ≥1 FR/NFR; no
+orphan ACs, no uncovered must-FRs. UX-01: loading AC-14, empty AC-15, error
+AC-16, ready AC-10..AC-13. UX-02 → AC-17; UX-03 → n/a with recorded rationale
+(Risk 4, non-canvas context map) and populated Platforms & Input Modes +
+Native Conflicts tables; UX-04 → NFR-06; UX-05 → AC-18; UX-06 → AC-19. Every
+AC carries a Platforms column and a concrete verification artifact; manual
+repros (AC-17/18/20/21) state input mode + observable outcome.
 
-**Done well:** every cross-spec claim is grounded in the real dependency contract
-(the `IN_MODEL` lifecycle guard, `scopedNodeIds`'s actual set, the name-keyed
-context-relationship shape, the first-match `ROUTE_PERMISSIONS` array, the reused
-`model_not_found` code) — verified against the codebase, not asserted; the
-route is verbatim from the View Tree; the spec-owned `CAPABILITY_IN_MODEL` edge is
-a cleaner ownership model than the rev-1 `IN_MODEL` overload; the orphan-activity
-membership gap is explicitly closed with a dedicated AC (AC-06b); decisions are
-settled under single-shot rather than left nominally open.
-
----
+**Done well:** the route is verbatim from the View Tree; all three dependency
+contracts are cited by real FR numbers and match their sources exactly; the
+spec-owned `CAPABILITY_IN_MODEL` edge is cleaner ownership than overloading
+the dependency's guarded lifecycle edge; the orphan-membership gap has a
+dedicated proving AC (AC-06b); former open questions are genuinely closed
+under XD-17 rather than deferred; scope boundaries name an owner for every
+exclusion.
 
 ## Verdict: approve
 
-All four pass-1 blockers/concerns of substance (B-01, B-02, C-01, C-04) plus C-02,
-C-03, and N-03 are resolved, and each resolution was verified against the actual
-dependency contracts and live codebase, not merely against the changelog. No new
-blockers or concerns surfaced. The two remaining nits (N-04 duplicate-code grep,
-N-05 bounded-context single-lookup) are design-time hygiene, not requirements gaps.
-The requirements are internally consistent, externally consistent with
-`model-workspace-core` / `story-spec-core` / `system-augmentation-model` and the
-blueprint (XD-01/05/06/08/15/17, View Tree, UX-*), and ready to proceed to design.
+Zero blockers. Four concerns (C-05 matcher-semantics overstatement, C-06 first
+PUT routes in the codebase, C-07 under-identified needed-by delete, C-08
+vacuous orphan-validation leg) are design-phase obligations with concrete
+recommendations recorded above; six nits are optional hygiene. The
+requirements are internally consistent, traceable, and externally consistent
+with the blueprint (View Tree route verbatim, XD-01/05/06/15/17 honoured, all
+UX-* allowances covered) and with the real interfaces of
+`model-workspace-core`, `story-spec-core`, and `system-augmentation-model`.
+Ready for design, which must close C-05..C-08 explicitly.

@@ -219,7 +219,7 @@ function detectSuggestedContexts(
   const meaningfulComponents = components.filter(c => c.length > 1);
   
   // Generate suggestions
-  const colors = ["var(--tone-good)", "var(--tone-warn)", "var(--tone-danger)", "var(--tone-accent)"];
+  const colors = ["var(--good)", "var(--warn)", "var(--danger)", "var(--accent)"];
   return meaningfulComponents.map((component, index) => {
     // Generate a name based on the most connected entity or a generic name
     const name = `Suggested Context ${index + 1}`;
@@ -369,11 +369,11 @@ export function OntologyErd() {
   // Initialize bounded contexts from API data when available
   useEffect(() => {
     if (bcData && bcData.length > 0) {
-      const colors = ["var(--tone-good)", "var(--tone-warn)", "var(--tone-danger)", "var(--tone-accent)"];
+      const colors = ["var(--good)", "var(--warn)", "var(--danger)", "var(--accent)"];
       const dynamicContexts = bcData.map((bc, index) => ({
         name: bc.name,
         labels: bc.entities,
-        color: colors[index % colors.length] || "var(--tone-neutral)",
+        color: colors[index % colors.length] || "var(--muted)",
       }));
       setBoundedContexts(dynamicContexts);
     }
@@ -1211,7 +1211,7 @@ export function OntologyErd() {
                     y={zy}
                     width={zw}
                     height={zh}
-                    fill={suggestion.color.replace('var(--tone-', 'var(--').replace(')', '-soft)')}
+                    fill={suggestion.color.replace('var(--', 'var(--').replace(')', '-soft)')}
                     stroke={suggestion.color}
                     strokeWidth={2}
                     strokeDasharray="8 4"
@@ -1532,14 +1532,14 @@ export function OntologyErd() {
                           width={zw - 24}
                           height={16}
                           rx={4}
-                          fill={`var(--tone-${tone})`}
+                          fill={`var(--${tone})`}
                           opacity={0.15}
                         />
                         <text
                           x={zx + 20}
                           y={zy + 44 + i * 20}
                           className={styles.boundedContextLabel}
-                          style={{ fill: `var(--tone-${tone})`, fontSize: '9px' }}
+                          style={{ fill: `var(--${tone})`, fontSize: '9px' }}
                         >
                           {label}
                         </text>
@@ -1736,7 +1736,7 @@ export function OntologyErd() {
                     y={1}
                     rx={5}
                     className={styles.headerStripe}
-                    style={{ fill: `var(--tone-${TONE[label] ?? "neutral"})` }}
+                    style={{ fill: `var(--${TONE[label] ?? "neutral"})` }}
                   />
 
                   {/* Label name */}
@@ -1856,7 +1856,7 @@ export function OntologyErd() {
                   const y = Math.max(0, p.y - diagramBounds.minY);
                   const tone = TONE[label] ?? "neutral";
                   // Use solid colors for mini-map to ensure visibility
-                  const fillColor = tone === "accent" ? "#0ea5e9" : tone === "good" ? "#22c55e" : tone === "warn" ? "#f59e0b" : tone === "danger" ? "#ef4444" : "#64748b";
+                  const fillColor = tone === "accent" ? "var(--cat-6)" : tone === "good" ? "var(--cat-4)" : tone === "warn" ? "var(--cat-1)" : tone === "danger" ? "var(--sev-4)" : "var(--cat-5)";
                   return (
                     <circle
                       key={label}
@@ -1903,7 +1903,7 @@ export function OntologyErd() {
                 return (
                   <div className={styles.tooltipContent}>
                     <div className={styles.tooltipHeader}>
-                      <span className={styles.tooltipStripe} style={{ background: `var(--tone-${TONE[label] ?? "neutral"})` }} />
+                      <span className={styles.tooltipStripe} style={{ background: `var(--${TONE[label] ?? "neutral"})` }} />
                       <span className={styles.tooltipTitle}>{label}</span>
                       <span className={styles.tooltipType}>entity</span>
                     </div>
@@ -2409,7 +2409,7 @@ function SelectedLabelPanel({
     <div className={styles.detailPanel}>
       {/* ── Header ── */}
       <div className={styles.detailHeader}>
-        <span className={styles.detailStripe} style={{ background: `var(--tone-${tone})` }} />
+        <span className={styles.detailStripe} style={{ background: `var(--${tone})` }} />
         <span className={styles.detailTitle}>{row.name}</span>
         <Pill tone={tone}>entity</Pill>
         <div className={styles.detailActions}>
@@ -3055,10 +3055,10 @@ function SelectedContextPanel({
                 const isExpanded = expandedEndpoint === i;
                 const methodUpper = ep.method.toUpperCase();
                 const methodColor =
-                  methodUpper === "GET" ? "var(--tone-good)" :
-                  methodUpper === "POST" ? "var(--tone-accent)" :
-                  methodUpper === "PATCH" ? "var(--tone-warn)" :
-                  methodUpper === "DELETE" ? "var(--tone-danger)" : "var(--muted)";
+                  methodUpper === "GET" ? "var(--good)" :
+                  methodUpper === "POST" ? "var(--accent)" :
+                  methodUpper === "PATCH" ? "var(--warn)" :
+                  methodUpper === "DELETE" ? "var(--danger)" : "var(--muted)";
                 return (
                   <div key={i} className={styles.restApiItem}>
                     <button

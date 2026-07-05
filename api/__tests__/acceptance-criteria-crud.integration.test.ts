@@ -9,6 +9,7 @@ import {
   buildModelWithJourney,
   type JourneyFixture,
 } from "./helpers/model-fixtures";
+import { ensureStorySchema } from "./helpers/story-fixtures";
 
 // story-spec-core T-06 / AC-04 — AC CRUD: NFR-03 clause gate (exact
 // code acceptance_criterion_clause_required), ordinal = max+1
@@ -39,6 +40,7 @@ interface AcRes {
 
 describe("integration: story-spec-core AC-04 acceptance-criteria CRUD", () => {
   beforeAll(async () => {
+    await ensureStorySchema();
     f = await buildModelWithJourney(cleanup, "accrud");
     const s1 = await api<{ id: string }>("POST", `/models/${f.modelId}/stories`, {
       persona: "Cashier",

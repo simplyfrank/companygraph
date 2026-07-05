@@ -1,193 +1,189 @@
 ---
 feature: "kpi-okr-performance-dashboards"
-artifact: "tasks.md (revision 2)"
+artifact: "tasks.md (revision 5)"
 reviewer: "spec-review-agent (fresh — did not author)"
 verdict: "approve"
-reviewed_at: "2026-07-04"
-reviews_requirements_revision: 2
-reviews_design_revision: 2
-review_pass: "2 of at most 2"
+reviewed_at: "2026-07-05"
+reviews_requirements_revision: 3
+reviews_design_revision: 3
+review_pass: "2 of at most 2 (2026-07-05 cycle; supersedes this cycle's pass-1 revise verdict previously at this path)"
 ---
 
-# Tasks review (pass 2): kpi-okr-performance-dashboards
+# Tasks review (2026-07-05 cycle, pass 2): kpi-okr-performance-dashboards
 
-Reviewed cold against `requirements.md` (rev 2), `design.md` (rev 2),
-`.claude/CLAUDE.md`, and the as-built code — re-verifying every claim the
-revision-2 change table makes. Confirmed against real files:
+Cold re-review of tasks.md revision 5 against requirements rev 3, design
+rev 3, the blueprint (View Tree / XD-02 as amended / UX-*), and current
+repo state. Revision 5's stated scope — task-text-only changes resolving
+the pass-1 findings, no task added/removed/renumbered, no AC-mapping or
+dependency change — checks out: the task list is still T-01..T-19, the
+AC→task and NFR→task tables are unchanged, and the dependency graph is
+identical to the approved rev-4 graph.
 
-- `.github/workflows/ci.yml:23` — the `unit` job runs PWA vitest via **explicit
-  file enumeration** (`bunx vitest run src/__tests__/exec-kpi-management.test.tsx
-  src/__tests__/exec-okr-management.test.tsx`, `working-directory: pwa`), exactly
-  as T-19 describes; new files are genuinely never auto-discovered.
-- `api/src/router.ts:803-804` — `// Graph analytics routes` block with
-  `sub === "analytics/graph" && method === "GET"`; `sub` is
-  `path.slice("/api/v1/".length)` matched by full-string equality (router.ts:375),
-  so a three-segment `sub === "analytics/performance/kpis"` literal dispatches
-  correctly.
-- `api/src/auth/rbac-permissions.ts:31-32` — `analytics:read` precedent
-  (`P("GET","analytics/graph","analytics:read")`).
-- `pwa/src/route.ts:68-76` — the `exec` surface `tabs` array ends at
-  `{ id: "okr-management", … }`; the append point is real.
-- `api/src/routes/roll-down.ts` — the OKR topology is verbatim as designed:
-  `RollDown {type:'okr'}` → `FOR_OKR` → `OKRDirective`; `HAS_ASSIGNMENT` →
-  `RollDownAssignment` → `FOR_DOMAIN` → `Domain`; assignment carries `weight`
-  (`z.number().min(0).max(100)`, roll-down.ts:40/127/136) — there is **no**
-  `contribution` property; `status:'pending'` on CREATE; `RollDownAdjustment`
-  carries a `roll_down_id` property (not an edge).
-- `shared/src/schema/system-kind.ts:9-15` — `SYSTEM_KINDS` and
-  `SYSTEM_KIND_LABELS` both exported.
-- `.claude/specs/kpi-okr-governance/tasks.md` — the T-20 CI-scoping precedent
-  the revision cites is real, and the `ci.yml` comment in the repo attributes
-  the existing enumerated step to that exact `kpi-okr-governance` T-20 / review
-  C-02 fix.
+## Pass-1 findings — resolution check
 
-The topology fidelity, RBAC same-task pairing, four status literals,
-`attributes_json CONTAINS $domainId` inheritance, APOC availability, and the
-vitest/integration naming constraints all check out against real code, as in
-pass 1.
+- **~~B-01~~ → resolved.** T-19 is restated append-only: the two owned
+  files are appended to the end of the `unit` job's PWA `vitest run`
+  enumeration "whatever files that line carries at execution time"; the
+  stale two-file/four-file full-line literals are gone; the `ci.yml:23`
+  line-number cite is replaced by the stable anchor (the
+  `working-directory: pwa` `vitest run` step in the `unit` job — verified
+  present, currently `ci.yml:25-26`); an explicit "do not paste a
+  full-line literal from this document" instruction closes the exact
+  failure mode. The never-remove clause now also appears in T-18's CI-gate
+  check ("in addition to every pre-existing entry — none removed"), in
+  T-19's own verification, in the pinned-flags T-19 row (co-owned line,
+  FILE-OWNERSHIP), and in the validation-checkpoints table. The Revision 2
+  history row is retained and correctly tagged "(enumeration has since
+  grown; T-19 as amended governs)". Verified against the repo: the
+  enumeration currently carries exactly the five entries rev 5 says it
+  does (two `kpi-okr-governance`, three `story-spec-core`), and the
+  adjacent scoping comment T-19 references exists (`ci.yml:20`). The
+  append-only wording is robust to further growth before execution.
+- **~~C-01~~ → resolved.** The reading guide's new "Execution
+  preconditions" bullet pins that the orchestrator re-stamps
+  requirements rev 3 (`status: revised` → `approved`, recorded in
+  STATUS.md) **before T-01 begins**, with the correct rationale (stamp
+  gap, not content gap; no content re-review). Verified:
+  requirements.md rev 3 still carries `status: "revised"` and STATUS.md
+  still says "awaiting orchestrator re-stamp" — see Concern C-01 below
+  (the pin is right; the action itself is still outstanding).
+- **~~C-02~~ → resolved.** T-18's AC-13 ownership check is
+  baseline-pinned: `execution_baseline: <sha>` recorded in STATUS.md
+  before T-01 (preconditions bullet 2), evaluation via
+  `git log --name-only <baseline>..HEAD` on this spec's commits (or
+  `git diff <baseline>..HEAD` on a clean spec-only branch). The bare
+  `git diff --name-only` wording is gone from T-18 and from its
+  verification line and the checkpoints table.
+- **~~N-01~~ → resolved.** T-14 now anchors by "the last row of the exec
+  `tabs` array" instead of `route.ts:76`. Verified: `okr-management` is
+  currently at `route.ts:86` and is still the last exec tab, so the
+  anchor rule carries. Retained cites re-verified still exact this pass:
+  `driver.ts:36` (`_resetDriver`), `App.tsx:97` (`<main>`),
+  `rbac-permissions.ts:32` (`P("GET","analytics/graph","analytics:read")`).
+- **~~N-02~~ → resolved.** T-09's count leg carries the edge-case pin:
+  two-read shape asserted on fixtures with ≥ 1 directive; an empty
+  Read A may legitimately short-circuit Read B (mirroring T-03's
+  empty-id-set rule) and is not a budget violation.
+- **~~N-03~~ → declined, acceptably.** The revision-history preambles are
+  retained with a reasoned rationale (inline `Resolves:` tags anchor into
+  them; STATUS.md carries the summary). A nit decline with rationale is
+  within the author's discretion.
 
-## Resolution of pass-1 findings
+## Blockers
 
-- **~~B-01~~ → resolved.** Pass 1 blocked because the two PWA vitest files
-  (T-15, T-16) were the only automated verification for AC-08/09/11(auto)/12(auto)
-  and nothing wired them into the merge gate. Revision 2 adds **T-19**, which
-  appends exactly those two owned files to the `ci.yml:23` enumerated `vitest run`
-  line — scoped to the two files, explicitly **not** a whole-suite `vitest run`
-  (mirroring `kpi-okr-governance` T-20's scoping to avoid dragging in the
-  un-triaged legacy `error-scenarios` tree). The AC→task table's new "CI-gated"
-  column flips AC-07/08/09/11/12's automated legs to **yes**; T-15/T-16
-  traceability and the Validation-checkpoints table now state the CI gate. T-19
-  `Blocks: T-18`, and T-18's completion gate re-checks that the `ci.yml`
-  enumeration lists both files. The `.github/workflows/ci.yml` File-Changes
-  addition is surfaced (revision preamble + pinned-flags). Verified: spec-guard
-  will not block this edit (below).
-- **~~C-01~~ → resolved.** T-03 and T-04 now carry an explicit note that
-  `bun run typecheck` is a transpile (`bun build … --no-bundle`), not a behavior
-  check, and that the APOC-only Cypher (`apoc.convert.fromJsonMap`, the
-  `{kindFilter}` subquery) is proven only by the paired integration test
-  (T-07/T-08 for T-03; T-09 for T-04). The Validation-checkpoints table repeats
-  the caveat.
-- **~~C-02~~ → resolved.** The T-14 4-file view-wiring waiver
-  (`PerformanceDashboard.tsx` + `.module.css` + `route.ts` + `views/index.tsx`)
-  is now surfaced in a dedicated **"Pinned flags for the phase gate"** section
-  for STATUS.md, not only in the task body, with the `kpi-okr-governance` N-02
-  precedent named.
-- **~~C-03~~ → resolved.** T-07 (AC-14) and T-09 (two-read budget) now pin the
-  exact spy seam: wrap `getDriver().session` and assert on the returned session
-  object's `run` call count summed across sessions opened during one request
-  (and the Postgres `query` singleton the same way), restoring in `afterEach` —
-  explicitly not a naked per-`session` spy that would miss a second session or
-  double-count a reused one.
-- **N-01/N-02 → correctly held (no change).** The T-02→T-03→T-04 same-file
-  serialization via the `Blocked by` chain and the T-17 platform-cell match are
-  sound.
-- **N-03 → resolved.** An NFR→task table (NFR-01/02/05) was added.
+None.
 
-## Verification of the one residual risk from B-01's fix
+## Concerns
 
-The pass-1 recommendation warned that adding `.github/workflows/ci.yml` to the
-touched set might require the design's permission surface (§7 File Changes) to
-be regenerated, since design.md §7 does **not** list `ci.yml` and the tasks
-author cannot edit the approved design. I checked the actual enforcement:
+### C-01 — The two execution preconditions are pinned but not yet performed
+tasks.md rev 5 correctly conditions T-01 on (1) the requirements rev-3
+re-stamp to `approved` and (2) recording `execution_baseline: <sha>` in
+STATUS.md — but as of this review neither has happened:
+`requirements.md` still reads `status: "revised"` and STATUS.md has no
+`execution_baseline`. This is orchestrator housekeeping, not an artifact
+defect, and the artifact now makes it impossible to miss.
+**Recommendation:** the orchestrator performs both steps and records
+them in STATUS.md before authorizing T-01; the phase gate should refuse
+execution start otherwise.
 
-- `design.md` §7 does not contain `.github/workflows/ci.yml` (confirmed).
-- `.claude/hooks/spec-guard.sh` allows an edit if the path matches an
-  allow-glob **or** is referenced by an approved spec's `design.md` **or
-  `tasks.md`**.
-- Two independent allow paths cover `ci.yml`: (1) the `.specconfig`
-  `allow_globs` list includes `.github/*`, and (2) spec-guard.sh has a hard
-  safety net that unconditionally `exit 0`s on `.github/*` before it ever
-  reaches the source-file gate. `.github/workflows/ci.yml` is therefore
-  **never** gated regardless of the design table.
-- Independently, T-19 names the path in `tasks.md`, so even the spec-referenced
-  path check would pass.
+### C-02 — STATUS.md describes revision 4 and the prior cycle; update before execution
+STATUS.md's Tasks row, artifact list, and review_passes counter still
+describe tasks.md rev 4 and the rev-3-cycle reviews ("tasks:approved",
+"rev 4, status approved", "cap 2/2 reached" for the *previous* cycle).
+With rev 5 and this new cycle's two passes now on record, a reader of
+STATUS.md alone would execute against a stale description of the
+governing artifact. **Recommendation:** on adopting this verdict, the
+orchestrator updates STATUS.md to name tasks rev 5, this cycle's pass-1
+(revise) and pass-2 (approve) outcomes, and the two preconditions from
+C-01 — one bookkeeping edit, no re-review.
 
-So the tasks' cautious hedging ("if the design's permission surface is
-regenerated for Phase C, add `.github/workflows/ci.yml`…") is over-conservative
-but harmless: the edit will not be blocked at execution time. This closes the
-one loose thread the B-01 fix could have left. Recorded as N-01 below (optional
-cleanup, not required for approval).
+## Nits
 
-## Nits (optional, non-blocking)
+### N-01 — Frontmatter carries both this cycle's `addresses_review` and the prior cycle's `post_approval_tidy`
+Lines 9-11 of the frontmatter stack three generations of provenance
+(`addresses_review` for this cycle, `post_approval_tidy` quoting the
+*previous* cycle's pass-2 approve, `addresses` for the rev-3 repoint). All
+accurate, but a skim can misread `post_approval_tidy`'s "pass-2 (approve,
+0 blockers)" as this cycle's outcome. Optional: prefix it
+"(rev-3 cycle)" the way the history sections already do.
 
-### N-01 — The `ci.yml` "design permission surface" hedging is unnecessary
-`spec-guard.sh` unconditionally allows `.github/*` (hard safety net + the
-`.specconfig` `allow_globs` entry), so T-19's edit to `.github/workflows/ci.yml`
-is never gated and the design §7 table does not need `ci.yml` added for the edit
-to land. The revision's repeated "one design-touch this revision requires /
-regenerate the permission surface" framing (preamble + pinned-flag) can be
-softened to a one-line "additive CI step; not spec-guard-gated." No functional
-consequence — the task lands either way.
+### N-02 — T-19's "at this writing it carries five entries" will itself go stale
+Harmless — the same sentence already says "other specs may have appended
+more by execution time" and the append-only rule is count-independent —
+but the concrete count is the one remaining statement in T-19 that decays.
+Optional: drop the count, keep the ownership attribution.
 
-### N-02 — T-19 physical placement vs. numbering
-T-19 appears in the file between T-16 and T-17 (correct by dependency:
-`Blocked by: T-15, T-16` → `Blocks: T-18`), so the "tasks execute top-to-bottom"
-reading-guide invariant holds, but the numbering is non-monotonic (…T-16, T-19,
-T-17, T-18). Harmless; an executor following `Blocked by`/`Blocks` gets the
-right order. Optional: renumber, or add a one-line note that T-19 is placed by
-dependency, not by number.
+## Completeness / Traceability
 
-## Completeness / Traceability — AC → task
+### AC → task (all 14 ACs from requirements rev 3 covered; unchanged from rev 4)
 
-| AC | Task(s) | Automated gate | In CI? | Notes |
-|----|---------|----------------|--------|-------|
-| AC-01 | T-02 (pure fn), T-07 (e2e) | `bun test` + integration | yes | both legs present |
-| AC-02 | T-07 | integration | yes | domain/journey narrow + unknown-id→empty |
-| AC-03 | T-08 | integration | yes | inclusive-any + all-slice coercion; monochrome-seed worked around with fixtures |
-| AC-04 | T-09 | integration | yes | four literals, `weight` (not `contribution`), adjustment node, two-read spy — matches real topology |
-| AC-05 | T-10 | integration | yes | journeys PART_OF domain |
-| AC-06 | T-13, T-06 | integration + unit | yes | path enum + 400/coercion + RBAC null-hole |
-| AC-07 | T-15 (auto), T-17 (manual) | vitest | **yes (T-19)** | ~~was NO in pass 1~~ — auto leg now gated |
-| AC-08 | T-15 | vitest | **yes (T-19)** | loading/error/ready |
-| AC-09 | T-15 | vitest | **yes (T-19)** | empty variants |
-| AC-10 | T-14, T-18 | design-conformance CLI | yes | token/catalog gate |
-| AC-11 | T-16 (auto), T-17 (manual) | vitest | **yes (T-19)** | a11y auto leg now gated; `<main>` from App.tsx |
-| AC-12 | T-15 (auto), T-17 (manual) | vitest | **yes (T-19)** | slice click-path + sparkline |
-| AC-13 | T-18 | typecheck + `git diff` | yes | transpile + ownership |
-| AC-14 | T-07 | integration | yes | query-count proxy; spy seam now pinned (C-03) |
+| AC | Task(s) | Verification artifact | Sound? |
+|----|---------|----------------------|--------|
+| AC-01 status computation | T-02 (pure fn) + T-07 (HTTP e2e) | `performance-status.test.ts` + `performance-kpis.integration.test.ts` | yes |
+| AC-02 domain/journey slice | T-07 | integration, CI | yes |
+| AC-03 systemKind inclusive-any | T-08 | integration, CI | yes |
+| AC-04 OKR literals + adjustment + two-read | T-09 (behavior HTTP e2e; count leg in-process, ≥ 1-directive pin) | integration, CI | yes |
+| AC-05 journey axis | T-10 | integration, CI | yes |
+| AC-06 OpenAPI + 400/coercion | T-13 + T-06 (RBAC companion) | integration + unit, CI | yes |
+| AC-07 deep link survives reload | T-15 (CI via T-19 append-only) + T-17 manual (macOS Chrome, mouse) | vitest + manual | yes |
+| AC-08 loading/error/ready | T-15 | vitest, CI via T-19 | yes |
+| AC-09 empty variants | T-15 | vitest, CI via T-19 | yes |
+| AC-10 design-conformance | T-14 + T-18 | CLI | yes |
+| AC-11 keyboard/a11y | T-16 (auto) + T-17 (manual Safari, incl. relocated `<main>` check) | vitest + manual | yes |
+| AC-12 click path + sparkline | T-15 + T-17 (Chrome mouse + iPhone Safari touch) | vitest + manual | yes |
+| AC-13 transpile + ownership | T-18 (baseline-pinned diff) | CLI + `git log <baseline>..HEAD` | yes — C-02 (pass 1) closed |
+| AC-14 query-count invariant | T-07 in-process count leg + static no-import test | integration + unit, CI | yes |
 
-Every AC maps to at least one task; every task declares a concrete verification
-(test path or `manual:` repro with input mode + observable outcome), so the
-completion-hook requirement is met. The pass-1 systemic gap (four ACs gated only
-by ungated PWA vitest) is closed by T-19.
+NFR→task table present (NFR-01/02/05; NFR-03 proxied via AC-14). Every
+task declares a verification artifact (test path or `manual:` repro with
+input mode + observable outcome) — completion-hook requirement met. No
+task exceeds 3 files except T-14's recorded 4-file view-wiring waiver
+(pinned flag; precedent `kpi-okr-governance` N-02). Dependency graph
+acyclic; `Blocks`/`Blocked by` symmetric; physical order
+(…T-15, T-16, T-19, T-17, T-18) satisfies every `Blocked by` under the
+top-to-bottom rule.
 
-### NFR coverage
-NFR-01 (read-only), NFR-02 (house rules / RBAC via central gate), NFR-05
-(systemKind imported not re-declared) are now tabulated in the tasks' NFR→task
-table and enforced by the reading-guide read-only contract, T-05/T-06 RBAC, and
-T-01/T-08/T-14 import discipline. NFR-03 is proxied by AC-14 (T-07); NFR-04
-snake_case is enforced by the T-01 schemas + T-03 rename discipline.
+### Blueprint / house-rule conformance (spot re-verified against code this pass)
 
-### Design-element → task coverage (spot check)
-- §3.2 zod schemas → T-01 (incl. export-map wiring). §4.1 dispatch +
-  `resolveSlice` → T-03 + T-05 (RBAC same-task pairing). §4.2/4.3 KPI + kind →
-  T-03. §4.4 journeys → T-05. §4.5 OKR two-read → T-04. §4.6 OpenAPI → T-11.
-  §4.7 co-owned files → distributed narrow additive sections across
-  T-01/T-05/T-11/T-12/T-14. §6 view → T-12 (client) + T-14 (view/tab/factory).
-  All present; no design element without a task; no task serves a phantom
-  element.
-
-## House-rule / blueprint conformance
-- View Tree verbatim: `#/exec/performance` → `PerformanceDashboard`, appended
-  after `okr-management` (route.ts:76). Correct.
-- FILE-OWNERSHIP: T-14 appends exactly one exec-tab row, no `#/model/*` touch;
-  T-18 ownership diff asserts no governance-owned or `#/model/*` change. Single
-  clean owner for the `#/exec/performance` row. Correct.
-- Read-only / additive / no `/api/v2/` / no `ERROR_CODES` add / auth via central
-  gate + `api/src/auth/` (never per-route): honored (DD-01, T-05 RBAC section).
-- zod-only, en-US, systemKind imported not re-declared: T-01/T-08/T-14.
-- Dependency graph acyclic; T-18 is the terminal completion gate depending on
-  both T-17 (manual sweep) and T-19 (CI wiring). No cycle.
-- No blueprint / CLAUDE.md conflict found.
+- **View Tree verbatim:** `#/exec/performance` → `PerformanceDashboard`
+  (blueprint:122/131, owner column matches); T-14 appends after
+  `okr-management`, confirmed still the last exec tab (`route.ts:86`),
+  now anchored by row not line number. No invented or renamed route.
+- **XD-02 as amended / DEC-03:** Neo4j `:KPIMeasurement` only; zero
+  Postgres statically pinned by `performance-no-postgres-import.test.ts`
+  (modeled on the existing `analytics-no-write-imports.test.ts`,
+  verified present), gated by CI `unit` with no ci.yml change.
+- **Auth via central gate:** T-05 same-task pairing of router dispatch +
+  `ROUTE_PERMISSIONS`; mirror entry
+  `P("GET","analytics/graph","analytics:read")` verified at
+  `rbac-permissions.ts:32`; T-06's null-hole unit test load-bearing.
+- **Catalog components real:** `KpiCard` at
+  `pwa/src/components/charts/KpiCard.tsx` with tone union exactly
+  `good|warn|danger|neutral` (line 8); `LineChartCard` exported from
+  `charts/index.ts`; `ViewHeader`/`Loading`/`ErrorState` in
+  `views/_shared.tsx`; `SYSTEM_KINDS`/`SYSTEM_KIND_LABELS` in
+  `shared/src/schema/system-kind.ts`; `parseWith` at `_helpers.ts:84`.
+- **CI reality:** the `unit` job's PWA `vitest run` enumeration carries
+  the five entries T-19 attributes (two governance, three
+  story-spec-core) with the scoping comment adjacent; the
+  `working-directory: pwa` anchor is unique in the job. T-19's
+  append-only rule is executable against this state and any grown state.
+- **UX allowances:** UX-01 states in T-14/T-15 (loading/error/ready +
+  both empty variants); UX-02 tokens-only + catalog-first + AC-10 gate;
+  UX-05 in T-16/T-17 (keyboard, `aria-pressed`, text-not-color, `<main>`
+  landmark relocated to the manual Safari leg with rationale); UX-06
+  URL-first in T-14/T-15/T-17. Platform/input-mode cells match the
+  requirements AC columns verbatim.
+- `api/src/routes/performance.ts` does not exist yet (correct — T-02
+  creates it); tasks.md ends cleanly (prior EOF residue gone).
 
 ## Verdict
 
-**approve** — the one pass-1 blocker (B-01) is fully and correctly resolved by
-T-19, with the CI enumeration point, the `kpi-okr-governance` T-20 scoping
-precedent, and the AC→CI-gating flip all verified against real files. The three
-pass-1 concerns (C-01 typecheck-is-not-behavior, C-02 4-file waiver surfaced,
-C-03 spy seam pinned) are addressed. I additionally confirmed the residual risk
-from the B-01 fix — that `ci.yml` is absent from design §7 — is a non-issue:
-`spec-guard.sh` unconditionally allows `.github/*`, so the T-19 edit will land.
-Two optional nits (N-01 over-cautious `ci.yml` framing; N-02 non-monotonic task
-numbering) do not affect execution. Ready for Phase C.
+**approve** — zero blockers. The pass-1 blocker (stale T-19 literal that
+would have stripped story-spec-core's CI gates) is fully resolved with an
+append-only, anchor-based edit rule that cannot go stale the same way,
+and both pass-1 concerns are pinned into executable preconditions. The
+two remaining concerns are orchestrator bookkeeping (perform the
+pinned preconditions; refresh STATUS.md to rev 5), not artifact changes.
+The review cap for this cycle (2/2) is now reached; the nits are optional
+and may be folded into execution-time housekeeping without another pass.

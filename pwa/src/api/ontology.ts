@@ -1,6 +1,6 @@
 // Ontology API functions — labels, edge-types, proposals, RDF, query
 
-import type { OntologyLabelRow, OntologyLabelCreate, OntologyLabelUpdate, OntologyEdgeTypeRow, OntologyEdgeTypeCreate, OntologyEdgeTypeUpdate, BoundedContextRow } from "./types";
+import type { OntologyLabelRow, OntologyLabelCreate, OntologyLabelUpdate, OntologyEdgeTypeRow, OntologyEdgeTypeCreate, OntologyEdgeTypeUpdate, BoundedContextRow, SharedDomainRow, NamespaceRow } from "./types";
 import type { OntologyProposalRead } from "@companygraph/shared/schema/ontology";
 import { json, withSignal, guardArray } from "./core";
 
@@ -52,6 +52,15 @@ export const ontology = {
   getBoundedContextNodes: async (signal?: AbortSignal) => {
     const data = await json<unknown>("/api/v1/nodes/BoundedContext", withSignal(signal));
     return guardArray<unknown>(data, "getBoundedContextNodes");
+  },
+  getSharedDomains: async (signal?: AbortSignal) => {
+    const data = await json<unknown>("/api/v1/ontology/shared-domains", withSignal(signal));
+    return guardArray<SharedDomainRow>(data, "getSharedDomains");
+  },
+  getNamespaces: async (modelId?: string, signal?: AbortSignal) => {
+    const qs = modelId ? `?model_id=${encodeURIComponent(modelId)}` : "";
+    const data = await json<unknown>(`/api/v1/ontology/namespaces${qs}`, withSignal(signal));
+    return guardArray<NamespaceRow>(data, "getNamespaces");
   },
 };
 

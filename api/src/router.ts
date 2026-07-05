@@ -29,7 +29,21 @@ import { handleStats } from "./routes/stats";
 import { handleExportJson, handleExportNdjson } from "./routes/export";
 import { handleOpenapi } from "./routes/openapi";
 import { handleGraphAnalytics } from "./routes/analytics";
+// kpi-okr-performance-dashboards (design §4.1, DD-01) — read-only
+// performance aggregates under /api/v1/analytics/performance/*.
+import {
+  handlePerformanceKpis,
+  handlePerformanceOkr,
+  handlePerformanceJourneys,
+} from "./routes/performance";
 import { handleAnalyticsReport, handleAnalyticsConfig } from "./analytics/routes";
+// cto-analytics-reporting (FR-08 PDF, FR-11 settings, FR-11a snapshot)
+import {
+  handleExecSummaryPdf,
+  handleGetSettings,
+  handlePatchSettings,
+  handleSnapshot,
+} from "./analytics/reporting-routes";
 import {
   handleCreateNodeLabel,
   handleListNodeLabels,
@@ -52,6 +66,8 @@ import { handlePostMigration } from "./routes/ontology-migrations";
 import { handleRollback } from "./routes/ontology-versions";
 import { handleOntologyExport } from "./routes/ontology-export";
 import { handleBoundedContexts } from "./routes/ontology-bounded-contexts";
+import { handleSharedDomains } from "./routes/ontology-shared-domains";
+import { handleNamespaces } from "./routes/ontology-namespaces";
 import {
   handleGlossaryCollections,
   handleCreateGlossaryCollection,
@@ -249,6 +265,11 @@ import {
 import { registerModelRoutes } from "./routes/models";
 import { registerModuleRoutes } from "./routes/modules";
 import { registerStoryRoutes } from "./routes/stories";
+import { registerCapabilityRoutes } from "./routes/capabilities";
+import { registerKeyActivityRoutes } from "./routes/key-activities";
+import { registerSpecExportRoutes } from "./routes/spec-export";
+import { registerAuthoringRoutes } from "./routes/authoring";
+import { registerKpiImpactRoutes } from "./routes/kpi-impact";
 import { error, fromValidationError } from "./routes/_helpers";
 import { ValidationError } from "./errors";
 import { ZodError } from "zod";
@@ -405,6 +426,50 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
     const res = await registerStoryRoutes(method, sub, req);
     if (res) return res;
   }
+  // ddd-system-modeling T-09 — /api/v1/models/:modelId/capabilities* +
+  // /api/v1/models/:modelId/system-model/* dispatch block (design
+  // §4.7), AFTER the story-spec-core block (which falls through on
+  // null). The PUT arms are plain method compares — the router is
+  // method-generic (DD-11), no router-core change. Auth stays in the
+  // central gate above — no per-route check (NFR-05).
+  if (sub.startsWith("models/")) {
+    const res = await registerCapabilityRoutes(method, sub, req);
+    if (res) return res;
+  }
+  // key-activity-optimizer T-08 — /api/v1/models/:modelId/key-activities*
+  // dispatch block (design §4.7), AFTER the models* and stories* blocks,
+  // specific-before-parameterized (pass-2 N-02). Auth stays in the
+  // central gate above — no per-route check (NFR-06).
+  if (sub.startsWith("models/")) {
+    const res = await registerKeyActivityRoutes(method, sub, req);
+    if (res) return res;
+  }
+  // requirements-export T-04 — /api/v1/models/:modelId/spec-export
+  // dispatch block (design §4.7), AFTER the other model-scoped blocks,
+  // specific-before-parameterized (3-segment route never collides with
+  // the 2-segment models/:id). Auth stays in the central gate above —
+  // no per-route check (NFR-05). Read-only — GET only.
+  if (sub.startsWith("models/")) {
+    const res = await registerSpecExportRoutes(method, sub, req);
+    if (res) return res;
+  }
+  // business-model-authoring T-11 — /api/v1/models/:modelId/authoring/*
+  // + PATCH /api/v1/models/:modelId/domains/:domainId. Sibling delegate
+  // (TR-C-01/TR-C-02); api/src/routes/models.ts is NOT edited. All three
+  // paths are 4-segment with literal authoring/domains segments no other
+  // delegate matches at that shape. Auth stays in the central gate above.
+  if (sub.startsWith("models/")) {
+    const res = await registerAuthoringRoutes(method, sub, req);
+    if (res) return res;
+  }
+  // kpi-impact-mapping T-08 — /api/v1/models/:modelId/kpi-impact/*
+  // dispatch block (design §4.7), AFTER the other model-scoped blocks,
+  // specific-before-parameterized. 4-/5-segment routes never collide
+  // with the 2-segment models/:id. Auth stays in the central gate above.
+  if (sub.startsWith("models/")) {
+    const res = await registerKpiImpactRoutes(method, sub, req);
+    if (res) return res;
+  }
   if (sub === "modules" || sub.startsWith("modules/")) {
     const res = await registerModuleRoutes(method, sub, req);
     if (res) return res;
@@ -471,6 +536,8 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   if (sub === "ontology/migrations" && method === "POST") return handlePostMigration(req);
   if (sub === "ontology/export" && method === "GET") return handleOntologyExport(req);
   if (sub === "ontology/bounded-contexts" && method === "GET") return handleBoundedContexts();
+  if (sub === "ontology/shared-domains" && method === "GET") return handleSharedDomains();
+  if (sub === "ontology/namespaces" && method === "GET") return handleNamespaces(req);
 
   // Glossary collection routes
   if (sub === "glossary/collections" && method === "GET") return handleGlossaryCollections(req);
@@ -813,12 +880,33 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   // Graph analytics routes
   if (sub === "analytics/graph" && method === "GET") return handleGraphAnalytics();
 
+  // kpi-okr-performance-dashboards (design §4.1) — three read-only GET
+  // aggregates; the fourth dashboard surface is the EXISTING
+  // /kpi-trends/:kpiId sparkline route above, not a new route.
+  if (sub === "analytics/performance/kpis" && method === "GET") return handlePerformanceKpis(req);
+  if (sub === "analytics/performance/okr" && method === "GET") return handlePerformanceOkr(req);
+  if (sub === "analytics/performance/journeys" && method === "GET") return handlePerformanceJourneys(req);
+
   // cto-analytics FR-09 (T-14) — read-only config + the 7 BUILD-set report GETs
   // under /api/v1/analytics/. `analytics/graph` above is matched first, so the
   // parameterized report match never shadows it.
   if (sub === "analytics/config" && method === "GET") return handleAnalyticsConfig();
+
+  // BEGIN cto-analytics-reporting (FR-08/FR-11/FR-11a, T-09, DD-11) — mounted
+  // ABOVE the parameterized report regex so `settings` / `exec-summary.pdf` /
+  // `snapshot/:last_run_at` are not shadowed by analytics/([^/]+).
+  if (sub === "analytics/exec-summary.pdf" && method === "GET") return handleExecSummaryPdf();
+  if (sub === "analytics/settings" && method === "GET") return handleGetSettings();
+  if (sub === "analytics/settings" && method === "PATCH") return handlePatchSettings(req);
+  const analyticsSnapshot = sub.match(/^analytics\/snapshot\/(.+)$/);
+  if (analyticsSnapshot && method === "GET") return handleSnapshot(decodeURIComponent(analyticsSnapshot[1]!));
+  // END cto-analytics-reporting
+
   const analyticsReport = sub.match(/^analytics\/([^/]+)$/);
-  if (analyticsReport && method === "GET") return handleAnalyticsReport(analyticsReport[1]!);
+  if (analyticsReport && method === "GET") {
+    const refresh = new URL(req.url).searchParams.get("refresh") === "true";
+    return handleAnalyticsReport(analyticsReport[1]!, refresh);
+  }
 
   // Metrics endpoint for Prometheus scraping
   if (sub === "metrics" && method === "GET") return handleMetrics();

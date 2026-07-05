@@ -161,8 +161,8 @@ export function SmeQuarterly() {
         <PieChartCard
           title="Verification status"
           data={[
-            { label: "current", value: journeys.current.length, color: "#22c55e" },
-            { label: "overdue", value: journeys.overdue.length, color: "#ef4444" },
+            { label: "current", value: journeys.current.length, color: "var(--good)" },
+            { label: "overdue", value: journeys.overdue.length, color: "var(--danger)" },
           ]}
           donut
         />

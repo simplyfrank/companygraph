@@ -2,12 +2,19 @@
 feature: "story-spec-core"
 created: "2026-07-04"
 author: "spec-author"
-status: "revised"
+status: "approved"
 revision: 3
 revised: "2026-07-04"
+approved: "2026-07-04"
 size: "large"
 reviewing_requirements_revision: "revised rev 3 (2026-07-04)"
 ---
+
+<!-- 2026-07-05: frontmatter reconciled to the recorded state — STATUS.md
+     records "Design | approved (rev 3) | 2026-07-04" after review-design.md
+     pass 2/2 (verdict: approve, zero blockers), but this file still carried
+     status: "revised". No content change; body is byte-identical to the
+     rev 3 that was reviewed, approved, and executed (T-01…T-17). -->
 
 <!-- rev 3 (2026-07-04): closes the pass-1 review of design rev 2
      (review-design.md, verdict revise): B-01 → new DD-11 detached-story

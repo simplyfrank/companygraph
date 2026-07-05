@@ -7,6 +7,7 @@ import {
   buildModelWithJourney,
   type JourneyFixture,
 } from "./helpers/model-fixtures";
+import { ensureStorySchema } from "./helpers/story-fixtures";
 
 // story-spec-core T-05 / AC-05 — DELETE story removes its ACs + all
 // three edge types in ONE DETACH DELETE tx (no orphan ACs, no dangling
@@ -17,6 +18,7 @@ let f: JourneyFixture;
 
 describe("integration: story-spec-core AC-05 cascade delete", () => {
   beforeAll(async () => {
+    await ensureStorySchema();
     f = await buildModelWithJourney(cleanup, "storycascade");
   });
 

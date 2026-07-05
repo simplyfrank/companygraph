@@ -1,7 +1,8 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { NODE_LABELS } from "@companygraph/shared/schema/nodes";
 import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 import { registerStorySchema } from "../src/scripts/register-story-labels";
+import { ensureStorySchema } from "./helpers/story-fixtures";
 
 // story-spec-core T-02 / AC-01 — UserStory + AcceptanceCriterion are
 // registered through the runtime ontology registry (never the
@@ -12,6 +13,10 @@ const STORY_LABELS = ["AcceptanceCriterion", "UserStory"]; // alphabetical for O
 const STORY_EDGE_TYPES = ["ACCEPTANCE_OF", "DESCRIBES_ACTIVITY", "STORY_FOR_ROLE"];
 
 describe("integration: story-spec-core AC-01 label registration", () => {
+  beforeAll(async () => {
+    await ensureStorySchema();
+  });
+
   afterAll(async () => {
     await closeDriver();
     _resetDriver();

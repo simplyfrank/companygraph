@@ -2,10 +2,11 @@
 feature: "kpi-okr-performance-dashboards"
 created: "2026-07-04"
 author: "spec-author (blueprint: business-modeling-studio, round-4 View Tree)"
-status: "revised"
-revision: 2
-reviewing_requirements_revision: 2
-addresses_review: "review-design.md (pass 1: B-01, B-02, B-03; C-01..C-05; N-01, N-02, N-03)"
+status: "approved"
+revision: 3
+reviewing_requirements_revision: 3
+addresses_review: "review-design.md (pass 1: B-01, B-02, B-03; C-01..C-05; N-01, N-02, N-03 — resolved in rev 2; pass 2 open items C-06, N-04 folded in — rev 3)"
+addresses: "blueprint FINAL ARBITRATION 2026-07-04 (XD-02 amended), adopted by requirements rev 3 DEC-03 — FR-05 measurement source repointed Postgres kpi_measurements → Neo4j :KPIMeasurement; narrow conformance repoint under the pass-2 approve verdict, per STATUS.md plan"
 size: "large"
 ---
 
@@ -44,12 +45,12 @@ Five rules govern the design:
    `warning_threshold` + `critical_threshold` + latest measurement. The
    view is a pure renderer that never recomputes it — one implementation,
    testable in isolation (AC-01).
-3. **Batched cross-store reads, never N+1 (DD-03).** The portfolio
-   aggregate issues **at most one Neo4j round trip** (KPI nodes + optional
-   slice traversal) and **at most one Postgres round trip**
-   (`DISTINCT ON (kpi_id) … ORDER BY measured_at DESC` over the sliced id
-   set) per request, independent of KPI count (NFR-03, proven by the
-   AC-14 query-count invariant).
+3. **Batched single-store reads, never N+1 (DD-03, revised rev 3 per
+   DEC-03).** The portfolio aggregate issues **at most two Neo4j round
+   trips** — one sliced KPI read (nodes + optional slice traversal) and
+   one batched latest-`:KPIMeasurement` read keyed by the sliced id set —
+   and **zero Postgres round trips** per request, independent of KPI
+   count (NFR-03 as revised, proven by the AC-14 query-count invariant).
 4. **Reuse the governed surface, never re-invent it (DD-04).** The FR-07
    OKR aggregate replays the **two disjoint traversals** the governed
    handlers perform — the directive→key-results walk from
@@ -79,13 +80,36 @@ rejected: "improving" the governed `okr-performance` substring match
 fixing it here would be an off-scope behavior change on a surface this
 spec only reads.
 
+## Revision notes (revision 2 → 3 — XD-02 conformance)
+
+<!-- Inserted without renumbering: §2..§9 below keep their pass-1/pass-2
+     review-cited numbers. -->
+
+Revision 3 is the **conformance pass against requirements revision 3**
+(blueprint FINAL ARBITRATION 2026-07-04, XD-02 as amended, recorded there
+as DEC-03): the canonical KPI-measurement source for this dashboard is
+Neo4j `:KPIMeasurement` — the same source the governed `kpi-trends` route
+reads — not Postgres `kpi_measurements`. A narrow repoint under the
+pass-2 approve verdict (`review-design.md`), not a re-design. No DD id is
+added, removed, or renumbered; no FR/AC mapping changes.
+
+| Change | Where |
+|--------|-------|
+| DD-03 restated single-store: ≤ 2 Neo4j round trips, 0 Postgres, constant in KPI count | §1 rule 3, §2 DD-03 |
+| Stores-read table: Postgres dropped from this spec's read set; `:KPIMeasurement` added | §3.1 |
+| Portfolio Read 2: Postgres `DISTINCT ON` → batched Neo4j latest-per-`kpi_id` Cypher | §4.2 |
+| Risk R-1 (portfolio-vs-sparkline cross-store disagreement) **dissolved** — both reads now share `:KPIMeasurement`; new **Risk R-5** = requirements Risk 7 (REST-recorded measurements invisible → `no_data`) | §3.1, §4.2 |
+| Test strategy: fixtures seed `:KPIMeasurement` via the direct-driver pattern; AC-14 spy asserts ≤ 2 `session.run`, **zero** `pg` `query` calls | §7, §8 |
+| Rejected-alternatives ledger flipped: reading Postgres for the latest value is now the rejected (superseded) option | §9 |
+| Pass-2 open items folded in: **C-06** (Read B aggregation grouping key + null-row drop), **N-04** (`?domain` filters directives, not assignment columns) | §4.5 |
+
 ## 2. Design decisions
 
 | ID | Decision | Serves | Rationale / rejected |
 |----|----------|--------|----------------------|
 | DD-01 | All four new endpoints are `GET` under `/api/v1/analytics/performance/`; no write path, no error-code addition, additive under `/api/v1/`. | NFR-01, FR-05..FR-09 | Blueprint scope is "reads existing routes"; matches the existing `GET /api/v1/analytics/graph` namespace (RBAC `analytics:read`, `router.ts:804`). Rejected: mutating roll-down from the dashboard (out of scope, owned by `RollDown.tsx`). |
 | DD-02 | Target/breach status computed server-side in the FR-05 aggregate (single authority); the view renders it. | FR-02, FR-05, AC-01 | One tested implementation; mirrors how `kpi-trends` already computes server-side. Rejected: client-side status (duplicates logic, drifts). **Was DEC-01** — pinned under XD-17. |
-| DD-03 | Portfolio aggregate = one batched Neo4j read + one batched Postgres read per request, regardless of KPI count. | NFR-03, AC-14 | O(1) round trips vs O(N). The Postgres latest-value join uses `DISTINCT ON (kpi_id) … ORDER BY kpi_id, measured_at DESC` (§4.2) over the sliced id set. Rejected: N per-KPI `kpi-trends` calls (NFR-03 breach). |
+| DD-03 | **(revised rev 3 — DEC-03 / XD-02 as amended)** Portfolio aggregate = at most **two batched Neo4j reads, zero Postgres**, per request, regardless of KPI count: Read 1 the sliced KPI set, Read 2 the batched latest `:KPIMeasurement` per `kpi_id` over the sliced id set (§4.2). | NFR-03, AC-14, DEC-03 | O(1) round trips vs O(N); single store dissolves the rev-2 Risk R-1 portfolio-vs-sparkline disagreement (both reads now share `:KPIMeasurement`, the `handleKpiTrendsGet` source). Rejected: N per-KPI `kpi-trends` calls (NFR-03 breach); the rev-2 Postgres `DISTINCT ON` read (superseded by the arbitration — §9). |
 | DD-04 | Reuse `parseWith` (`_helpers.ts`), the governed reads, and `SYSTEM_KINDS`; never re-declare a systemKind literal or re-map snake_case to camelCase. The FR-07 OKR aggregate replays **two disjoint governed traversals** (directive→key-results from `handleOkrPerformanceGet`; roll-down assignments from `handleOkrRollDownGet`) and joins them server-side by directive id — it is not one fused pattern (§4.5). | NFR-02, NFR-04, NFR-05, FR-07, FR-09 | Single vocabulary (XD-15), consistent field convention (`kpi-okr-governance` NFR-04). **Resolves B-03/DD-04-wording:** the two handlers read disjoint subgraphs — `okr-performance` carries no assignment/status/domain rows, so it cannot be the source of per-domain roll-down status; that comes only from the `RollDown` walk. Rejected: camelCase remap (diverges from routes this reads); fusing the two walks into one graph pattern (they share no path). |
 | DD-05 | `pwa/src/route.ts` gets a single comment-anchored additive exec-tab append; all other shared files get only enumerated additive sections (§4.7). | FR-01, FILE-OWNERSHIP | Phase C sees one clean owner per file. Rejected: touching a `#/model/*` row (collision with `model-workspace-core`). |
 | DD-06 | systemKind slice semantics = **inclusive-any** (a KPI matches `?kind=agentic` if *any* reachable System is agentic). Pins **OQ-2**. | FR-06, AC-03 | Matches "show me KPIs touched by agentic systems"; exclusive-all would hide most KPIs. §4.3 pins the Cypher. Rejected: exclusive-all (over-filters). |
@@ -102,8 +126,8 @@ schemas that define the new endpoints' contracts.
 
 | Store | Data read | Via |
 |-------|-----------|-----|
-| Neo4j | `:KPI` nodes (flat snake_case: `id, name, unit, target_value, target_direction, warning_threshold, critical_threshold, domain_id, archived_at`); `:UserJourney`/`:Activity`/`:System` for slice traversal; `:OKRDirective`/`:KeyResult`/`:RollDownAssignment` for the OKR aggregate | `getDriver()` (`api/src/neo4j/driver.ts`) |
-| Postgres | `kpi_measurements (kpi_id, measured_at, value)` — latest value per KPI | `query` from `api/src/storage/postgres/client` |
+| Neo4j | `:KPI` nodes (flat snake_case: `id, name, unit, target_value, target_direction, warning_threshold, critical_threshold, domain_id, archived_at`); **`:KPIMeasurement` nodes (`{id, kpi_id, measured_at, value}`, `kpiMeasurementSchema` in `shared/src/schema/kpi-sla.ts`) — latest value per KPI (DEC-03, rev 3)**; `:UserJourney`/`:Activity`/`:System` for slice traversal; `:OKRDirective`/`:KeyResult`/`:RollDownAssignment` for the OKR aggregate | `getDriver()` (`api/src/neo4j/driver.ts`) |
+| Postgres | **not read by this spec** (XD-02 as amended / DEC-03; the `kpi_measurements` table stays as-built for the `POST/GET /api/v1/kpi-measurements` routes that own it) | — |
 
 **Risk R-4 (inherited, flagged — C-04).** The domain/journey/kind slices
 (§4.2/§4.3, FR-04/FR-06) depend on KPIs having `CONTRIBUTES_TO` edges. Those
@@ -117,16 +141,27 @@ dashboard a KPI created via `POST /kpis` will not appear in a journey/kind
 slice until `kpi-impact-mapping` lands. Flagged for the consolidated report,
 not fixed here (complements Risk R-3's monochrome-seed note).
 
-`:KPI` measurements are read from **Postgres** `kpi_measurements`, not the
-Neo4j `:KPIMeasurement` split-brain that `kpi-trends` reads (V-02 in
-`kpi-okr-governance/design.md` §3.4). This spec's portfolio "latest value"
-is the governance surface's **recorded** measurement (Postgres) — the store
-`POST /api/v1/kpi-measurements` writes to. Documented divergence from
-`kpi-trends` (which reads Neo4j) is intentional and noted in §4.2 (**Risk
-R-1**): the sparkline (FR-02, from `kpi-trends`) and the portfolio latest
-value (FR-05, from Postgres) can disagree until `kpi-okr-governance`'s V-02
-split-brain is unified. This is inherited, flagged for the consolidated
-report, not fixed here.
+`:KPI` measurements are read from **Neo4j `:KPIMeasurement` nodes** — the
+same source the governed `kpi-trends` route reads (`handleKpiTrendsGet`,
+`api/src/routes/kpi-trends.ts`: `MATCH (m:KPIMeasurement {kpi_id: $id}) …
+RETURN m.id, m.measured_at, m.value`). This adopts the blueprint FINAL
+ARBITRATION of 2026-07-04 (XD-02 as amended; requirements DEC-03), which
+supersedes the revision-2 design's Postgres `kpi_measurements` read.
+Rev-2 **Risk R-1** (portfolio latest value vs sparkline disagreeing across
+stores) is thereby **dissolved** — both reads now share one store.
+
+**Risk R-5 (inherited, flagged — requirements Risk 7).** No in-repo write
+path produces `:KPIMeasurement` nodes (`kpi-okr-governance` V-02: the REST
+`POST /api/v1/kpi-measurements` writes Postgres; only `kpi-trends` reads
+the Neo4j label). Under DEC-03, every KPI whose measurements were recorded
+via REST shows `status: no_data` on this dashboard, and a fresh seed shows
+`no_data` everywhere. Rendered honestly via the `no_data` status (FR-02/
+FR-05) and the AC-09 empty states — never errored, never silently blended
+with Postgres. Test fixtures seed `:KPIMeasurement` directly via the
+production driver (`kpi-okr-governance` design §3.4 pattern — the label
+has no REST write path; AC-01/AC-02/AC-14). Documented, not fixed
+(blueprint ruling); flagged for the consolidated report via DEC-03; store
+unification stays a `kpi-okr-governance`-successor concern.
 
 ### 3.2 New zod schemas (`shared/src/schema/performance.ts`, new — FR-05..FR-09)
 
@@ -239,9 +274,10 @@ AC-03/AC-06 N-03).
 
 ### 4.2 KPI portfolio aggregate — `handlePerformanceKpis` (FR-05, FR-02, DD-02, DD-03)
 
-Two batched reads, then an in-memory join and status computation:
+Two batched **Neo4j** reads — zero Postgres (DEC-03, rev 3) — then an
+in-memory join and status computation:
 
-**Read 1 — Neo4j (one round trip):** select the sliced KPI id set + fields.
+**Read 1 — sliced KPI set (one round trip):** select the sliced KPI id set + fields.
 
 ```cypher
 MATCH (k:KPI) WHERE k.archived_at IS NULL
@@ -261,8 +297,9 @@ opens a second `WHERE`**. Absent slice params drop their fragment entirely
 (the empty string), so the three fragments compose unconditionally in any
 combination without string-concatenation breakage. A fragment is included only
 when its slice param resolved (a domain/journey UUID present, or `kind`
-resolved to a `SystemKind` per §4.1). This is the single Neo4j round trip
-(AC-14).
+resolved to a `SystemKind` per §4.1). Read 1 is a single round trip;
+together with Read 2 the handler totals **≤ 2 Neo4j round trips and 0
+Postgres** (AC-14, rev 3).
 
 **`{domainFilter}` (C-02) — literal fragment, appended when `domain` is set:**
 
@@ -298,19 +335,27 @@ AND EXISTS {
 Journey scoping is `CONTRIBUTES_TO`-only (KPI nodes carry no flat
 `journey_id`), matching the exec question "KPIs contributing to this journey."
 
-**Read 2 — Postgres (one round trip):** latest measurement per sliced KPI
-id, batched with `DISTINCT ON` (prior art: `kpi-measurements.ts:60`
-`ORDER BY measured_at DESC`):
+**Read 2 — batched latest `:KPIMeasurement` (one round trip; DEC-03, rev
+3):** latest measurement per sliced KPI id, batched with the
+collect-after-sort latest-per-key pattern (source parity: this is the same
+label + properties `handleKpiTrendsGet` reads — `m.kpi_id`,
+`m.measured_at`, `m.value`):
 
-```sql
-SELECT DISTINCT ON (kpi_id) kpi_id, value, measured_at
-FROM kpi_measurements
-WHERE kpi_id = ANY($1)
-ORDER BY kpi_id, measured_at DESC
+```cypher
+MATCH (m:KPIMeasurement)
+WHERE m.kpi_id IN $ids
+WITH m ORDER BY m.measured_at DESC
+WITH m.kpi_id AS kpi_id, collect(m)[0] AS latest
+RETURN kpi_id, latest.value AS value, latest.measured_at AS measured_at
 ```
 
-`$1` is the id array from Read 1. One query regardless of KPI count
-(AC-14). Empty id set short-circuits (no Postgres call, still ≤1).
+`$ids` is the id array from Read 1. `measured_at` is an ISO-8601 string
+(`kpiMeasurementSchema`, `shared/src/schema/kpi-sla.ts`), so the `ORDER BY
+… DESC` string ordering is chronologically correct — the same convention
+`handleKpiTrendsGet` relies on for its `m.measured_at >= $windowStart`
+window comparison. One query regardless of KPI count (AC-14). Empty id set
+from Read 1 short-circuits (no Read 2 issued — total stays ≤ 2 Neo4j, and
+always 0 Postgres).
 
 **Field remap (N-01):** the store columns `value` / `measured_at` are
 projected into the response as `latest_value` / `latest_measured_at`
@@ -350,12 +395,12 @@ if it meets target, else `warning`). The function is total over the
 `target_direction` domain; an unrecognized direction → `no_data` guard
 (never throws). Response: `kpiStatusResponseSchema` rows.
 
-**Risk R-1 (inherited, flagged):** latest value here is Postgres
-`kpi_measurements`; the FR-02 sparkline is `kpi-trends` reading Neo4j
-`:KPIMeasurement` (V-02 split-brain). They can disagree until
-`kpi-okr-governance` unifies the stores. Documented in code + consolidated
-report; not fixed here (off-scope — the store this spec reads is the one
-`POST /kpi-measurements` writes, the recorded-measurement authority).
+**Risk R-1 — dissolved (rev 3, DEC-03):** the portfolio latest value and
+the FR-02 sparkline now read the **same store** (Neo4j `:KPIMeasurement`),
+so the rev-2 cross-store disagreement cannot occur. The surviving
+consequence is **Risk R-5** (§3.1): REST-recorded measurements (Postgres)
+are invisible here — such KPIs render `no_data`, honestly, per FR-02/FR-05
+and the AC-09 empty states.
 
 ### 4.3 systemKind slice traversal (FR-06, DD-06 inclusive-any)
 
@@ -381,8 +426,8 @@ the compose image). Inclusive-any: the `EXISTS` subquery matches if *one*
 reachable System qualifies (DD-06). A KPI with no KPI→…→System path is
 excluded from a non-`all` kind slice (the `EXISTS` is false), never
 crashed (FR-06). `$kind` is the resolved literal from `SYSTEM_KINDS`
-(NFR-05). Still one Neo4j round trip — the `EXISTS` is a subquery within
-Read 1, not a second call (AC-14).
+(NFR-05). Still within Read 1 — the `EXISTS` is a subquery, not an extra
+round trip; the handler's budget stays ≤ 2 Neo4j + 0 Postgres (AC-14).
 
 ### 4.4 Journey axis aggregate — `handlePerformanceJourneys` (FR-08, DD-07)
 
@@ -466,6 +511,14 @@ line numbers drift; the predicate is the one those handlers use verbatim.
 false-positive envelope is inherited as-is; correcting it belongs to
 `kpi-okr-governance` (its Risk 3), never asserted or "improved" here.
 
+**`?domain` scope (N-04, folded in rev 3):** the `?domain` axis filters
+*directives* (via the substring predicate above); Read B's per-domain
+assignment rows are **not** re-filtered by `?domain` — an unsliced `/okr`
+returns all top-level directives with all their domain assignment rows,
+and a domain-sliced `/okr` still shows each matched directive's **full**
+domain column set. Stated so the view author does not expect `?domain` to
+narrow the domain columns too.
+
 **Read B — per-domain assignment status + weight + adjustment flag (one
 round trip).** Anchored on the `:RollDown {type:'okr'}` node, replaying the
 `handleOkrRollDownGet` topology, restricted to the directive id set from
@@ -495,6 +548,17 @@ literal is re-invented** (FR-03); the schema enum is exactly these four.
 `:RollDownAdjustment` exists for that `(roll_down, domain)` — derived from a
 `count > 0`, **not** from `a.status` (FR-03).
 
+**Aggregation grouping key + null-row drop (C-06, folded in rev 3).** The
+`count(adj) > 0` aggregate implicitly groups by every non-aggregated
+returned key — exactly `(dir.id, a.domain_id, d.name, a.status, a.weight)`
+— so `adjustment_requested` aggregates per `(directive, domain)`, never
+across the whole result; the implementer must keep that projection list
+intact when editing the query. When a `:RollDown` has no assignments the
+`OPTIONAL MATCH` yields null-`a`/`d` rows (`domain_id = null`); those rows
+are **dropped server-side before `okrDomainAssignmentSchema` validation**
+(the schema requires non-null `domain_id`/`status`), which also makes the
+null-`d.name` `ORDER BY` edge moot.
+
 **Server-side join.** The handler keys Read A rows by `directive_id`, then
 folds Read B rows into each directive's `domains: okrDomainAssignmentSchema[]`
 by matching `directive_id`. Directives with no roll-down (no `:RollDown`
@@ -506,8 +570,9 @@ out server-side). Response: `okrPerformanceResponseSchema`.
 the directive/id set — **exactly two Neo4j round trips, zero Postgres**,
 independent of directive/assignment count. This is intentionally two (not one)
 because the directive-anchored and RollDown-anchored subgraphs share no path;
-AC-14's single-round-trip invariant covers only `/kpis`, so `/okr`'s two-read
-shape is design-internal, not an AC breach. The `okr-performance.integration`
+AC-14's ≤ 2-Neo4j / 0-Postgres invariant covers only `/kpis`, so `/okr`'s
+two-read shape is design-internal, not an AC breach (and coincidentally
+matches the same budget). The `okr-performance.integration`
 test (§8) additionally spies `session.run` to assert this endpoint stays at
 two calls (no per-directive N+1 creeping into the join).
 
@@ -559,7 +624,7 @@ errors per `_helpers.error`. **Bold** = new in this spec.
 
 | Method | Route | FR | Request → Response |
 |--------|-------|----|--------------------|
-| **GET** | **`/analytics/performance/kpis`** | FR-05, FR-02, FR-06 | `?domain=&journey=&kind=` → 200 `kpiStatusResponseSchema` (status computed server-side); malformed `domain`/`journey` → 400 envelope; unknown `kind` → `all` slice |
+| **GET** | **`/analytics/performance/kpis`** | FR-05, FR-02, FR-06 | `?domain=&journey=&kind=` → 200 `kpiStatusResponseSchema` (status computed server-side); malformed `domain`/`journey` → 400 envelope; unknown `kind` → `all` slice; reads Neo4j only — `:KPI` + `:KPIMeasurement`, ≤ 2 round trips, 0 Postgres (DEC-03) |
 | **GET** | **`/analytics/performance/okr`** | FR-07, FR-03 | `?domain=` → 200 `okrPerformanceResponseSchema` (per-directive roll-down perf; two batched Neo4j reads joined by directive id per §4.5 — key-result `progress` from `attributes_json`, per-domain `status`/`weight`/`adjustment_requested` from the `RollDown` walk; substring-match fidelity inherited, R-2) |
 | **GET** | **`/analytics/performance/journeys`** | FR-08 | `?domain=<id>` → 200 `journeyAxisResponseSchema` (`UserJourney` `PART_OF` domain, ordered `name`); unknown/absent domain → `{rows:[]}` |
 | GET | `/kpi-trends/:kpiId` | FR-02 | *(existing, `kpi-okr-governance`)* on-demand sparkline data for a selected KPI — read, not added |
@@ -662,7 +727,7 @@ enumerates the path list).
 | `shared/src/schema/performance.ts` | new | FR-05..FR-09 | §3.2 request/response zod schemas; imports `SYSTEM_KINDS` (NFR-05) |
 | `shared/package.json` | modify (narrow) | FR-05 | add `./schema/performance` export subpath |
 | `shared/src/index.ts` | modify (narrow) | FR-05 | re-export the module |
-| `api/src/routes/performance.ts` | new | FR-05..FR-08 | three handlers + `resolveSlice` + `computeKpiStatus` (§4.1..§4.5) |
+| `api/src/routes/performance.ts` | new | FR-05..FR-08 | three handlers + `resolveSlice` + `computeKpiStatus` (§4.1..§4.5); Neo4j-only — no Postgres client import (DEC-03) |
 | `api/src/router.ts` | modify (owned §4.7) | FR-05..FR-08 | 3 dispatch lines in `// Graph analytics routes` block + imports |
 | `api/src/auth/rbac-permissions.ts` | modify (narrow §4.7) | FR-05..FR-08, NFR-02 | 3 `analytics:read` entries in a `── Performance dashboards ──` section |
 | `api/src/routes/openapi-performance.ts` | new | FR-09 | `registerPerformancePaths` (§4.6) |
@@ -672,7 +737,7 @@ enumerates the path list).
 | `pwa/src/views/exec/PerformanceDashboard.tsx` | new | FR-01..FR-04, UX-01/02/05 | §6 view |
 | `pwa/src/views/exec/PerformanceDashboard.module.css` | new | FR-01, UX-02 | tokens-only styles |
 | `pwa/src/api.ts` | modify (narrow §4.7) | FR-02..FR-04 | new `performance` client object |
-| `api/__tests__/performance-kpis.integration.test.ts` | new | FR-05/02/04, NFR-03 | AC-01, AC-02, AC-14 (query-count) |
+| `api/__tests__/performance-kpis.integration.test.ts` | new | FR-05/02/04, NFR-03 | AC-01, AC-02, AC-14 (≤ 2 Neo4j / 0 Postgres query-count); fixtures seed `:KPIMeasurement` via direct driver (§3.4 pattern) |
 | `api/__tests__/performance-systemkind-slice.integration.test.ts` | new | FR-06 | AC-03 (inclusive-any, DD-06) |
 | `api/__tests__/performance-okr.integration.test.ts` | new | FR-07/03 | AC-04 (four literals, adjustment signal) |
 | `api/__tests__/performance-journeys.integration.test.ts` | new | FR-08 | AC-05 |
@@ -708,14 +773,17 @@ Not changed, deliberately: any `kpi-okr-governance`-owned route/view file
   reaches each slicer control in DOM order; active kind button
   `aria-pressed`; status rendered as text; `main` landmark present).
 
-**Integration (`bun test:integration`, live Neo4j + Postgres; HTTP against
-`127.0.0.1:8787`; fixtures via the production `getDriver()` + Postgres
-`query()`, per the `kpi-okr-governance` §3.4 convention):**
+**Integration (`bun test:integration`, live Neo4j; HTTP against
+`127.0.0.1:8787`; fixtures via the production `getDriver()` — including
+direct-driver `:KPIMeasurement` seeding per the `kpi-okr-governance`
+design §3.4 convention, since the label has no REST write path; Postgres
+is not read by these endpoints — DEC-03):**
 - `performance-kpis.integration.test.ts` → **AC-01** (status correctness
-  end-to-end over seeded KPIs + measurements), **AC-02** (domain/journey
-  slice narrows; unknown id → empty `rows`, not 404), **AC-14**
-  (query-count invariant: spy `session.run` / pg `query`; ≤1 each; 50-KPI
-  vs 5-KPI fixtures → same round-trip count).
+  end-to-end over seeded KPIs + `:KPIMeasurement` fixtures), **AC-02**
+  (domain/journey slice narrows; unknown id → empty `rows`, not 404),
+  **AC-14** (query-count invariant: spy driver `session.run` — **≤ 2** for
+  the handler — and assert **zero** `pg` `query` calls; 50-KPI vs 5-KPI
+  fixtures → same round-trip count).
 - `performance-systemkind-slice.integration.test.ts` → **AC-03**
   (`?kind=agentic` returns only KPIs reaching an agentic System per DD-06
   inclusive-any; no-path KPI excluded; `kind` absent/`all`/unknown → all
@@ -779,14 +847,20 @@ Not changed, deliberately: any `kpi-okr-governance`-owned route/view file
   change on a surface this spec only reads; correcting it belongs to
   `kpi-okr-governance` (its Risk 3). The false-positive envelope is
   inherited and documented.
-- **Reading the Neo4j `:KPIMeasurement` split-brain for latest value** (to
-  match `kpi-trends`) — rejected (Risk R-1): `POST /kpi-measurements`
-  writes Postgres, which is the recorded-measurement authority; reading
-  Neo4j would make the portfolio latest value blind to REST-recorded
-  measurements. The store split (V-02) is `kpi-okr-governance`'s to unify;
-  the divergence is flagged, not papered over.
+- **Reading Postgres `kpi_measurements` for the latest value** (the
+  revision-2 design) — superseded by the blueprint FINAL ARBITRATION
+  2026-07-04 (XD-02 as amended; requirements DEC-03): the canonical
+  dashboard measurement source is Neo4j `:KPIMeasurement`, the same store
+  `kpi-trends` reads — which also dissolves rev-2 Risk R-1 (cross-store
+  portfolio-vs-sparkline disagreement). The accepted consequence is Risk
+  R-5 (§3.1): REST-recorded (Postgres) measurements render as `no_data`
+  here — documented, not fixed, per the blueprint ruling; store
+  unification stays a `kpi-okr-governance`-successor concern. Not a
+  spec-author choice: a binding user ruling, recorded, never re-litigated
+  here.
 - **Wall-clock p95 assertion for NFR-03** — rejected: flakes on shared CI
-  Neo4j/Postgres; the AC-14 query-count invariant is the robust proxy.
+  Neo4j; the AC-14 query-count invariant (≤ 2 Neo4j, 0 Postgres) is the
+  robust proxy.
 - **A new `SystemKindPill`/status-badge component** — rejected: catalog
   `Pill` + `KpiCard` tone cover it; no second consumer to justify
   extraction (UX-02 catalog-first).

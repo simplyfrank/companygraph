@@ -2,7 +2,7 @@
 feature: "ddd-system-modeling"
 created: "2026-07-04"
 author: "spec-author"
-status: "revised"
+status: "approved"
 revision: 2
 size: "large"
 ---

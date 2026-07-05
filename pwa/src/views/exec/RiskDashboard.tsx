@@ -174,20 +174,20 @@ export function ExecRiskDashboard() {
         <PieChartCard
           title="Status Distribution"
           data={[
-            { label: "open", value: summary?.open_risks || 0, color: "#f59e0b" },
-            { label: "mitigating", value: summary?.mitigating_risks || 0, color: "#3b82f6" },
-            { label: "accepted", value: summary?.accepted_risks || 0, color: "#8b5cf6" },
-            { label: "resolved", value: summary?.resolved_risks || 0, color: "#22c55e" },
+            { label: "open", value: summary?.open_risks || 0, color: "var(--cat-1)" },
+            { label: "mitigating", value: summary?.mitigating_risks || 0, color: "var(--cat-2)" },
+            { label: "accepted", value: summary?.accepted_risks || 0, color: "var(--cat-3)" },
+            { label: "resolved", value: summary?.resolved_risks || 0, color: "var(--cat-4)" },
           ]}
           donut
         />
         <PieChartCard
           title="Severity Distribution"
           data={[
-            { label: "critical", value: summary?.critical_risks || 0, color: "#ef4444" },
-            { label: "high", value: summary?.high_risks || 0, color: "#f97316" },
-            { label: "medium", value: summary?.medium_risks || 0, color: "#eab308" },
-            { label: "low", value: summary?.low_risks || 0, color: "#22c55e" },
+            { label: "critical", value: summary?.critical_risks || 0, color: "var(--sev-4)" },
+            { label: "high", value: summary?.high_risks || 0, color: "var(--sev-3)" },
+            { label: "medium", value: summary?.medium_risks || 0, color: "var(--sev-2)" },
+            { label: "low", value: summary?.low_risks || 0, color: "var(--sev-1)" },
           ]}
           donut
         />

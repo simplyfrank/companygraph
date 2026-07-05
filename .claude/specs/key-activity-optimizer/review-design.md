@@ -1,212 +1,188 @@
 ---
 feature: "key-activity-optimizer"
 reviewing: "design"
-artifact: ".claude/specs/key-activity-optimizer/design.md (revised, revision 2)"
+reviewing_revision: 4
 reviewer: "spec-review-agent"
 verdict: "approve"
-reviewed_at: "2026-07-04"
-review_pass: "2 of at most 2"
+review_pass: 1
+reviewed_at: "2026-07-05"
+supersedes: "review of the pre-rev-4 design (pass 2, approve, 2026-07-04) — genealogy archived per design §2; its findings are re-verified below"
 ---
 
-# Design Review (pass 2): key-activity-optimizer
+# Review: key-activity-optimizer / design (pass 1/2 — revision 4)
 
-Re-reviewed cold against the approved `requirements.md` (FR-01…FR-14, NFR-01…NFR-07,
-AC-01…AC-17), the app `blueprint.md` (View Tree, UX-01…UX-06, XD-03/XD-11), the
-dependency specs `model-workspace-core` + `story-spec-core`, and the live
-codebase. All pass-1 findings (B-01, C-01…C-05, N-01…N-03) were re-checked against
-the revision, and each cited codebase/upstream claim was re-verified by reading the
-files.
-
-This is the single allowed re-review. The one pass-1 blocker is resolved and every
-concern is folded in with a verifiable resolution. Verdict: **approve**.
-
-## Pass-1 findings — resolution status
-
-- **~~B-01~~ → resolved.** The catalog `DataTable` sort gap is now handled by
-  **DD-10** (+§4.10, §6, §7): an **in-view sort layer** owned by
-  `KeyActivityBoard` (`sortColumn`/`sortDir` state, client-side stable sort of the
-  fetched rows, keyboard-activatable `aria-sort` headers), with the catalog
-  `DataTable` explicitly **not** extended and explicitly **absent** from §7's File
-  Changes. Verified against `pwa/src/components/DataTable.tsx` (read in full): it is
-  a static `{columns, rows}` table with plain `<th>{label}` headers, no sort state,
-  no `onSort`, no `aria-sort`, no keyboard-activatable headers — so the in-view
-  ownership is the correct call, and AC-15's `aria-sort` requirement now traces to a
-  concrete owner (the view). Because the ranking is a single-model fetch (NFR-05),
-  client-side sort with no re-fetch is sound.
-- **~~C-01~~ → resolved.** §4.5 step 2 now states the snapshot is a **best-effort
-  point-in-time read not tx-consistent with the step-3 write** (consistent with
-  Risk #5's evidence-at-mark-time framing), calls out the per-mark full-recompute
-  cost, and notes the future optimisation (accept the board's already-computed row,
-  server still recomputes authoritatively). Adequate.
-- **~~C-02~~ → resolved.** §4.10 error state and §6 now state the retry is a
-  **separate sibling catalog `Button`**, not part of `ErrorState`, whose handler
-  re-invokes `api.keyActivities.list(activeModel.id)`. Verified against
-  `pwa/src/views/_shared.tsx`: `ErrorState({ message })` renders a static div with
-  no retry control — the sibling-Button framing is correct.
-- **~~C-03~~ → resolved.** DD-05 is trimmed: it now states the bespoke `SET`
-  **bypasses `assertAttributesMatchSchema` by design** on the mark path, and confines
-  the permissive-schema argument to the `upsertNode` export/import round-trip (DD-04).
-  Verified: `assertAttributesMatchSchema` runs only inside `patchNode`/`createNode`/
-  `upsertNode` in `api/src/storage/nodes.ts` (lines 117, 181, 229), never on a raw
-  `SET`. See C-01 below for a residual precision note on the permissive claim.
-- **~~C-04~~ → resolved.** §4.4 adds an explicit **display contract**: any stored
-  `keyActivity` that fails `keyActivityMarkSchema` (including `marked:false`) is
-  treated as unmarked (`row.key = null`) and logged at `warn`, with the underlying
-  node attribute left untouched by the read path. Good.
-- **~~C-05~~ → resolved.** §4.2's `PRECEDES` query now filters `p.id <> q.id` and
-  `RETURN DISTINCT`, and §4.3 adds a defensive filter/de-dupe inside the pure scorer
-  so the Neo4j-free unit tests assert the same invariant; §4.4's handoff pass
-  iterates the same de-duplicated, self-loop-free edge set. Verified
-  `buildGraphologyGraph` is `{type:"directed", multi:false}` (`api/src/ontology/
-  analytics/graph.ts:103`), so the self-loop/parallel-edge throw is genuinely
-  avoided.
-- **~~N-01~~ → resolved.** §3.4/§4.2 now state `model_not_found` is already present
-  (verified `api/src/errors.ts:36`) and add **only** `activity_not_found`.
-- **~~N-02~~ → resolved.** §4.3 notes `GraphNode.name` is always present and
-  `createdAt` is intentionally not carried into the graph (row-layer tiebreak only).
-- **~~N-03~~ → resolved.** §8 AC-08 is explicitly a two-file split
-  (`scope-authz` + `openapi`) with a note that both must appear in the tasks phase.
-
-## Findings (this pass)
-
-No blockers. Three low-severity concerns and one nit remain — all deferrable to the
-tasks phase; none blocks approval.
-
-### Concerns
-
-#### C-01 — DD-05's permissive-schema claim is contingent on the `Activity` attribute schema not being strict
-
-DD-05 asserts, for the export/import round-trip (DD-04), that "the permissive
-`Activity` label schema accepts unlisted keys … `checkAttributesAgainstSchema`
-returns `null`/permissive for unlisted keys." That is **not** unconditionally true.
-Verified: `checkAttributesAgainstSchema` (`api/src/storage/nodes.ts:41-73`) returns
-`null` (permissive) only when the label has **no registry row** (the `not_found`
-catch, line 49-51). When the `Activity` label **does** carry an attribute schema,
-the validator is compiled from that label's JSON Schema by `jsonSchemaToZod`
-(`api/src/ontology/cache/attribute-zod.ts:57-72`). Unlisted keys like `keyActivity`
-survive only because `z.object()` is non-strict **by default** — but if the
-`Activity` JSON Schema ever sets `additionalProperties:false` (compiling to
-`.strict()`), the `upsertNode` import path would reject the `keyActivity` key.
-
-This does not affect the mark write path (which bypasses the validator entirely, per
-the resolved C-03) and does not affect scoring. It only bites the DD-04 import
-round-trip, and only under a strict `Activity` schema. Since this spec does not
-control the `Activity` schema definition and the current default is permissive, this
-is a latent-assumption note, not a blocker.
-**Recommendation.** In DD-05/DD-04, qualify the claim to "survives import **provided
-the `Activity` attribute schema is not `additionalProperties:false`** (the current
-default; unlisted keys pass a non-strict `z.object`)." No code change required.
-
-#### C-02 — AC-05's tiebreak asserts `createdAt` ordering, but `createdAt` is read from the graph and its presence is assumed
-
-§4.3 breaks composite ties by "lowest `createdAt`, then lowest `id`," and §4.2's
-read `RETURN … a.createdAt AS createdAt`. Every node is documented to carry
-`createdAt` (CLAUDE.md schema section), so this is almost certainly safe — but the
-pure scorer's `ScoreActivity.createdAt: string` is non-nullable (§4.1), and the
-design does not say what happens if a node is missing `createdAt` (older seed data,
-a hand-created node). A `null`/`undefined` `createdAt` would make the tiebreak
-non-deterministic, undermining NFR-04.
-**Recommendation.** In §4.3, state the tiebreak falls back to `id` alone when
-`createdAt` is absent/equal (which it already does as the second key), and have the
-§4.2 read coalesce a missing `createdAt` to a stable sentinel — or assert in the
-scorer that `createdAt` is always present per the graph-core node contract. A
-one-line note closes it; can be handled in the tasks phase.
-
-#### C-03 — The mark write's model-scope check and the snapshot read span three separate reads, not one
-
-§4.5 `markActivity` performs: step 1 a model-scope check (`activityId ∈
-scopedNodeIds` + labelled `Activity`), step 2 `computeScores` (a full subgraph
-read), and step 3 the read-merge-write tx. That is at least three round-trips
-(scopedNodeIds internally is one query; computeScores is two; the write is one),
-and `scopedNodeIds` is effectively computed twice (once in step 1, once inside
-`computeScores → readModelSubgraph`). Correctness is fine and the resolved C-01
-already frames the cost as acceptable at `retail-mini` scale, but the redundant
-`scopedNodeIds` recomputation within a single mark is a small, avoidable
-inefficiency worth noting for the implementer.
-**Recommendation.** In §4.5, note that `computeScores` can return the scoped set
-(or the scope check can reuse the set computed by step 2) so `scopedNodeIds` is not
-run twice per mark. Optional; tasks-phase polish.
-
-### Nits
-
-- **N-01 — DD-06 cites cto-analytics FR-06 field names (`has_cycle`,
-  `truncation_reason`, `longest_partial`) as snake_case to contrast with this spec's
-  camelCase.** The contrast is fine and the divergence is justified (re-implementation
-  over a different subgraph, house camelCase convention), but the design does not
-  verify those cto-analytics field names actually ship that way — cto-analytics'
-  design→tasks never ran per CLAUDE.md ("views shipped off-spec"). Harmless: this
-  spec correctly owns its own camelCase wire shape regardless. No action.
-- **N-02 — §4.7 dispatch ordering.** The note "The `mark` literal never collides
-  with the bare `key-activities` path — different segment counts" is correct
-  (4-segment GET vs 5-segment mark/unmark under `models/:modelId/…`). Retaining the
-  specific-before-parameterized ordering per house convention is the right call.
-
-## Completeness / Traceability
-
-### FR → design coverage
-
-| FR | Design element | Status |
-|----|----------------|--------|
-| FR-01 model-scoped read | §4.2 `readModelSubgraph` consumes `scopedNodeIds` (verified signature `scopedNodeIds(driver, modelId): Promise<Set<string>>`, model-workspace-core design §4.2) | covered |
-| FR-02 centrality | §4.3 betweenness over directed `PRECEDES`, normalized, evidence (DD-03) | covered |
-| FR-03 critical-path | §4.3 bounded DFS, caps 20/1000/4 s, cycle + truncation surface | covered |
-| FR-04 handoff density | §4.3 disjoint role/system sets over de-duped `PRECEDES` neighbours | covered |
-| FR-05 composite rank | §4.3 Σ weighted, weights {1,1,1}, tie createdAt→id (DD-09) | covered (see C-02) |
-| FR-06 scores endpoint | §4.7, §5, §3.3 schema, §4.9 openapi | covered |
-| FR-07 mark | §4.5 `markActivity`, §5 | covered |
-| FR-08 unmark (reversible, idempotent) | §4.5 `unmarkActivity`, 204 no-op | covered |
-| FR-09 attr-preserving write | §4.5 bespoke read-merge-write; primitives untouched (verified nodes.ts patchNode replaces whole map, line 196) | covered |
-| FR-10 openapi + error code | §3.4 `activity_not_found` (verified new; `model_not_found` already at errors.ts:36), §4.9 | covered |
-| FR-11 RBAC + route perms | §4.8 `ROUTE_PERMISSIONS` (verified `P()` helper + array, rbac-permissions.ts:11/18) + seed-rbac-roles append | covered |
-| FR-12 KeyActivityBoard + 4 states | §4.10, §6, DD-10 (in-view sort) | **covered — B-01 resolved** |
-| FR-13 mark toggle + evidence panel | §4.10, §4.11, DD-10 (sort), C-02 resolution (retry) | **covered — B-01 resolved** |
-| FR-14 model-scope + reload survival | §4.10 keys fetch on `activeModel.id`; consumes `useActiveModel()` | covered |
-| NFR-01 isolation | §4.2 + DD-02 (verified: scopedNodeIds excludes shared System/Role/Location, model-workspace-core design §4.2:379-381) | covered |
-| NFR-02 no schema edit | §3, §4.5, DD-05 | covered |
-| NFR-03 reversibility | §4.5 byte-equal restore | covered |
-| NFR-04 deterministic/descriptive | §4.3 tiebreak, no suggestion field | covered (see C-02) |
-| NFR-05 bounded compute | §4.3 caps | covered |
-| NFR-06/07 house rules + tokens | §4.8 (auth via central gate only), §4.10, §6 | covered |
-
-### AC → test coverage (§8)
-
-| AC | Test artifact | Status |
-|----|---------------|--------|
-| AC-01..AC-05 | scores/centrality/critical-path/handoff integration + `key-activity-score.test.ts` unit | covered |
-| AC-06/07 | `key-activity-mark.integration.test.ts` | covered |
-| AC-08 | `scope-authz` + `openapi` integration (two-file split, N-03) | covered |
-| AC-09/10 | `key-activity-board.test.tsx` + `key-activity-detail.test.tsx` (in-view sort assertion added) | covered |
-| AC-11/12/13 | `key-activity-board-states.test.tsx` (error = `ErrorState` + sibling retry `Button`) | covered |
-| AC-14 | design-conformance CLI `--view` (verified flag exists) | covered |
-| AC-15 | manual keyboard walk — `aria-sort` now traces to the in-view sort owner (DD-10) | **covered — B-01 resolved** |
-| AC-16 | `key-activity-board-context.spec.ts` playwright | covered |
-| AC-17 | typecheck + `git diff` on `nodes.ts`/`edges.ts` schema arrays | covered |
-
-No FR is un-designed; no AC is un-tested. The pass-1 gap (sortable-table mechanism
-underpinning FR-12/FR-13/AC-15) is closed by DD-10.
-
-### Things done well
-
-- Every pass-1 finding is resolved with a **verifiable** mechanism, not hand-waving —
-  the in-view sort layer (DD-10) is the correct, catalog-preserving choice given the
-  verified static `DataTable`.
-- DD-02's model-scoping seam (bound the Activity set + intra-scope `PRECEDES`, read
-  shared Role/System **unfiltered**) is re-confirmed against model-workspace-core
-  design §4.2 (structural-ids-only, shared nodes excluded from the set) — a genuinely
-  correct resolution of requirements C-01, and the reason the unfiltered shared-node
-  read is not a scoping violation of NFR-01.
-- The self-loop/duplicate-edge safety (C-05) is now enforced at **both** the Cypher
-  read (`p.id <> q.id`, `DISTINCT`) and the pure scorer (defensive filter/de-dupe),
-  so the Neo4j-free unit tests hold the invariant independently.
-- Auth stays house-correct: three `ROUTE_PERMISSIONS` rows + a `business_architect`
-  permission-set append, enforced only by the central router gate — no per-route
-  check (NFR-06).
+Reviewed cold against `requirements.md` **revision 2** (FR-01…FR-14,
+NFR-01…NFR-07, AC-01…AC-17), `blueprint.md` (View Tree `:103`/`:114`, XD-02/03/06/11,
+UX-01…UX-06), `.claude/CLAUDE.md`, `.claude/specs/_baseline/`, the dependency
+specs (`model-workspace-core`, `story-spec-core`), and the **live codebase**.
+Every load-bearing file:line citation in the revision was checked on disk.
 
 ## Verdict
 
-**approve** — zero blockers. The pass-1 blocker B-01 is resolved (DD-10, in-view
-sort layer), and C-01…C-05 / N-01…N-03 are each folded in with verified mechanisms.
-Three residual low-severity concerns (a contingent permissive-schema claim, a
-`createdAt`-presence tiebreak assumption, a redundant `scopedNodeIds` recompute per
-mark) are recorded for the tasks phase but do not block. The design is ready to
-proceed to tasks.
+**approve** — zero blockers. Revision 4 is a faithful realignment of an
+already-executed design to requirements rev 2: every FR/NFR/AC traces to a
+design element, every as-built citation sampled is accurate, and the three
+declared conformance deltas (Δ1/Δ2/Δ3) are real — I independently confirmed
+each in the code. Three concerns are recorded for the tasks phase (chiefly
+OQ-A, which needs a user decision before Δ3 work starts); none invalidates
+the design as written.
+
+## Prior-review findings — re-verified in this revision
+
+| Prior finding (pre-rev-4 review) | Status |
+|----------------------------------|--------|
+| ~~C-01~~ unmark via `json<T>` would throw on 204 | **resolved as-built** — `pwa/src/api.ts` `keyActivities.unmark` rides raw `fetch` + `res.ok` (verified, block at `:387ff`); `json<T>` (`:49`) unmodified; §4.11/DD-07 document it and AC-10 mocks at fetch level with a real 204 `Response` |
+| ~~C-02~~ multi-journey-parent activity fans into duplicate rows | **resolved as-built** — journey aggregated in the read (`api/src/storage/key-activities.ts:87`, deterministic lowest-`j.id` pick `:97-100`); scorer de-dupes by id defensively (`key-activity-score.ts:187-193`); unit case named in §8 AC-05 |
+| ~~N-02~~ idempotent unmark still bumped `updatedAt` | **resolved as-built** — true no-op: `mutate` returns `null`, statement 2 skipped (`key-activities.ts:306-311`, `lockFirstMergeWrite:246`) |
+| ~~N-03~~ finding-ID genealogy sprawl | **resolved** — §2 keeps standing decisions only; genealogy archived to STATUS.md |
+
+## Blockers
+
+None.
+
+## Concerns
+
+- **C-01 — OQ-A is a live requirements-vs-approved-prior-design conflict that
+  the design cannot close on its own; it must be answered before any Δ3 work
+  executes.** The design correctly follows the approved requirements rev 2
+  (FR-12: catalog `DataTable` extended additively; "inventing a non-catalog
+  table is not an option") via DD-11, and correctly flags that the
+  user-approved prior design (DD-10) and the shipped
+  `KeyActivityBoard.tsx:271-340` inline `<table>` (verified on disk — the
+  sort headers are authored in-view) contradict it. Both artifacts carry user
+  approval, so the design's default (refactor the shipped view) is the right
+  *traceability* call but not automatically the right *product* call.
+  **Recommendation:** the orchestrator surfaces OQ-A to the user before
+  tasks-phase execution of the three Δ3 rows (`DataTable.tsx`,
+  `DataTable.module.css`, the `KeyActivityBoard` refactor). If the in-view
+  table is blessed instead, FR-12's catalog-gap clause gets a one-line
+  amendment and DD-11/Δ3 are struck — the two artifacts must not be left
+  contradicting each other either way. Tasks.md should gate the Δ3 tasks on
+  this decision explicitly.
+
+- **C-02 — DD-11's `getRowKey` prop as typed cannot recover the activity id;
+  §4.10's `getRowKey={row.id}` is not implementable against the declared
+  signature.** The new prop is
+  `getRowKey?: (row: Record<string, ReactNode>, i: number) => string`, but the
+  `rows` the view hands `DataTable` are cell-ReactNode records (rank/name
+  cells are formatted strings/buttons) — nothing in the declared shape
+  guarantees a raw `id` is present, and `Record<string, ReactNode>` values
+  are not `string`-typed. The design's own usage note ("passes …
+  `getRowKey={row.id}` down") reads as passing a value, not a function.
+  **Recommendation (tasks-phase, small):** pin the mechanism in the DD-11
+  prop contract — e.g. state that the view includes a non-column
+  `id: string` entry in each row record (legal: `string` is a `ReactNode`;
+  no `Column` with id `"id"` means it never renders) and passes
+  `getRowKey={(r) => String(r.id)}`, or generify `DataTable<Row extends
+  Record<string, ReactNode>>`. Otherwise the Δ3 refactor trips on exactly
+  this seam.
+
+- **C-03 — Δ2's fix statement interacts with the DFS's second coverage loop;
+  the fix must not regress cycle/coverage behavior.** §4.3 specs "only DFS
+  paths of ≥ 2 nodes contribute to `longestThrough`". In the as-built DFS
+  (`key-activity-score.ts:145-155`) the second loop re-roots from every node
+  with no `longestThrough` entry — after the fix, **isolated nodes never gain
+  an entry**, so that loop's guard no longer marks them visited (harmless
+  re-DFS cost, but worth knowing), and if the fix is implemented inside
+  `recordPath` it must not stop counting length-1 terminations against
+  `PATH_BUDGET` inconsistently between the two loops.
+  **Recommendation:** implement the fix as a guard in `recordPath` (`if
+  (path.length >= 2)` around the `best`/`longestThrough` updates only, leaving
+  `pathCount` semantics stated), and add the §8 AC-03 Δ2 unit case *plus* a
+  case with an isolated node **and** a cycle-only component in the same model
+  so the coverage loop is exercised post-fix.
+
+## Nits
+
+- **N-01** — FR-04's requirements text ("summed over all model-scoped
+  predecessors, plus the same over successors") literally counts a mutual
+  `a↔b` disjoint pair **twice** per side; the design (§4.4) and as-built code
+  (`key-activity-score.ts:239-244`, neighbor `Set`) count it **once**
+  (distinct-neighbor reading, pinned by a prior review). The design's reading
+  is the sensible one; fix the FR-04 wording opportunistically if
+  requirements are ever revised — do not change the code to match the letter.
+- **N-02** — `markActivity` runs the `getModel` gate twice per mark
+  (`gateScopedActivity:196` and again inside
+  `computeScores → readModelSubgraph:63`); the scoped set is threaded but the
+  model read is not. Harmless at single-model scale (NFR-05); an
+  `opts.skipGate` would remove it if the per-mark recompute is ever narrowed.
+- **N-03** — DD-05 cites `api/src/ontology/cache/attribute-zod.ts:57-72` for
+  the "unlisted keys pass" claim; those lines show `compileToZod`
+  (the mechanism), not an explicit permissiveness assertion. The claim itself
+  is correct (no `additionalProperties:false` in the compiled default) and is
+  pinned by the DD-04 import round-trip test, but the citation is indirect.
+- **N-04** — requirements FR-01 floats `api/src/storage/key-activity-scope.ts`
+  as a possible home; the design (rightly) consolidates into
+  `api/src/storage/key-activities.ts`. Covered by FR-01's "(…or the score
+  module directly)" hedge; no action, noted for grep-hygiene.
+
+## Traceability check
+
+| Check | Result |
+|-------|--------|
+| Every FR reaches design file-changes / a task | **pass** — see FR table below; every §7 row names its FR, no orphan file change |
+| Every AC is closed by a test artifact in §8 | **pass** — AC-01…AC-17 all mapped; AC-15 is `manual:` with input mode + observable outcomes; all cited test files exist on disk |
+| Routes/views match the blueprint View Tree verbatim | **pass** — `#/model/key-activities` → `KeyActivityBoard` (blueprint `:103`/`:114`); no route invented/renamed; no `route.ts`/`SURFACES` edit |
+| UX-* allowances covered (pwa/ work) | **pass** — UX-01 four states (§4.10); UX-02 tokens + catalog-first (DD-11 makes the table catalog-based); UX-03 n/a recorded with populated tables in requirements; UX-04 no new breakpoints; UX-05 `aria-sort` + keyboard map + reused Modal focus trap; UX-06 deep link + reload (FR-14/AC-16) |
+| XD-* cross-cutting decisions honoured | **pass** — XD-03 (attribute + evidence, no new label — DD-05, §9); XD-11 (descriptive only, no suggestion field — §3.3, NFR-04); XD-02 (Neo4j only, no new store — §3); XD-06 (model-scoped via `scopedNodeIds` — DD-02) |
+| No file ownership conflict with another spec | **pass** — `views/index.tsx` dispatch-swap only (the `stories` precedent); `seed-rbac-roles.ts` is a declared additive coordination hotspot; `DataTable.tsx` has no other spec claiming an edit; `route.ts`, `model-scope.ts`, `nodes.ts`, `json<T>` all listed Not-edited and verified untouched by this surface |
+
+### FR/NFR → design coverage (verified against code where as-built)
+
+| Req | Design element | Verified |
+|-----|----------------|----------|
+| FR-01 | §4.2 read; `getModel` gate first (`key-activities.ts:63`), `scopedNodeIds` consumed not re-implemented (`:64`) | ✓ on disk |
+| FR-02 | §4.3 betweenness via `buildGraphologyGraph` (`analytics/graph.ts:42-43`, engine call shape `:131`), normalize + all-zero guard, evidence | ✓ on disk (`key-activity-score.ts:209-227,266-269`) |
+| FR-03 | §4.3 DFS 20 nodes/1000/4 s (`:50-52`), `hasCycle`, truncation, ≥2-node chain rule; **Δ2 gap honestly declared** (`recordPath:96-102` records length-1 paths — confirmed) | ✓ delta confirmed |
+| FR-04 | §4.4 distinct-neighbor handoffs; **Δ1 gap honestly declared** (`disjoint():174-177` lacks non-empty guard — confirmed) | ✓ delta confirmed |
+| FR-05 | §4.3 composite, weights {1,1,1} (`DEFAULT_WEIGHTS:55`), tie `createdAt`→`id` with `"~"` sentinel (`:305-313`) | ✓ on disk |
+| FR-06 | §4.7/§5/§3.3/§4.9; empty model → 200 `rows:[]` (handler comment + storage gate) | ✓ on disk |
+| FR-07 | §4.5 `markActivity` — gate sequencing, server-computed snapshot (`:280-285`), lock-first write | ✓ on disk |
+| FR-08 | §4.5 `unmarkActivity` — 204, true no-op (`:306-311`) | ✓ on disk |
+| FR-09 | §4.5 bespoke lock-first read-merge-write; generic primitives untouched (`nodes.ts` patch/upsert semantics verified `:178-198`, `:243-252`) | ✓ on disk |
+| FR-10 | §3.4/§4.9 — `activity_not_found` only addition (`errors.ts:64`), `model_not_found` reused (`:37`), 3 OpenAPI paths (`openapi.ts:836-858`), reachability anchored in this spec's own test | ✓ on disk |
+| FR-11 | §4.8 — 3 `ROUTE_PERMISSIONS` rows (`rbac-permissions.ts:301-303`), `business_architect` grants (`seed-rbac-roles.ts:120-121`), central gate only, no public route | ✓ on disk |
+| FR-12 | §4.10/§6, DD-11 catalog `DataTable` extension; **Δ3 gap honestly declared** (`KeyActivityBoard.tsx:271-340` inline table, `DataTable.tsx` verified static `{columns, rows}`) | ✓ delta confirmed (C-01/C-02 apply) |
+| FR-13 | §4.10 toggle (optimistic, rollback-on-rejection) + evidence Modal; §4.11 client (unmark raw fetch, DD-07) | ✓ on disk |
+| FR-14 | §4.10 fetch keyed on `activeModel.id` (`useActiveModel` verified `ActiveModelContext.tsx:121`) | ✓ |
+| NFR-01 | DD-02 + §4.2 — scoped Activity set + intra-scope PRECEDES; shared Role/System unfiltered (matches `model-scope.ts:22-33` structural-ids-only Cypher) | ✓ |
+| NFR-02 | §3, DD-05, §7 Not-edited; AC-17 diff guard | ✓ |
+| NFR-03 | §4.5 siblings-as-of-unmark-time invariant (rev-2 wording adopted verbatim) | ✓ |
+| NFR-04 | deterministic tiebreak + traversal sort (`key-activity-score.ts:82`), no suggestion field (§3.3 + schema comment) | ✓ |
+| NFR-05 | §4.3 caps, §4.5 per-mark cost note, client-side sort no re-fetch | ✓ |
+| NFR-06 | central-gate auth (§4.8, route file carries no auth code — verified), zod-only, `/api/v1/`, en-US camelCase (DD-06), no tsc | ✓ |
+| NFR-07 | §6 tokens-only + AC-14 (`design-conformance.ts --view` flag verified `:125-127`) | ✓ |
+
+### AC → §8 test coverage
+
+| AC | Artifact | Status |
+|----|----------|--------|
+| AC-01…05 | scores/centrality/critical-path/handoff integration + Neo4j-free `key-activity-score.test.ts`; Δ1/Δ2 cases named per-file | covered — all files exist |
+| AC-06/07 | `key-activity-mark.integration.test.ts` (sibling preservation, true no-op, re-mark fresh snapshot) | covered |
+| AC-08 | two-file split (scope-authz + openapi) — both exist; `activity_not_found` enum + real-request assertion | covered |
+| AC-09/10 | board + detail component tests; Δ3 note retargets assertions to extended-`DataTable` markup; fetch-level 204 mock pinned | covered |
+| AC-11/12/13 | `key-activity-board-states.test.tsx` — empty keyed on `200 rows:[]`, error = `ErrorState` + sibling retry, truncation banner | covered |
+| AC-14 | design-conformance CLI on the view (+ tokens-only `DataTable` edit) | covered |
+| AC-15 | manual keyboard walk — input mode + observable outcomes stated | covered |
+| AC-16 | `pwa/playwright/key-activity-board-context.spec.ts` — exists | covered |
+| AC-17 | typecheck + schema-array `git diff` | covered |
+| DD-04/risk 7 | `key-activity-import.integration.test.ts` — exists; pins permissive-schema assumption | covered (extra, good) |
+
+## Summary
+
+- **Solid:** the revision does the hard, honest thing — instead of quietly
+  blessing the as-built code, it diffs it against requirements rev 2 and
+  declares exactly three conformance deltas, each of which I independently
+  confirmed in the source (Δ1 empty-set handoffs, Δ2 length-1 chains, Δ3
+  non-catalog table). Every sampled file:line citation is accurate, the
+  lock-first write and 404 gate sequencing match the dependency's own
+  patterns, and blueprint/XD/UX conformance is airtight.
+- **Common thread of the findings:** all three concerns sit at the Δ3 seam —
+  the one part of the design not yet in code. C-01 (OQ-A) decides *whether*
+  Δ3 happens; C-02 pins *how* its one new prop works; C-03 keeps Δ2's fix
+  from disturbing the DFS coverage loop.
+- **Do first:** surface OQ-A to the user (C-01) before cutting Δ3 tasks;
+  then bind C-02/C-03 as explicit task notes with the named unit cases.
+  Δ1/Δ2 are small, well-fixtured fixes and can proceed regardless of OQ-A.
+- Approved with the three concerns recorded for the tasks phase; no design
+  re-revision needed within the review cap.

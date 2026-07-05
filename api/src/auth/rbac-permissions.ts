@@ -31,6 +31,16 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   P("GET", "stats", "analytics:read"),
   P("GET", "analytics/graph", "analytics:read"),
 
+  // ── Performance dashboards ──
+  // kpi-okr-performance-dashboards (design §4.7) — SECURITY-CRITICAL:
+  // the router gate SKIPS the permission check when getRoutePermission
+  // returns null, so each new route lands with its entry in the SAME
+  // task as its dispatch (same-task pairing). Guarded by analytics:read,
+  // the same permission the analytics/graph read uses.
+  P("GET", "analytics/performance/kpis", "analytics:read"),
+  P("GET", "analytics/performance/okr", "analytics:read"),
+  P("GET", "analytics/performance/journeys", "analytics:read"),
+
   // ── Import / Export / Snapshot ──
   P("POST", "import", "data:write"),
   P("GET", "export", "export:read"),
@@ -87,6 +97,8 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   P("POST", "ontology/migrations", "ontology:write"),
   P("GET", "ontology/export", "ontology:read"),
   P("GET", "ontology/bounded-contexts", "ontology:read"),
+  P("GET", "ontology/shared-domains", "ontology:read"),
+  P("GET", "ontology/namespaces", "ontology:read"),
   P("POST", "ontology/rollback/:version_id", "ontology:write"),
   P("GET", "ontology/rdf", "ontology:read"),
   P("POST", "ontology/rdf", "ontology:write"),
@@ -289,6 +301,67 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   P("GET", "models/:modelId/stories/:storyId", "story:read"),
   P("PATCH", "models/:modelId/stories/:storyId", "story:write"),
   P("DELETE", "models/:modelId/stories/:storyId", "story:write"),
+  // ── Key activities (key-activity-optimizer T-09 / FR-11) ──
+  // Three rows, one per route (design §4.8) — specific-before-
+  // parameterized, BEFORE model-workspace-core's models/:id rows per
+  // the house convention (matchSegments rejects on segment count first,
+  // so the 3-/5-segment rows never collide with models/:id anyway).
+  // SECURITY-CRITICAL: every new route has a row — an unmapped route
+  // returns null from getRoutePermission and the router then SKIPS the
+  // RBAC check (silent open write). No route is public; auth stays in
+  // the central gate (NFR-06 — never a per-route check).
+  P("GET", "models/:modelId/key-activities", "key_activity:read"),
+  P("POST", "models/:modelId/key-activities/:activityId/mark", "key_activity:write"),
+  P("DELETE", "models/:modelId/key-activities/:activityId/mark", "key_activity:write"),
+  // ── Capabilities + system-model (ddd-system-modeling T-08 / FR-11) ──
+  // Thirteen rows, one per route (design §4.8) — ordering is house
+  // convention + forward-proofing (DD-10: matchSegments rejects on
+  // segment count first, so no same-length shadowing exists here).
+  // SECURITY-CRITICAL: every new route has a row — an unmapped route
+  // returns null from getRoutePermission and the router then SKIPS the
+  // RBAC check (silent open write). The three P("PUT",…) rows are the
+  // table's first PUT entries (DD-11 — rp.method is a plain string
+  // compare, no matcher change). No route is public; auth stays in the
+  // central gate (NFR-05 — never a per-route check).
+  P("GET", "models/:modelId/system-model/gaps", "capability:read"),
+  P("GET", "models/:modelId/system-model/context-map", "capability:read"),
+  P("GET", "models/:modelId/capabilities", "capability:read"),
+  P("POST", "models/:modelId/capabilities", "capability:write"),
+  P("PUT", "models/:modelId/capabilities/:capabilityId/needed-by", "capability:write"),
+  P("DELETE", "models/:modelId/capabilities/:capabilityId/needed-by", "capability:write"),
+  P("PUT", "models/:modelId/capabilities/:capabilityId/supported-by", "capability:write"),
+  P("DELETE", "models/:modelId/capabilities/:capabilityId/supported-by/:systemId", "capability:write"),
+  P("PUT", "models/:modelId/capabilities/:capabilityId/context", "capability:write"),
+  P("DELETE", "models/:modelId/capabilities/:capabilityId/context", "capability:write"),
+  P("GET", "models/:modelId/capabilities/:capabilityId", "capability:read"),
+  P("PATCH", "models/:modelId/capabilities/:capabilityId", "capability:write"),
+  P("DELETE", "models/:modelId/capabilities/:capabilityId", "capability:write"),
+  // ── Spec export (requirements-export T-05b / FR-07) ──
+  // One read-only route, specific-before-parameterized, BEFORE
+  // model-workspace-core's models/:id rows. SECURITY-CRITICAL: an
+  // unmapped route returns null → router SKIPS the RBAC check (silent
+  // open read). No route is public; auth stays in the central gate.
+  P("GET", "models/:modelId/spec-export", "spec_export:read"),
+  // ── Authoring (business-model-authoring T-12 / FR-14) ──
+  // Three rows for the DD-06 route set. The PATCH domain row is a
+  // sibling of mwc's models/:id/domains POST row (same model:write).
+  // SECURITY-CRITICAL: an unmapped route returns null → router SKIPS
+  // the RBAC check (silent open write). No route is public.
+  P("POST", "models/:modelId/authoring/apply", "model:write"),
+  P("GET", "models/:modelId/authoring/graph", "model:read"),
+  P("PATCH", "models/:id/domains/:domainId", "model:write"),
+  // ── KPI impact mapping (kpi-impact-mapping T-07 / FR-11) ──
+  // Eight rows, specific-before-parameterized, BEFORE model-workspace-core's
+  // models/:id rows. SECURITY-CRITICAL: an unmapped route returns null →
+  // router SKIPS the RBAC check (silent open write). No route is public.
+  P("GET", "models/:modelId/kpi-impact/matrix", "kpi_impact:read"),
+  P("GET", "models/:modelId/kpi-impact/rollup", "kpi_impact:read"),
+  P("GET", "models/:modelId/kpi-impact/activity-links", "kpi_impact:read"),
+  P("POST", "models/:modelId/kpi-impact/activity-links", "kpi_impact:write"),
+  P("DELETE", "models/:modelId/kpi-impact/activity-links/:linkId", "kpi_impact:write"),
+  P("GET", "models/:modelId/kpi-impact/story-links", "kpi_impact:read"),
+  P("POST", "models/:modelId/kpi-impact/story-links", "kpi_impact:write"),
+  P("DELETE", "models/:modelId/kpi-impact/story-links/:linkId", "kpi_impact:write"),
   P("GET", "models/:id", "model:read"),
   P("PATCH", "models/:id", "model:write"),
   P("DELETE", "models/:id", "model:write"),

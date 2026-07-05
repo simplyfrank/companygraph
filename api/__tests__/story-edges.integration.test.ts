@@ -3,6 +3,7 @@ import { EDGE_ENDPOINTS, EDGE_TYPES } from "@companygraph/shared/schema/edges";
 import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 import { registerStorySchema } from "../src/scripts/register-story-labels";
 import { api, createNode, newCleanup, runCleanup } from "./helpers/model-fixtures";
+import { ensureStorySchema } from "./helpers/story-fixtures";
 
 // story-spec-core T-02 / AC-02 — the three story edge types register
 // via createEdgeType with their _OntologyEdgeEndpoint pairs; the
@@ -21,6 +22,7 @@ interface ErrRes {
 
 describe("integration: story-spec-core AC-02 edge-type registration", () => {
   beforeAll(async () => {
+    await ensureStorySchema();
     await registerStorySchema(getDriver());
     // Plain unattached nodes are enough to exercise the endpoint
     // whitelist — no model scoping involved at the edge-validator level.

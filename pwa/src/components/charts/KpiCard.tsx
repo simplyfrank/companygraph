@@ -4,7 +4,7 @@ import styles from "./KpiCard.module.css";
 interface KpiCardProps {
   label: string;
   value: string | number;
-  caption?: string;
+  caption?: string | undefined;
   tone?: "good" | "warn" | "danger" | "neutral";
   delta?: {
     direction: "up" | "down" | "flat";

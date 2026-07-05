@@ -28,10 +28,17 @@
 //   Pass 7 — crossDomainEntityRelationships: creates relationships between
 //            entities across different domains.
 //
+//   Pass 8 — sharedDomains: creates/updates SharedDomain nodes with tags
+//            and links bounded contexts via BELONGS_TO_SHARED_DOMAIN.
+//
+//   Pass 9 — namespaces: creates/updates Namespace nodes scoped to a
+//            BusinessModel via NAMESPACE_OF and links bounded contexts
+//            via IN_NAMESPACE.
+//
 // One `ontologyEvents.emit("ontology.changed", …)` fires after the full
 // import if any entry was accepted, so caches invalidate exactly once.
 //
-// Response: 200 `{ accepted: { nodeLabels, edgeTypes, boundedContexts, entities, boundedContextRelationships, domains, crossDomainEntityRelationships }, errors? }`.
+// Response: 200 `{ accepted: { nodeLabels, edgeTypes, boundedContexts, entities, boundedContextRelationships, domains, crossDomainEntityRelationships, sharedDomains, namespaces }, errors? }`.
 // A partial import (some errors) still returns 200 — the `errors[]`
 // array communicates the per-entry failures.
 
@@ -40,7 +47,7 @@ import { createNodeLabel } from "../ontology/storage/node-labels";
 import { createEdgeType } from "../ontology/storage/edge-types";
 import { ontologyEvents } from "../ontology/events";
 import { generateId } from "../ids";
-import { ontologyImportSchema, sanitizeLabelName, type BoundedContextCreate, type EntityCreate, type BoundedContextRelationship, type DomainCreate, type CrossDomainEntityRelationship } from "@companygraph/shared/schema/ontology";
+import { ontologyImportSchema, sanitizeLabelName, type BoundedContextCreate, type EntityCreate, type BoundedContextRelationship, type DomainCreate, type CrossDomainEntityRelationship, type SharedDomainCreate, type NamespaceCreate } from "@companygraph/shared/schema/ontology";
 import type { OntologyImportResponse, NodeLabelCreate, EdgeTypeCreate } from "@companygraph/shared/schema/ontology";
 import { ok, readJson } from "./_helpers";
 import { ValidationError } from "../errors";
@@ -68,6 +75,8 @@ export async function handleOntologyImport(req: Request): Promise<Response> {
   let acceptedBoundedContextRelationships = 0;
   let acceptedDomains = 0;
   let acceptedCrossDomainEntityRelationships = 0;
+  let acceptedSharedDomains = 0;
+  let acceptedNamespaces = 0;
 
   // Pass 1 — node labels.
   for (const [index, entry] of (payload.nodeLabels ?? []).entries()) {
@@ -366,10 +375,87 @@ export async function handleOntologyImport(req: Request): Promise<Response> {
     }
   }
 
+  // Pass 8 — shared domains.
+  for (const [index, entry] of (payload.sharedDomains ?? []).entries()) {
+    try {
+      await session.run(`
+        MERGE (sd:SharedDomain {id: $id})
+        SET sd.name = $name,
+            sd.description = $description,
+            sd.tags = $tags
+        RETURN sd
+      `, {
+        id: entry.id,
+        name: entry.name,
+        description: entry.description,
+        tags: entry.tags,
+      });
+      // Link bounded contexts to this shared domain
+      for (const bcName of entry.bounded_contexts) {
+        await session.run(`
+          MATCH (sd:SharedDomain {id: $sdId})
+          MATCH (bc:BoundedContext {name: $bcName})
+          MERGE (bc)-[:BELONGS_TO_SHARED_DOMAIN]->(sd)
+        `, {
+          sdId: entry.id,
+          bcName,
+        });
+      }
+      acceptedSharedDomains++;
+    } catch (e) {
+      const code = "internal_error";
+      const message = String(e);
+      errors.push({ section: "sharedDomains", index, code, message });
+    }
+  }
+
+  // Pass 9 — namespaces.
+  for (const [index, entry] of (payload.namespaces ?? []).entries()) {
+    try {
+      await session.run(`
+        MERGE (ns:Namespace {id: $id})
+        SET ns.name = $name,
+            ns.description = $description,
+            ns.model_id = $model_id
+        RETURN ns
+      `, {
+        id: entry.id,
+        name: entry.name,
+        description: entry.description,
+        model_id: entry.model_id,
+      });
+      // Link namespace to BusinessModel if it exists
+      await session.run(`
+        MATCH (ns:Namespace {id: $nsId})
+        MATCH (m:BusinessModel {id: $modelId})
+        MERGE (ns)-[:NAMESPACE_OF]->(m)
+      `, {
+        nsId: entry.id,
+        modelId: entry.model_id,
+      });
+      // Link bounded contexts to this namespace
+      for (const bcName of entry.bounded_contexts) {
+        await session.run(`
+          MATCH (ns:Namespace {id: $nsId})
+          MATCH (bc:BoundedContext {name: $bcName})
+          MERGE (bc)-[:IN_NAMESPACE]->(ns)
+        `, {
+          nsId: entry.id,
+          bcName,
+        });
+      }
+      acceptedNamespaces++;
+    } catch (e) {
+      const code = "internal_error";
+      const message = String(e);
+      errors.push({ section: "namespaces", index, code, message });
+    }
+  }
+
   await session.close();
 
   // Single cache-invalidation emit if anything was accepted.
-  if (acceptedNodeLabels + acceptedEdgeTypes + acceptedBoundedContexts + acceptedEntities + acceptedBoundedContextRelationships + acceptedDomains + acceptedCrossDomainEntityRelationships > 0) {
+  if (acceptedNodeLabels + acceptedEdgeTypes + acceptedBoundedContexts + acceptedEntities + acceptedBoundedContextRelationships + acceptedDomains + acceptedCrossDomainEntityRelationships + acceptedSharedDomains + acceptedNamespaces > 0) {
     ontologyEvents.emit("ontology.changed", {
       event_id: generateId(),
       version_id: generateId(),
@@ -387,6 +473,8 @@ export async function handleOntologyImport(req: Request): Promise<Response> {
       boundedContextRelationships: acceptedBoundedContextRelationships,
       domains: acceptedDomains,
       crossDomainEntityRelationships: acceptedCrossDomainEntityRelationships,
+      sharedDomains: acceptedSharedDomains,
+      namespaces: acceptedNamespaces,
     },
     ...(errors.length > 0 ? { errors } : {}),
   };

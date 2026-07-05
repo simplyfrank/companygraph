@@ -113,6 +113,31 @@ const RBAC_ROLES = [
       // it does not create it.
       "story:read",
       "story:write",
+      // key-activity-optimizer T-09 (design §4.8, FR-11): the Business
+      // Architect reads the key-activity ranking and marks/unmarks key
+      // activities. This spec MODIFIES the role model-workspace-core
+      // created (idempotent MERGE by name); it does not create it.
+      "key_activity:read",
+      "key_activity:write",
+      // ddd-system-modeling T-08 (design §4.8, FR-11): the Business
+      // Architect authors the capability layer + reads the
+      // system-model analyses. This spec MODIFIES the role
+      // model-workspace-core created (idempotent MERGE by name); it
+      // does not create it.
+      "capability:read",
+      "capability:write",
+      // requirements-export T-05c (FR-07): the Business Architect reads
+      // the assembled spec export. Read-only — no write route. This spec
+      // MODIFIES the role model-workspace-core created (idempotent MERGE
+      // by name); it does not create it.
+      "spec_export:read",
+      "ontology:read",
+      // kpi-impact-mapping T-07 (design §4.8, FR-11): the Business
+      // Architect reads the impact matrix/roll-up and writes activity/story
+      // impact links. This spec MODIFIES the role model-workspace-core
+      // created (idempotent MERGE by name); it does not create it.
+      "kpi_impact:read",
+      "kpi_impact:write",
     ],
   },
 ];

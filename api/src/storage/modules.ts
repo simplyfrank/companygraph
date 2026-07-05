@@ -22,7 +22,7 @@ import type {
   ModuleRead,
 } from "@companygraph/shared/schema/model-workspace";
 import { generateId } from "../ids";
-import { ValidationError } from "../errors";
+import { ValidationError, isConstraintViolation } from "../errors";
 
 // ---------------------------------------------------------------------------
 // Canonical serialization + checksum (design §3.3, resolves C-04/N-05/N-08)
@@ -761,14 +761,31 @@ export interface ForkResult {
 // (§3.4, B-02) — so synthetic handles keep resolving after the fork and
 // the subtree is anchored to THIS instance. Already-forked → no-op,
 // map read back via the `STARTS WITH "<instanceId>::"` prefix.
+//
+// T-24 (design-review C-13; rewritten per tasks-review B-01): the fork
+// check-and-materialize runs as lock-first-then-recheck inside a single
+// write transaction. The first statement acquires the ModuleInstance
+// node's write lock via a dummy `SET i._forkLock = timestamp()` BEFORE
+// reading `i.forked` — under read-committed isolation, the losing racer
+// blocks on the lock, then re-reads the committed `forked = true`, is
+// filtered out, and returns `won = 0` → takes the already-forked
+// read-back path. `_forkLock` is a lock-acquisition dummy write, never
+// projected at the REST boundary; it is removed as the transaction's
+// final statement so no scratch property persists.
+//
+// Belt-and-suspenders: the `forkLocalKey` uniqueness constraints (T-24
+// part 2, bootstrap.ts) make a duplicate materialization fail
+// deterministically with `ConstraintValidationFailed` even if a future
+// edit reintroduces a gate bug — caught and routed to the read-back path.
 export async function forkInstance(driver: Driver, instanceId: string): Promise<ForkResult> {
   const row = await readInstanceRow(driver, instanceId);
   const prefix = `${instanceId}::`;
 
-  if (row.forked) {
-    const session = driver.session({ defaultAccessMode: "READ" });
+  // Helper: read back the fork map via STARTS WITH prefix.
+  async function readBackForkMap(): Promise<Map<string, string>> {
+    const rSession = driver.session({ defaultAccessMode: "READ" });
     try {
-      const result = await session.run(
+      const result = await rSession.run(
         `MATCH (n) WHERE n.forkLocalKey STARTS WITH $prefix
          RETURN n.forkLocalKey AS flk, n.id AS id`,
         { prefix },
@@ -777,106 +794,168 @@ export async function forkInstance(driver: Driver, instanceId: string): Promise<
       for (const rec of result.records) {
         map.set((rec.get("flk") as string).slice(prefix.length), rec.get("id") as string);
       }
-      return { alreadyForked: true, map };
+      return map;
     } finally {
-      await session.close();
+      await rSession.close();
     }
   }
 
+  // Optimization: if already forked on the initial read, skip the write
+  // transaction entirely. The race only happens when two concurrent
+  // calls both see forked = false — the lock-first-then-recheck gate
+  // below handles that.
+  if (row.forked) {
+    return { alreadyForked: true, map: await readBackForkMap() };
+  }
+
   const snapshot = JSON.parse(row.snapshotJson) as Snapshot;
-  const map = new Map<string, string>();
-  map.set("journey", generateId());
-  for (const a of snapshot.activities) map.set(a.localKey, generateId());
 
   const session = driver.session();
   try {
-    await session.executeWrite(async (tx) => {
-      const now = new Date().toISOString();
-      // Journey → PART_OF → targetDomain.
-      await tx.run(
-        `MATCH (d:Domain {id: $domainId})
-         CREATE (j:UserJourney {
-           id: $id, name: $name, description: $description,
-           createdAt: $now, updatedAt: $now, attributes_json: $attrs,
-           forkLocalKey: $flk
-         })
-         CREATE (j)-[:PART_OF {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(d)`,
-        {
-          domainId: row.targetDomainId,
-          id: map.get("journey")!,
-          name: snapshot.journey.name,
-          description: snapshot.journey.description,
-          attrs: JSON.stringify(snapshot.journey.attributes ?? {}),
-          flk: `${prefix}journey`,
-          now,
-          edgeId: generateId(),
-        },
-      );
-      // Activities → PART_OF → journey.
-      for (const a of snapshot.activities) {
+    try {
+      const result = await session.executeWrite(async (tx) => {
+        const now = new Date().toISOString();
+
+        // T-24: Lock-first-then-recheck gate. The dummy SET acquires the
+        // write lock before the forked read; the losing racer blocks
+        // here, then re-reads committed forked = true → filtered out.
+        const gate = await tx.run(
+          `MATCH (i:ModuleInstance {id: $instanceId})
+           SET i._forkLock = timestamp()
+           WITH i
+           WHERE i.forked = false
+           SET i.forked = true, i.updatedAt = $now
+           RETURN count(i) AS won`,
+          { instanceId, now },
+        );
+        const won = (gate.records[0]?.get("won") as number) ?? 0;
+
+        if (won === 0) {
+          // Lost the race — read back the winner's fork map.
+          const forkNodes = await tx.run(
+            `MATCH (n) WHERE n.forkLocalKey STARTS WITH $prefix
+             RETURN n.forkLocalKey AS flk, n.id AS id`,
+            { prefix },
+          );
+          const map = new Map<string, string>();
+          for (const rec of forkNodes.records) {
+            map.set((rec.get("flk") as string).slice(prefix.length), rec.get("id") as string);
+          }
+          // Clean up the lock scratch property.
+          await tx.run(
+            `MATCH (i:ModuleInstance {id: $instanceId}) REMOVE i._forkLock`,
+            { instanceId },
+          );
+          return { alreadyForked: true, map };
+        }
+
+        // Won the race — materialize the subtree.
+        const map = new Map<string, string>();
+        map.set("journey", generateId());
+        for (const a of snapshot.activities) map.set(a.localKey, generateId());
+
+        // Journey → PART_OF → targetDomain.
         await tx.run(
-          `MATCH (j:UserJourney {id: $journeyId})
-           CREATE (n:Activity {
+          `MATCH (d:Domain {id: $domainId})
+           CREATE (j:UserJourney {
              id: $id, name: $name, description: $description,
              createdAt: $now, updatedAt: $now, attributes_json: $attrs,
              forkLocalKey: $flk
            })
-           CREATE (n)-[:PART_OF {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(j)`,
+           CREATE (j)-[:PART_OF {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(d)`,
           {
-            journeyId: map.get("journey")!,
-            id: map.get(a.localKey)!,
-            name: a.name,
-            description: a.description,
-            attrs: JSON.stringify(a.attributes ?? {}),
-            flk: `${prefix}${a.localKey}`,
+            domainId: row.targetDomainId,
+            id: map.get("journey")!,
+            name: snapshot.journey.name,
+            description: snapshot.journey.description,
+            attrs: JSON.stringify(snapshot.journey.attributes ?? {}),
+            flk: `${prefix}journey`,
             now,
             edgeId: generateId(),
           },
         );
-      }
-      // Intra-subtree PRECEDES.
-      for (const p of snapshot.precedes) {
+        // Activities → PART_OF → journey.
+        for (const a of snapshot.activities) {
+          await tx.run(
+            `MATCH (j:UserJourney {id: $journeyId})
+             CREATE (n:Activity {
+               id: $id, name: $name, description: $description,
+               createdAt: $now, updatedAt: $now, attributes_json: $attrs,
+               forkLocalKey: $flk
+             })
+             CREATE (n)-[:PART_OF {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(j)`,
+            {
+              journeyId: map.get("journey")!,
+              id: map.get(a.localKey)!,
+              name: a.name,
+              description: a.description,
+              attrs: JSON.stringify(a.attributes ?? {}),
+              flk: `${prefix}${a.localKey}`,
+              now,
+              edgeId: generateId(),
+            },
+          );
+        }
+        // Intra-subtree PRECEDES.
+        for (const p of snapshot.precedes) {
+          await tx.run(
+            `MATCH (a:Activity {id: $fromId}), (b:Activity {id: $toId})
+             CREATE (a)-[:PRECEDES {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(b)`,
+            { fromId: map.get(p.from)!, toId: map.get(p.to)!, edgeId: generateId(), now },
+          );
+        }
+        // Re-link to SHARED Role/System/Location ids (DEC-01 (a) — no
+        // copy). A missing shared node simply matches nothing.
+        for (const r of snapshot.roleRefs) {
+          await tx.run(
+            `MATCH (role:Role {id: $roleId}), (a:Activity {id: $activityId})
+             CREATE (role)-[:EXECUTES {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(a)`,
+            { roleId: r.roleId, activityId: map.get(r.activityKey)!, edgeId: generateId(), now },
+          );
+        }
+        for (const r of snapshot.systemRefs) {
+          await tx.run(
+            `MATCH (a:Activity {id: $activityId}), (sys:System {id: $systemId})
+             CREATE (a)-[:USES_SYSTEM {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(sys)`,
+            { systemId: r.systemId, activityId: map.get(r.activityKey)!, edgeId: generateId(), now },
+          );
+        }
+        for (const r of snapshot.locationRefs) {
+          await tx.run(
+            `MATCH (a:Activity {id: $activityId}), (loc:Location {id: $locationId})
+             CREATE (a)-[:AT_LOCATION {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(loc)`,
+            { locationId: r.locationId, activityId: map.get(r.activityKey)!, edgeId: generateId(), now },
+          );
+        }
+        // FORKED_FROM → the pinned version (forked was already set by
+        // the gate statement above).
         await tx.run(
-          `MATCH (a:Activity {id: $fromId}), (b:Activity {id: $toId})
-           CREATE (a)-[:PRECEDES {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(b)`,
-          { fromId: map.get(p.from)!, toId: map.get(p.to)!, edgeId: generateId(), now },
+          `MATCH (mi:ModuleInstance {id: $instanceId})-[:INSTANTIATES]->(v:BusinessModuleVersion)
+           CREATE (mi)-[:FORKED_FROM {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(v)`,
+          { instanceId, now, edgeId: generateId() },
         );
-      }
-      // Re-link to SHARED Role/System/Location ids (DEC-01 (a) — no
-      // copy). A missing shared node simply matches nothing.
-      for (const r of snapshot.roleRefs) {
+
+        // Clean up the lock scratch property.
         await tx.run(
-          `MATCH (role:Role {id: $roleId}), (a:Activity {id: $activityId})
-           CREATE (role)-[:EXECUTES {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(a)`,
-          { roleId: r.roleId, activityId: map.get(r.activityKey)!, edgeId: generateId(), now },
+          `MATCH (i:ModuleInstance {id: $instanceId}) REMOVE i._forkLock`,
+          { instanceId },
         );
+
+        return { alreadyForked: false, map };
+      });
+      return result;
+    } catch (e) {
+      // T-24 belt-and-suspenders: if the uniqueness constraint on
+      // forkLocalKey catches a duplicate (gate bug or otherwise),
+      // route to the already-forked read-back path.
+      if (isConstraintViolation(e)) {
+        return { alreadyForked: true, map: await readBackForkMap() };
       }
-      for (const r of snapshot.systemRefs) {
-        await tx.run(
-          `MATCH (a:Activity {id: $activityId}), (sys:System {id: $systemId})
-           CREATE (a)-[:USES_SYSTEM {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(sys)`,
-          { systemId: r.systemId, activityId: map.get(r.activityKey)!, edgeId: generateId(), now },
-        );
-      }
-      for (const r of snapshot.locationRefs) {
-        await tx.run(
-          `MATCH (a:Activity {id: $activityId}), (loc:Location {id: $locationId})
-           CREATE (a)-[:AT_LOCATION {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(loc)`,
-          { locationId: r.locationId, activityId: map.get(r.activityKey)!, edgeId: generateId(), now },
-        );
-      }
-      // Flip the pin: forked=true + FORKED_FROM → the pinned version.
-      await tx.run(
-        `MATCH (mi:ModuleInstance {id: $instanceId})-[:INSTANTIATES]->(v:BusinessModuleVersion)
-         SET mi.forked = true, mi.updatedAt = $now
-         CREATE (mi)-[:FORKED_FROM {id: $edgeId, createdAt: $now, attributes_json: "{}"}]->(v)`,
-        { instanceId, now, edgeId: generateId() },
-      );
-    });
+      throw e;
+    }
   } finally {
     await session.close();
   }
-  return { alreadyForked: false, map };
 }
 
 // ---------------------------------------------------------------------------

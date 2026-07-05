@@ -349,6 +349,33 @@ export const crossDomainEntityRelationshipSchema = z.object({
 });
 export type CrossDomainEntityRelationship = z.infer<typeof crossDomainEntityRelationshipSchema>;
 
+// Shared domain schema — reusable workflow components not scoped to a
+// single BusinessModel.  Bounded contexts can reference shared domains
+// via BELONGS_TO_SHARED_DOMAIN; models can use them via USES_SHARED_DOMAIN.
+export const sharedDomainSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  // Bounded context names that belong to this shared domain
+  bounded_contexts: z.array(z.string()).default([]),
+  // Tags for categorising the shared domain (e.g. "workflow", "reference-data")
+  tags: z.array(z.string()).default([]),
+});
+export type SharedDomainCreate = z.infer<typeof sharedDomainSchema>;
+
+// Namespace schema — business model specific work separation.
+// Namespaces partition work within a single BusinessModel so different
+// teams or individuals can work independently without naming conflicts.
+export const namespaceSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  model_id: z.string().uuid(), // BusinessModel this namespace belongs to
+  // Bounded context names scoped to this namespace
+  bounded_contexts: z.array(z.string()).default([]),
+});
+export type NamespaceCreate = z.infer<typeof namespaceSchema>;
+
 export const ontologyImportSchema = z.object({
   nodeLabels: z.array(nodeLabelCreateSchema).optional(),
   edgeTypes: z.array(edgeTypeCreateSchema).optional(),
@@ -357,6 +384,8 @@ export const ontologyImportSchema = z.object({
   boundedContextRelationships: z.array(boundedContextRelationshipSchema).optional(),
   domains: z.array(domainSchema).optional(),
   crossDomainEntityRelationships: z.array(crossDomainEntityRelationshipSchema).optional(),
+  sharedDomains: z.array(sharedDomainSchema).optional(),
+  namespaces: z.array(namespaceSchema).optional(),
 });
 export type OntologyImportPayload = z.infer<typeof ontologyImportSchema>;
 
@@ -370,11 +399,13 @@ export const ontologyImportResponseSchema = z.object({
     boundedContextRelationships: z.number().int().nonnegative(),
     domains: z.number().int().nonnegative(),
     crossDomainEntityRelationships: z.number().int().nonnegative(),
+    sharedDomains: z.number().int().nonnegative(),
+    namespaces: z.number().int().nonnegative(),
   }),
   errors: z
     .array(
       z.object({
-        section: z.enum(["nodeLabels", "edgeTypes", "boundedContexts", "entities", "boundedContextRelationships", "domains", "crossDomainEntityRelationships"]),
+        section: z.enum(["nodeLabels", "edgeTypes", "boundedContexts", "entities", "boundedContextRelationships", "domains", "crossDomainEntityRelationships", "sharedDomains", "namespaces"]),
         index: z.number().int().nonnegative(),
         code: z.string(),
         message: z.string(),

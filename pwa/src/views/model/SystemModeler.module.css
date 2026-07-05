@@ -1,0 +1,256 @@
+/* ddd-system-modeling T-13 (NFR-06, UX-02) — tokens-only: every value
+   is a var(--…) declared in pwa/src/styles/companygraph/tokens.css. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.emptyLede {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+}
+
+.emptyNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-body-size);
+}
+
+.actionError {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: var(--type-body-size);
+}
+
+.errorWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-body-size);
+}
+
+.table th,
+.table td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  color: var(--fg);
+}
+
+.num {
+  text-align: right;
+}
+
+.rowButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: var(--type-body-size);
+  cursor: pointer;
+  text-align: left;
+}
+
+.rowButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pillRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.gapGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+}
+
+.gapHead {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.gapList {
+  margin: 0;
+  padding-left: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--type-body-size);
+}
+
+.gapList a,
+.storyLinks a {
+  color: var(--accent);
+}
+
+.storyLinks {
+  color: var(--muted);
+}
+
+.mixSummary {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
+.contextGroup {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.contextGroup:last-child {
+  border-bottom: none;
+}
+
+.contextMeta {
+  margin-left: var(--space-sm);
+  color: var(--muted);
+  font-weight: 400;
+  font-size: var(--type-lede-size);
+}
+
+.relRow {
+  margin: var(--space-xs) 0 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.relLink {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--accent);
+  font-size: var(--type-lede-size);
+  cursor: pointer;
+}
+
+.relLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.detailDescription {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-body-size);
+}
+
+.secTitle {
+  margin: var(--space-sm) 0 0 0;
+  font-size: var(--type-body-size);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.mappingList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--type-body-size);
+}
+
+.mappingList li,
+.mappingList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.mappingList a {
+  color: var(--accent);
+}
+
+.kindTag {
+  color: var(--muted);
+  font-size: var(--type-lede-size);
+}
+
+/* DD-13 — token-styled detached indicator span */
+.detached {
+  color: var(--danger-text);
+  border: 1px solid var(--danger-text);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-xs);
+  font-size: var(--type-lede-size);
+  text-transform: uppercase;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  color: var(--muted);
+  font-size: var(--type-lede-size);
+}
+
+.field input,
+.field select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--fg);
+  font-size: var(--type-body-size);
+}
+
+.field input:focus-visible,
+.field select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.dangerRow {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}

@@ -2,13 +2,35 @@
 feature: "story-spec-core"
 created: "2026-07-04"
 author: "spec-author"
-status: "revised"
-revision: 3
+status: "approved"
+revision: 4
 reviewing_requirements_revision: 3
 reviewing_design_revision: 3
 size: "large"
-total_tasks: 17
+total_tasks: 18
 ---
+
+<!-- rev 4 (2026-07-05): finalizes the phase on review-tasks.md pass 2/2
+     (verdict: approve, 0 blockers) and reconciles the artifact with the
+     executed state (T-01…T-17 done; STATUS.md deviations D-8…D-13).
+     Disposition of the pass-2 recorded findings:
+     C-09 → landed in execution (all nine story integration files title their
+       describe `integration: …`); the convention is now stated in the reading
+       guide so the next author does not rely on copying a neighbor.
+     N-05 → landed (story-xd18-role-path deletes ONELOGIN_ISSUER in afterAll —
+       STATUS D-13). N-06 → landed (T-17 reads the permission array off the
+       seeded (:RBACRole {name:"business_architect"}) node, not a hard-coded
+       list). N-07 → fixed here (T-11's Files list gains its test file, the
+       T-10/T-15/T-16 bookkeeping convention).
+     C-08 → NOT landed in execution: the three pwa story component tests
+       (AC-10…AC-14's artifacts) run under vitest and no CI job executes them.
+       New task T-18 (the sole open task) wires them into the ci.yml per-file
+       vitest gate. Deliberately a separate task rather than the review's
+       suggested T-15 amendment: T-15 executed without touching ci.yml, and
+       retro-adding a file to a completed task's Files row would make
+       /spec audit flag false drift. Reading guide + validation checkpoints
+       now state the vitest/Playwright runner split (C-08a).
+     No IDs renumbered; no executed task altered behaviorally. -->
 
 <!-- rev 3 (2026-07-04): addresses review-tasks.md pass 1 (against rev 2).
      B-01 → T-17 transport rewritten to in-process `route()` dispatch with
@@ -55,8 +77,17 @@ total_tasks: 17
   gets its own invocation (`--view` checks only the single file passed —
   design §4.10, task-review N-02).
 - Integration tests (`*.integration.test.ts`) need Neo4j
-  (`bun test:integration` after `bun run dev`); unit/component tests run under
-  `bun test`.
+  (`bun test:integration` after `bun run dev`); `api/`/`shared/` unit tests run
+  under `bun test`. **pwa component tests run under vitest, not `bun test`**
+  (task-review C-08a): `bunx vitest run src/__tests__/<file>` with cwd `pwa/`;
+  Playwright specs run via `bunx playwright test <file>` from `pwa/`.
+- **Integration-suite naming (task-review C-09):** every integration test's
+  `describe` must be titled `integration: …` — suite selection is name-based
+  (`scripts/test-integration.sh` runs `bun test --test-name-pattern
+  '^integration:'`, and `scripts/test-unit.sh` excludes
+  `*.integration.test.ts` at the file level), so a misnamed describe runs in
+  **neither** suite and is silently green everywhere. (Executed: all nine
+  story integration files carry the prefix.)
 - **Deferred first-run gate (task-review C-06):** the T-05/T-06/T-07
   integration tests (`story-crud`, `acceptance-criteria-crud`,
   `story-bootstrap`) are route-level — they assert HTTP verbs, paths, and
@@ -539,8 +570,10 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
 
 ### T-11 — Route-permission mapping + RBAC role grant + authz test
 
-- **Files** (2): `api/src/auth/rbac-permissions.ts` (modify),
-  `api/src/scripts/seed-rbac-roles.ts` (modify)
+- **Files** (3): `api/src/auth/rbac-permissions.ts` (modify),
+  `api/src/scripts/seed-rbac-roles.ts` (modify),
+  `api/__tests__/story-authz.test.ts` (new — the task's verification artifact
+  counts as a task file, per the T-10/T-15/T-16 convention; task-review N-07)
 - **Implements**: design §4.8 — closes AC-09 (authz half); supports FR-11
 - **Complexity**: moderate
 - **Blocked by**: T-09
@@ -681,7 +714,7 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
   states, this task's test file verifies them)
 - **Complexity**: moderate
 - **Blocked by**: T-14
-- **Blocks**: —
+- **Blocks**: T-18
 - **Steps**: jsdom component test of the three non-ready states: **loading**
   skeleton while `GET /api/v1/models/:id/stories` is pending (AC-12); **empty**
   state offering "Generate from graph" + manual create, triggering bootstrap
@@ -772,6 +805,41 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
 - **Verification**: `api/__tests__/story-xd18-role-path.integration.test.ts`
   (AC-19).
 
+### T-18 — CI gate for the pwa story component tests (task-review C-08) — **DONE (2026-07-05)**
+
+- **Files** (1): `.github/workflows/ci.yml` (modify)
+- **Implements**: task-review C-08(b) — makes AC-10…AC-14's verification
+  artifacts merge-gating; supports FR-12, NFR-05. Closes no AC (the ACs are
+  closed by the tests themselves; this task makes them enforceable in CI).
+- **Complexity**: simple
+- **Blocked by**: T-15
+- **Blocks**: —
+- **Status**: **done** (2026-07-05) — the three story test files are appended
+  to the per-file vitest step in the ci.yml `unit` job, with the
+  `story-spec-core T-18 (review C-08)` provenance comment; verification CLI
+  green (13/13 tests, grep hit). See STATUS.md.
+- **Steps**: The three story component test files
+  (`pwa/src/__tests__/story-catalog.test.tsx`, `story-detail.test.tsx`,
+  `story-catalog-states.test.tsx`) run under vitest; `scripts/test-unit.sh`
+  sweeps only `api/` + `shared/`, so today **no CI job executes them** — they
+  would never gate merge. House precedent (kpi-okr-governance T-20 / its
+  review C-02): CI gates pwa component tests by **explicit file list**, not
+  the whole vitest suite (the legacy error-scenarios tree is un-triaged — do
+  not widen the gate). Append the three files to the existing per-file vitest
+  step in the `unit` job (`.github/workflows/ci.yml:23`, `working-directory:
+  pwa`), yielding: `bunx vitest run src/__tests__/exec-kpi-management.test.tsx
+  src/__tests__/exec-okr-management.test.tsx
+  src/__tests__/story-catalog.test.tsx src/__tests__/story-detail.test.tsx
+  src/__tests__/story-catalog-states.test.tsx`. Extend the step's provenance
+  comment with a `story-spec-core T-18 (review C-08)` line. No other ci.yml
+  change (the integration job already boots the API server the story
+  integration files need).
+- **Verification**: CLI — `cd pwa && bunx vitest run
+  src/__tests__/story-catalog.test.tsx src/__tests__/story-detail.test.tsx
+  src/__tests__/story-catalog-states.test.tsx` exits 0 (the exact invocation
+  CI will run), and `grep story-catalog-states .github/workflows/ci.yml`
+  returns the wired line (the gate exists).
+
 ## Cross-cutting verification (whole-spec)
 
 - **AC-18** (transpile clean + no compile-time schema-array edit): `bun run
@@ -787,6 +855,8 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
 | every task | `bun run typecheck` |
 | tasks with behaviour | the task's listed test (`bun test <path>` / `bun test:integration`) — **exception (C-06):** T-05/T-06/T-07's route-level integration tests are authored at their task but first run green at the **T-09** checkpoint |
 | tasks touching pwa views (T-14) | `bun run scripts/design-conformance.ts --view <file>` for **every file the task touches** under `pwa/src/views/` — `.tsx` and `.module.css` each get their own invocation |
+| tasks touching `pwa/src/__tests__/` (T-14, T-15) | `bunx vitest run src/__tests__/<file>` with cwd `pwa/` — the pwa component suite runs under **vitest**, not `bun test` (task-review C-08a); T-16 runs via `bunx playwright test playwright/story-catalog-context.spec.ts` |
+| T-18 | the T-18 CLI verification: the three-file `bunx vitest run` exits 0 **and** `grep story-catalog-states .github/workflows/ci.yml` shows the wired gate |
 | final task | `bun test` + `bun test:integration` (needs Neo4j) + full AC-01..AC-19 sweep + AC-18 (`git diff` NODE_LABELS/EDGE_ENDPOINTS) |
 
 ## Traceability summary
@@ -804,7 +874,7 @@ review pass 2; D-6/D-7 are new in rev 3 per task-review B-01/C-05).
 | FR-09 bootstrap endpoint (+ DD-09 boundary) | T-07, T-08, T-09, T-14 (hint) | AC-07, AC-13, AC-19 |
 | FR-10 openapi + five error codes | T-03, T-08 (code mappings), T-12 | AC-04, AC-08, AC-09 |
 | FR-11 route-perm + RBAC | T-11 (unit composition), T-17 step 6 (e2e 403/200, D-7) | AC-09, AC-19 |
-| FR-12 StoryCatalog + 4 states | T-13, T-14, T-15 | AC-10, AC-12, AC-13, AC-14, AC-15 |
+| FR-12 StoryCatalog + 4 states | T-13, T-14, T-15, T-18 (CI gate for the AC-10…AC-14 artifacts) | AC-10, AC-12, AC-13, AC-14, AC-15 |
 | FR-13 detail + edit + AC editing | T-14 | AC-11, AC-16 |
 | FR-14 model-scope + reload survival (D-4 carve-out) | T-14, T-16 | AC-17 |
 | NFR-01 registry-only, no const edit | T-02 | AC-01, AC-02, AC-18 |

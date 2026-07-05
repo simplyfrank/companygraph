@@ -10,6 +10,7 @@ import {
   UUIDV7,
   type JourneyFixture,
 } from "./helpers/model-fixtures";
+import { ensureStorySchema } from "./helpers/story-fixtures";
 
 // story-spec-core T-05 / AC-03 — story CRUD round-trip through the
 // route surface: server-assembled narrative, DD-07/DD-08 validation
@@ -58,6 +59,7 @@ async function createStory(
 
 describe("integration: story-spec-core AC-03 story CRUD", () => {
   beforeAll(async () => {
+    await ensureStorySchema();
     a = await buildModelWithJourney(cleanup, "storycrudA");
     b = await buildModelWithJourney(cleanup, "storycrudB");
   });

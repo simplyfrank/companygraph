@@ -2,7 +2,7 @@
 feature: "kpi-impact-mapping"
 created: "2026-07-04"
 author: "spec-author (blueprint: business-modeling-studio, XD-04)"
-status: "revised"
+status: "approved"
 revision: 2
 size: "medium"
 ---

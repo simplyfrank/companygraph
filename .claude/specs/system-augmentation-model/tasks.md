@@ -2,15 +2,38 @@
 feature: "system-augmentation-model"
 created: "2026-07-04"
 author: "spec-author"
-status: "draft"
-revision: 1
+status: "revised"
+revision: 2
 reviewing_requirements_revision: 1
-reviewing_design_revision: 2
+reviewing_design_revision: 3
+addresses_review: "reconciliation amendment — design.md revision 3 (§2.3 cold re-review closures) + STATUS.md execution deviations 1 and 3; non-normative, no task added/removed/renumbered"
+amended_at: "2026-07-04"
 size: "medium"
 total_tasks: 17
 ---
 
 # Tasks: system-augmentation-model
+
+## Revision 2 — reconciliation amendment (non-normative)
+
+Design revision 3 (§2.3) reconciled the post-cap cold re-review; STATUS.md
+records the execution deviations. This tasks revision aligns the task text
+with both — **no task is added, removed, renumbered, or semantically
+changed**. Three deltas:
+
+1. **T-05 root script form** (cold re-review N-01 = STATUS execution
+   deviation 1): the prescribed `bun --cwd api run scripts/…` form is broken
+   under Bun 1.3.9 (prints usage; pre-existing `schema:apply` shares the
+   defect). T-05 now specifies the working as-built no-`run` form, matching
+   design §4.3 rev 3 and root `package.json:16`.
+2. **T-06 AC-08c leg** (STATUS execution deviation 3): the original
+   "`_OntologyEvent` count grows by exactly 1" assertion was invalidated by
+   `model-workspace-core`'s legal bootstrap re-registration on an emptied
+   registry. T-06 now states the as-built contract assertion (seed event
+   fired via count growth + zero migration-contributed rows via the unique
+   `_OntologyVersion` actor `"system:migration:system-kind"`).
+3. **Pinned C-01 provenance**: the shadow-`kind` note now also lives in the
+   design body (§4.6, closing cold re-review C-03) — the pin below cites it.
 
 ## Reading guide
 
@@ -37,7 +60,7 @@ are **binding for execution**.
 
 | Concern | Decision | Rationale | Locked in task |
 |---------|----------|-----------|----------------|
-| **C-01 (design-review pass 2)** — pre-existing shadow `kind` vocabulary: `pwa/src/lib/journeyData.ts:189-190` reads `attributes.kind` off System nodes and `pwa/src/components/JourneyCanvas.tsx:796` renders it (CSS class `.systemKind`, `JourneyCanvas.module.css:213`). Latent today (no write path populates it), invisible to the AC-01 grep guard (which hunts `"ai_predictive"`, not `kind`). | **No code change in this spec** (matches the review's recommendation — "the note is the right size"). Binding constraints: (a) T-14's Systems view reads **only** `systemKind` from `attributes_json` — it must never read or write `attributes.kind`; (b) the `kind` → `systemKind` read-path migration is **assigned to the spec that next owns the journey canvas** (`ddd-system-modeling` when it touches system rendering, else the process-explorer-ui surface owner); (c) the consolidated report MUST carry this assignment line so the downstream author cannot mistake `kind` for the vocabulary. | Touching `journeyData.ts`/`JourneyCanvas.tsx` is outside the approved design's file-change table; a scope-creep edit under this spec would itself violate spec governance. Naming + assigning closes the XD-15-spirit gap. | T-14 (constraint a); consolidated report (b, c) |
+| **C-01 (design-review pass 2; now also design.md §4.6, closing cold re-review C-03)** — pre-existing shadow `kind` vocabulary: `pwa/src/lib/journeyData.ts:189-190` reads `attributes.kind` off System nodes and `pwa/src/components/JourneyCanvas.tsx:796` renders it (CSS class `.systemKind`, `JourneyCanvas.module.css:213`). Latent today (no write path populates it), invisible to the AC-01 grep guard (which hunts `"ai_predictive"`, not `kind`). | **No code change in this spec** (matches the review's recommendation — "the note is the right size"). Binding constraints: (a) T-14's Systems view reads **only** `systemKind` from `attributes_json` — it must never read or write `attributes.kind`; (b) the `kind` → `systemKind` read-path migration is **assigned to the spec that next owns the journey canvas** (`ddd-system-modeling` when it touches system rendering, else the process-explorer-ui surface owner); (c) the consolidated report MUST carry this assignment line so the downstream author cannot mistake `kind` for the vocabulary. | Touching `journeyData.ts`/`JourneyCanvas.tsx` is outside the approved design's file-change table; a scope-creep edit under this spec would itself violate spec governance. Naming + assigning closes the XD-15-spirit gap. | T-14 (constraint a); consolidated report (b, c) |
 | **N-01 (design-review pass 2)** — design §4.6 inventory omits `scripts/seed-enriched.ts` by name although requirements Risk 3 named it. | The script PATCHes `{attributes: node.attributes}` via `PATCH /api/v1/nodes/:label/:id` (whole-map replace, strict validation) — it keeps working post-tightening **only because** T-11 gives the enriched fixture's System rows explicit `systemKind` values. T-11's steps state this dependency; T-11 must land before anyone runs `seed-enriched` against a tightened DB. | Makes the implicit §4.6/§4.7 coverage explicit at the point of execution. | T-11 |
 | **N-02 (design-review pass 2)** — §4.5 "before zod parsing" phrasing could mislead the implementer into relocating the injection call ahead of the envelope parse. | **Call-site pin**: `injectSystemKindDefault` is applied per raw node row **inside** `dryRunPasses` and `realImport`, i.e. *after* `handleImport`'s envelope-level `importPayloadSchema.safeParse` (`import.ts:63-79`) and *before* per-row `nodeWithLabelSchema` parsing. Do not move it into `handleImport`. | Matches the as-built route's control flow, verified by the reviewer. | T-09 |
 
@@ -177,8 +200,12 @@ verification amendment** text appears verbatim in T-12 and in STATUS.md.
   Systems written during a failure window). Standalone script: load env,
   build a driver, run the migration, print the result JSON, exit non-zero on
   error. Root `package.json` gains
-  `"migrate:system-kind": "bun --cwd api run scripts/migrate-system-kind.ts"`
-  (the `schema:apply` house pattern).
+  `"migrate:system-kind": "bun --cwd api scripts/migrate-system-kind.ts"`
+  — **no `run`** (revision 2, per design §4.3 rev 3 / cold re-review N-01 /
+  STATUS execution deviation 1: the `bun --cwd <ws> run <script-path>` form
+  is broken under Bun 1.3.9, printing usage instead of executing; the
+  pre-existing `schema:apply` script shares the defect. The working form
+  mirrors the root `seed` script, not `schema:apply`).
 - **Verification**: `api/__tests__/system-kind-migration.integration.test.ts`
   (authored in T-06; AC-08a/b legs)
 
@@ -200,8 +227,15 @@ verification amendment** text appears verbatim in T-12 and in STATUS.md.
   assert migrated post-conditions. **AC-08b (standalone mode)**: stale setup,
   `Bun.spawn(["bun", "scripts/migrate-system-kind.ts"])` from `api/`, exit 0,
   same post-conditions. **AC-08c (fresh DB)**: empty registry → `applySchema`
-  → System doc already tightened directly, zero patch/backfill event rows
-  beyond the single bootstrap-seed event. **Risk-5 report**: hand-plant
+  → System doc already tightened directly, with zero migration-contributed
+  patch/backfill rows. Assertion mechanism (revision 2, per STATUS execution
+  deviation 3): do **not** assert "`_OntologyEvent` count grows by exactly 1"
+  — `model-workspace-core`'s bootstrap step 3b legally re-registers its 4
+  labels + 5 edges (with their own events) when the registry is emptied.
+  Assert instead that the seed event fired (`_OntologyEvent` count strictly
+  grows) AND the migration contributed nothing, detected via its unique
+  `_OntologyVersion` actor `"system:migration:system-kind"` (count
+  unchanged). **Risk-5 report**: hand-plant
   `systemKind: "bogus"` on one System — counted in `invalidValueCount`, not
   rewritten. **AC-08d (merge-preserve, DD-14)**: pre-plant a System doc that
   is neither permissive nor tightened (extra `properties.owner` +

@@ -25,37 +25,48 @@ activities → make them measurable via quantified KPI impact → base
 domain-driven IT-system modeling on the process requirements. Multiple
 business models coexist and share versioned, journey-level modules.
 
-**Planning-complete (Phase C):** all 10 specs authored + reviewed; every
-reviewed phase at `approve`; 0 unresolved blockers. Fan-out ran via the
-`spec-app` Workflow engine (foundation waves first, dependency-ordered).
+**BUILD COMPLETE (Phase C, 2026-07-05):** all 10 features `execution:complete`
+on disk. Single-shot fan-out (XD-17) ran across four sessions (three
+Fable-5 limit interruptions, each resumed from cache; the final feature built
+on Opus 4.8). App-level re-verification by the orchestrator: `bun run
+typecheck` **PASS**; unit suite **564 pass / 0 fail** (462 api + 102 shared);
+`design-conformance` **PASS** on all 9 new views; all 47 new
+`*.integration.test.ts` transpile clean; every blueprint View-Tree route
+present in `route.ts` verbatim (`#/model/{models,canvas,stories,key-activities,
+kpi-impact,systems,export}` + `#/exec/performance`).
 
 | Slug | Tier | Size | Req | Design | Tasks | Execution |
 |------|------|------|-----|--------|-------|-----------|
-| `model-workspace-core` | foundation | large | approve | approve (rev3) | approve (22) | **in progress** |
-| `system-augmentation-model` | foundation | medium | approve | approve | (size: no review) | **complete + verified** |
-| `kpi-okr-governance` | foundation | large | approve | approve | approve (21) | **complete + verified** |
-| `story-spec-core` | foundation | large | approve | approve | approve (16) | not started |
-| `business-model-authoring` | feature | large | approve | approve | approve (17) | not started |
-| `key-activity-optimizer` | feature | medium | approve | approve | (size: no review) | not started |
-| `ddd-system-modeling` | feature | large | approve | approve | approve (17) | not started |
-| `kpi-impact-mapping` | feature | medium | approve | approve | (size: no review) | not started |
-| `kpi-okr-performance-dashboards` | feature | large | approve | approve | approve | not started |
-| `requirements-export` | feature | small | (size: no review) | (small: none) | (size: no review) | not started |
+| `model-workspace-core` | foundation | large | approve (rev5) | approve | approve (25) | **complete** |
+| `system-augmentation-model` | foundation | medium | approve | approve | (size: no review) | **complete** |
+| `kpi-okr-governance` | foundation | large | approve | approve | approve (21) | **complete** |
+| `story-spec-core` | foundation | large | approve | approve | approve (18) | **complete** |
+| `business-model-authoring` | feature | large | approve | approve | approve (19) | **complete** |
+| `key-activity-optimizer` | feature | medium | approve | approve | (size: no review) | **complete** |
+| `ddd-system-modeling` | feature | large | approve | approve | approve | **complete** |
+| `kpi-impact-mapping` | feature | medium | approve | approve | (size: no review) | **complete** |
+| `kpi-okr-performance-dashboards` | feature | large | approve | approve | approve | **complete** |
+| `requirements-export` | feature | small | (size: no review) | (small: none) | (size: no review) | **complete** |
 
 **Consistency:** routes verbatim vs View Tree; `route.ts` solely owned by
-`model-workspace-core` for `#/model/*`; no conflicting file rewrites.
-XD-01/02/15 honoured with `git diff` guard ACs. Coordination hotspots for
-execution: `seed-rbac-roles.ts` (multiple additive appenders),
-`JourneyCanvas.tsx`/`journeyData.ts` (`business-model-authoring` + `ddd` +
-inherited shadow-`kind`→`systemKind` migration).
+`model-workspace-core` for `#/model/*`; no conflicting file rewrites — the
+coordination hotspots (`seed-rbac-roles.ts` additive appenders,
+`JourneyCanvas.tsx`/`journeyData.ts`, shadow-`kind`→`systemKind`) merged
+cleanly (typecheck + full unit suite green over the combined tree).
 
-**Open user decisions before `kpi-impact-mapping` execution:** (1) roll-up
-store-of-truth — Neo4j `:KPIMeasurement` (as-built `kpi-trends`) vs Postgres
-`kpi_measurements` (the V-02 split-brain); (2) XD-04 edge naming —
-`DRIVES_KPI` (blueprint) vs as-built `ALIGNED_TO` (weighted activity→KPI).
-As-built defect pinned by `kpi-okr-governance`: `GET /roll-down/contributions`
-runs invalid Cypher and 500s. Mode is single-shot (XD-17): blueprint approval
-authorizes end-to-end build; foundation tier is already executing.
+**User decisions resolved (2026-07-05 final arbitration):** (1) B-03 import
+guard = reject at import (`model-workspace-core` rev 5: `POST /api/v1/import`
+rejects lifecycle labels/edges `409 model_lifecycle_route_required`,
+write-nothing; AC-22); (2) roll-up source = Neo4j `:KPIMeasurement` via
+`kpi-trends` (XD-02 amended); (3) impact edge = extend as-built `ALIGNED_TO` +
+runtime `IMPACTS_KPI` for story→KPI (XD-04 amended; `DRIVES_KPI` stays
+KeyResult→KPI). **Deferred to human review:** `/review-ui` on the new Model
+surface + `#/exec/performance`; live-Neo4j integration + `bun run dev` e2e
+(the integration/manual ACs listed per STATUS — not runnable without a stack).
+
+**Known as-built defect pinned (not this build's fix):** `kpi-okr-governance`
+recorded `GET /api/v1/roll-down/contributions` runs invalid Cypher and 500s —
+owned by a follow-up fix on the adopted roll-down surface.
 
 ## pwa-ux-conformance — governed UI remediation spec (2026-07-04)
 

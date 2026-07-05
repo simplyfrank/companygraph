@@ -1,0 +1,73 @@
+/* requirements-export T-08/T-10 (NFR-06, UX-02) — tokens-only: every
+   value is a var(--…) declared in pwa/src/styles/companygraph/tokens.css. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.chips {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: var(--type-body-size);
+  color: var(--text);
+}
+
+.chipValue {
+  font-weight: var(--weight-bold);
+  color: var(--text-strong);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.banner {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--surface-warn, var(--surface-2));
+  color: var(--text);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+}
+
+.preview {
+  max-height: 60vh;
+  overflow: auto;
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--type-sm-size, 0.875rem);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.empty {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--muted);
+}
+
+.emptyActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+}

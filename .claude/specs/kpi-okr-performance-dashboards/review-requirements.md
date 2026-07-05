@@ -1,137 +1,182 @@
 ---
 feature: "kpi-okr-performance-dashboards"
 reviewing: "requirements"
-artifact: "requirements.md (revision 2)"
+reviewing_revision: 3
+artifact: "requirements.md (revision 3 — XD-02-as-amended conformance repoint)"
 reviewer: "spec-review-agent"
 verdict: "approve"
-reviewed_at: "2026-07-04"
-review_pass: "2 of 2"
+review_pass: 1
+reviewed_at: "2026-07-05"
+history: >
+  Fresh cold review (pass 1 of 2) of revision 3. Supersedes the earlier
+  pass-1 file of 2026-07-04, which also returned approve; findings below
+  are independently re-verified against the live codebase on 2026-07-05
+  and substantially converge with that pass. The rev-2 cycle's B-01,
+  C-01..C-04, N-01..N-03 are resolved in-document (Resolves: markers
+  checked); the C-*/N-* ids below are NEW findings of this cycle, not
+  the resolved rev-2 ids.
 ---
 
-# Review: kpi-okr-performance-dashboards — requirements.md (rev 2)
+# Review: kpi-okr-performance-dashboards / requirements (rev 3, pass 1/2)
 
-Re-reviewed cold. Read the revised artifact in full, the pass-1 review, both
-upstream dependency specs (`kpi-okr-governance/requirements.md`,
-`system-augmentation-model/requirements.md`), the blueprint (View Tree, UX-*,
-XD-*), and `.claude/CLAUDE.md`. Re-verified every previously-flagged claim and
-every newly-added assertion against the live codebase
-(`api/src/routes/{roll-down,okr-crud,kpi-trends}.ts`, `api/src/router.ts`,
-`shared/src/schema/{edges,system-kind}.ts`, `pwa/src/route.ts`,
-`pwa/src/api.ts`, `pwa/src/components/charts/`).
+Reviewed cold against: `blueprint.md` (FINAL ARBITRATION block, XD-02 as
+amended, XD-15/16/17, round-4 View Tree, UX-01..06), `.claude/CLAUDE.md`,
+`_baseline` context, `kpi-okr-governance/requirements.md` (FR-10/FR-11) +
+`design.md` (§3.4, V-02), `system-augmentation-model` via
+`shared/src/schema/system-kind.ts`, and the live code:
+`api/src/router.ts`, `api/src/routes/{roll-down,okr-crud,kpi-trends}.ts`,
+`api/src/analytics/routes.ts`, `shared/src/schema/{edges,kpi-sla,system-kind}.ts`,
+`pwa/src/route.ts`, `pwa/src/api.ts`, `pwa/src/views/_shared.tsx`,
+`pwa/src/views/explorer/Systems.tsx`, `pwa/src/components/charts/`,
+`scripts/design-conformance.ts`, root `package.json`.
 
-The one pass-1 blocker and all four concerns are resolved with the correct
-as-built facts, and the revision introduced no new blockers. Verdict: **approve**.
+## Findings
 
----
+### Blockers
 
-## Resolution of prior findings
+None.
 
-**~~B-01~~ → resolved.** FR-03 and AC-04 no longer invent an
-`assigned`/`adjustment_requested` vocabulary. Both now assert the as-built
-`status ∈ {pending, committed, approved, rejected}`, explicitly note that a
-freshly-created assignment reads back `pending`, and model pending-adjustment
-as a *separate* `RollDownAdjustment` signal (from `POST /roll-down/request-adjustment`),
-not a fifth assignment status. Verified against `api/src/routes/roll-down.ts`:
-CREATE paths set `status:'pending'` (lines 113/129/144/256/…), commit sets the
-`z.enum(["committed","rejected"])` value via `SET a.status = $status` (line 467),
-approve → `'approved'` (line 1196), reject → `'rejected'` (line 1222); the
-adjustment handler (`handleRollDownAdjustmentPost`, line 478) creates a
-`:RollDownAdjustment` node. The four-literal contract is now exactly correct and
-AC-04 is testable. The "friendlier display label" note correctly frames any UI
-relabel as a display mapping only.
+The revision-3 change — repointing the measurement source from Postgres
+`kpi_measurements` to Neo4j `:KPIMeasurement` — is complete and
+internally consistent: FR-05, the store-of-record note, NFR-03, AC-01/
+AC-02/AC-14, DEC-03, superseded Risk 5, and new Risk 7 all agree with
+each other, with blueprint XD-02 as amended, and with what the governed
+route actually reads (`api/src/routes/kpi-trends.ts:50` matches
+`:KPIMeasurement {kpi_id: $id}`). The direct-driver fixture pattern
+cited (governance design §3.4) is real and is the only viable seed path
+(the label has no REST write path — governance V-02, confirmed). The
+split-brain consequence (REST-recorded measurements invisible to the
+dashboard; fresh seed shows `no_data` everywhere) is carried honestly as
+Risk 7 + DEC-03 report flag rather than papered over.
 
-**~~C-01~~ → resolved.** OQ-1 is promoted to recorded decision **DEC-02** ("add
-the read-only `/api/v1/analytics/performance/*` server aggregates"), pinned under
-XD-17 single-shot with the client-side alternative retained only as the rejected
-option flagged to the consolidated report. The FR-05..FR-09 B-group is no longer
-conditional on an open question. OQ-1 is rewritten as "resolved as DEC-02."
+### Concerns
 
-**~~C-02~~ → resolved.** FR-08 now names the specific reuse candidates the design
-phase must check first — the `journeys*` routes (`api/src/routes/journey-*.ts`)
-and the generic `/api/v1/nodes/:label` handler (`api/src/routes/nodes.ts`) — and
-records the 2026-07-04 finding that neither lists `UserJourney` per domain today.
-I re-verified: `router.ts` `journeys` routes are single-journey / versions /
-rollback / changes (lines 656–670) and `/nodes/:label` is single-node CRUD — no
-per-domain journey list exists. The reuse check is now a bounded lookup, not an
-open-ended search.
+- **C-01 — `/api/v1/analytics/` namespace cohabitation is undocumented.**
+  The spec gives `pwa/src/route.ts` a careful FILE-OWNERSHIP note (Scope
+  Boundaries, Risk 6) but is silent on the API-side equivalent: the
+  `analytics/` prefix in `api/src/router.ts` is already occupied by the
+  cto-analytics dispatchers — `analytics/graph` (:830),
+  `analytics/config` (:835), `analytics/exec-summary.pdf` / `settings` /
+  `snapshot/:x` (:840-844), and a single-segment catch-all
+  `sub.match(/^analytics\/([^/]+)$/)` (:847) routing the BUILD-set
+  report names. No functional collision exists (`performance` is not a
+  report name; the catch-all is single-segment, so
+  `analytics/performance/kpis` cannot be shadowed) — but a bare
+  `GET /api/v1/analytics/performance` today falls into
+  `handleAnalyticsReport("performance")` and 404s, and Phase C ownership
+  checking has no note saying who owns which `analytics/*` matches.
+  *Recommendation:* add one Dependencies/Scope sentence naming the
+  cohabiting dispatcher and requiring the design's router edit to be a
+  comment-anchored additive block (mirroring the route.ts treatment);
+  ensure AC-06's OpenAPI path enumeration never claims the bare
+  `/analytics/performance` path.
+- **C-02 — status semantics undefined when thresholds are absent.**
+  `warning_threshold` and `critical_threshold` are **optional** in the
+  governed `kpiSchema` (`shared/src/schema/kpi-sla.ts:15-16`), yet
+  FR-02/FR-05/AC-01 define `on_target`/`warning`/`breach` entirely in
+  terms of those thresholds + `target_direction`. A valid governed KPI
+  with a `target_value` but no thresholds has no specified status.
+  *Recommendation:* pin the fallback under DEC-01 in design (e.g.
+  compare latest vs `target_value` only → `on_target`/`breach`, no
+  `warning` band) and add the threshold-less case to AC-01's case list
+  so the single server-side authority is fully specified.
+- **C-03 — FR-02's per-row sparkline wording contradicts AC-12 and
+  re-opens the O(N) fan-out DEC-02 exists to close.** FR-02 says KPIs
+  "each showing … a compact trend sparkline/line for the selected
+  window" — read literally, the portfolio panel issues one
+  `GET /api/v1/kpi-trends/:kpiId` per listed KPI, i.e. client-side O(N)
+  round trips, the exact shape DEC-02/NFR-03 reject server-side. AC-12
+  instead tests the sparkline "for a **selected** KPI". Also "the
+  selected window" implies a window-picker control no FR specs (the
+  real knob is `kpi-trends`' `window_days` query param).
+  *Recommendation:* reword FR-02 so portfolio rows show status + latest
+  value only and the sparkline loads lazily for a selected/expanded KPI
+  (matching AC-12), with the window fixed at the `kpi-trends` default —
+  no window UI in this spec.
+- **C-04 — RBAC permission for the new aggregates is unstated.** NFR-02
+  and the Dependencies auth row correctly keep auth in the central
+  router gate, but never say *which* permission gates
+  `/api/v1/analytics/performance/*`. The gate maps route→permission
+  (e.g. the router's own comment at `api/src/router.ts:744`:
+  `P("GET","okr-directives","okr:read") already covers …`), and the
+  multi-tenant baseline has per-domain access gating
+  (`hasDomainAccess`) a cross-domain portfolio read must consciously
+  inherit or justify widening. *Recommendation:* one sentence in NFR-02
+  or Dependencies: the aggregates reuse the read permissions of the
+  governed routes they compose and inherit (never widen) their
+  domain-access envelope; design records the exact permission ids.
 
-**~~C-03~~ → resolved.** FR-07 and AC-04 now explicitly state the aggregate's
-directive→domain fidelity is bounded by the governed handler's
-`attributes_json CONTAINS $domainId` substring match, that the false-positive
-envelope is inherited (not this spec's defect), and that correcting it belongs to
-`kpi-okr-governance`. Verified the substring match at `okr-crud.ts:90,322`.
+### Nits
 
-**~~C-04~~ → resolved.** NFR-03 now defines a testable **query-count invariant**
-(≤ 1 Neo4j round trip + ≤ 1 Postgres round trip per request, independent of KPI
-count) as the CI-robust proxy for the p95 target, and adds **AC-14** proving it
-via a driver/pg spy over 50-KPI vs 5-KPI fixtures. The wall-clock p95 is now
-honestly marked design-phase-verified.
-
-**~~N-01~~ → resolved** (FR-10c/FR-10d annotated as `kpi-okr-governance` FR ids
-inline). **~~N-02~~ → resolved** (`api.getPerformance` noted as per-domain, the
-new `/analytics/performance/*` calls as additional client methods). **~~N-03~~ →
-resolved** (AC-06 now states plainly that `?kind` is not hard-validated —
-`?kind=nonsense` returns 200 with the `all` slice, not 400).
-
-## New findings
-
-None. No blockers, concerns, or nits introduced by the revision. Spot-checked the
-new/changed assertions against reality: `SYSTEM_KINDS`/`systemKindSchema` export
-shape (`shared/src/schema/system-kind.ts:9-12`), `CONTRIBUTES_TO` KPI→UserJourney/
-Activity + `USES_SYSTEM` Activity→System (`edges.ts:13,32,38`), the exec `tabs`
-array ending at `okr-management` so the appended `{id:"performance"}` row is a
-clean non-conflicting single-line edit with no id collision (`route.ts:69-77`),
-and the governed reads `GET /api/v1/kpis` / `/domains` / unfiltered
-`/okr-directives` / `okr-performance?domain_id=` / `roll-down/okr` GET /
-`roll-down/contributions` GET / `kpi-trends/:id` all present in `router.ts`.
-
----
+- **N-01** — FR-03 cites `POST /api/v1/roll-down/request-adjustment`;
+  the actual mount is `roll-down/adjustment`
+  (`api/src/router.ts:662`) — the spec copied the stale file-header
+  comment (`roll-down.ts:19`). Harmless (this spec only reads
+  `RollDownAdjustment` nodes, never calls the route), but fix the
+  citation so design does not propagate it.
+- **N-02** — stale line-number citations in Dependencies: directive
+  list cited at `router.ts:677` (actual: `kpis` GET :703,
+  `okr-directives` GET :738), `handleDomainList` at `router.ts:646`
+  (actual :672; :646 area is roll-down dispatch), and
+  `api.getPerformance` at `api.ts:1035` (actual :1079). Prefer symbol
+  names over line numbers; the router churns.
+- **N-03** — AC-09's empty variants cover the KPI panel only ("No KPIs
+  yet", zero-match slice). The OKR roll-down panel's empty state (no
+  directives, or no assignments for the sliced domain) is unspecced;
+  extend AC-09 or have design pin it explicitly under UX-01.
 
 ## Completeness / Traceability
 
-Re-verified against the live codebase; "real?" = interface exists as described.
+"Verified" = interface confirmed in the live codebase this pass
+(2026-07-05).
 
-| FR / NFR | Covered by AC | Real / feasible? | Notes |
-|----------|---------------|------------------|-------|
-| FR-01 (route + additive exec tab) | AC-07, AC-13 | ✅ real | exec `tabs` array real, ends at `okr-management`; no `performance` collision; FILE-OWNERSHIP note correct |
-| FR-02 (KPI trend + breach status) | AC-01, AC-08, AC-12 | ✅ real | server-side status per DEC-01; `kpiSchema` threshold fields confirmed |
-| FR-03 (OKR roll-down panel) | AC-04 | ✅ real (B-01 fixed) | `{pending,committed,approved,rejected}` matches `roll-down.ts`; adjustment modeled as separate `RollDownAdjustment` signal |
-| FR-04 (URL-first slicer) | AC-02, AC-07, AC-12 | ✅ real | `route.params` query-string pattern real; `#/explorer/systems?kind=` prior art |
-| FR-05 (KPI portfolio aggregate) | AC-01, AC-02, AC-14 | ✅ feasible | new `/analytics/performance/kpis`; namespace unused; pinned by DEC-02 |
-| FR-06 (systemKind traversal) | AC-03 | ✅ real | `CONTRIBUTES_TO` + `USES_SYSTEM` edges real; `SYSTEM_KINDS` module real; OQ-2 inclusive-any recommended, correctly deferred |
-| FR-07 (OKR roll-down aggregate) | AC-04 | ✅ real (C-03 bounded) | substring-match fidelity documented as inherited |
-| FR-08 (journey list) | AC-05 | ✅ real (C-02 named) | reuse candidates named; no per-domain journey list exists today (verified) |
-| FR-09 (OpenAPI + zod 400) | AC-06 | ✅ real | ZodError→400 mapper landed; reuse valid |
-| NFR-01 (read-only, additive) | AC-13 | ✅ | all-GET under `/api/v1/`; no v2 bump |
-| NFR-02 (house rules) | AC-10, AC-13 | ✅ | zod-only, en-US, no tsc, central auth gate |
-| NFR-03 (perf p95) | AC-14 | ✅ (C-04 fixed) | query-count invariant is the CI proxy |
-| NFR-04 (snake_case kept) | AC-01/AC-04 shapes | ✅ | matches `kpi-okr-governance` NFR-04 |
-| NFR-05 (systemKind import-only) | AC-03 | ✅ real | `system-kind.ts` exists; XD-15 honored |
-| UX-01 states | AC-08, AC-09 | ✅ | loading/empty/error/ready + zero-match |
-| UX-02 tokens/catalog | AC-10 | ✅ real | `LineChartCard`/`AreaChartCard`/`KpiCard`/`Pill`/`Card` all exist |
-| UX-05 a11y | AC-11 | ✅ | keyboard/focus/AT/text-not-color-alone |
-| UX-06 nav (deep link) | AC-07 | ✅ | URL-first, route verbatim from View Tree |
+| FR / NFR / UX | Covered by AC | Verified / feasible? | Notes |
+|---------------|---------------|----------------------|-------|
+| FR-01 route + additive exec tab | AC-07, AC-12, AC-13 | yes | exec `tabs` ends at `okr-management` (`pwa/src/route.ts`); `performance` id free; route + view verbatim vs View Tree (`blueprint.md:122,131`); FILE-OWNERSHIP note present |
+| FR-02 KPI trend + breach status | AC-01, AC-08, AC-12 | yes (C-02, C-03) | `kpiSchema` threshold fields real but optional (C-02); per-row sparkline wording vs AC-12 (C-03) |
+| FR-03 OKR roll-down panel | AC-04 | yes | four status literals confirmed in `roll-down.ts` (creates set `'pending'`, approve :1196, reject :1222); `RollDownAdjustment` create :489-498 correctly framed as a separate signal; route-name nit N-01 |
+| FR-04 URL-first slicer | AC-02, AC-07, AC-09, AC-11, AC-12 | yes | central hash-param parse real (`route.ts:123-184`); `Systems.tsx` URL-first `kind` prior art confirmed (:57) |
+| FR-05 KPI portfolio aggregate | AC-01, AC-02, AC-14 | yes | Neo4j `:KPIMeasurement` source correct per XD-02 amended (`kpi-trends.ts:50`); namespace free of report names but cohabitation undocumented (C-01) |
+| FR-06 systemKind traversal | AC-03 | yes | `CONTRIBUTES_TO` KPI→UserJourney/Activity + `USES_SYSTEM` Activity→System real (`edges.ts:32,38`); `SYSTEM_KINDS` real; OQ-2 properly deferred with a recommendation |
+| FR-07 OKR aggregate + fidelity bound | AC-04 | yes | `attributes_json CONTAINS $domainId` confirmed at `okr-crud.ts:90` and `:322` exactly as cited; inherited-envelope framing is correct and fair to the design reviewer |
+| FR-08 journey axis reuse-or-add | AC-05 | yes | bounded reuse check honest: no as-built route lists `UserJourney` per domain; `journeys/*` routes are single-journey/versions/changes |
+| FR-09 OpenAPI + zod 400 | AC-06 | yes | ZodError→400 mapper is governance FR-11 (real, verified in that spec); `?kind` soft-coercion honestly documented in AC-06 |
+| NFR-01 read-only additive | AC-13 | yes | all-GET, additive under `/api/v1/`, no v2 bump |
+| NFR-02 house rules | AC-10, AC-13 | yes (C-04) | `typecheck` script real (`package.json:20`); RBAC permission mapping unstated |
+| NFR-03 perf / query-count proxy | AC-14 | yes | ≤2 Neo4j + 0 Postgres, constant in N — consistent with FR-05/DEC-03; CI proxy (spy count) is more robust than wall-clock |
+| NFR-04 snake_case kept | AC-01/AC-04 shapes | yes | matches governed surface convention (governance NFR-04) |
+| NFR-05 SYSTEM_KINDS import-only | AC-03 | yes | `system-kind.ts` exports exactly as described (XD-15) |
+| UX-01 view states | AC-08, AC-09 | yes (N-03) | OKR-panel empty variant unspecced |
+| UX-02 tokens/catalog | AC-10 | yes | `LineChartCard`/`AreaChartCard`/`KpiCard` in `pwa/src/components/charts/`; `Pill`, `Card`, `scripts/design-conformance.ts` all exist |
+| UX-03 input modes | Platforms & Native Conflicts tables | yes | tables present and accurate despite no canvas work — correct per size-promotion rule |
+| UX-04 responsiveness | n/a (justified) | yes | desktop-first, no new breakpoints |
+| UX-05 a11y | AC-11 | yes | keyboard reach, AT state, text+icon not color alone, `main` landmark |
+| UX-06 deep links | AC-07 | yes | route verbatim, reload-safe, unknown params fall back to `All` |
 
-Every FR maps to ≥ 1 AC; every AC maps back to an FR/NFR/UX allowance. Platforms &
-Input Modes and Native Conflicts tables present and appropriate. Blueprint
-conformance intact: `#/exec/performance` → `PerformanceDashboard` verbatim
-(blueprint.md:103,112) with correct owner slug; XD-02/XD-15/XD-16/XD-17 respected.
+## Cross-checks
 
-**Done well:** the B-01 fix is thorough — it not only corrects the vocabulary but
-proactively separates the adjustment signal and documents the display-mapping
-seam, which will save the design phase a round-trip. The FILE-OWNERSHIP treatment
-of `route.ts` (additive, comment-anchored, carried to Phase C for a single clean
-owner) is exactly the coordination the orchestrator asked for. DEC-02 and the
-NFR-03 query-count invariant convert the two most slippery pass-1 concerns into
-pinned, testable commitments.
+| Check | Result |
+|-------|--------|
+| Every FR maps to ≥1 AC; every AC maps back to an FR/NFR/UX allowance | pass |
+| Routes/views verbatim vs blueprint View Tree | pass — `#/exec/performance` → `PerformanceDashboard`, owner slug correct, no invented/renamed route |
+| XD-* honoured | pass — XD-02 (as amended) fully adopted (DEC-03); XD-15 import-only vocabulary (NFR-05); XD-16 governed base consumed, no route re-spec; XD-17 DEC-01..03 recorded, two flagged for the consolidated report |
+| House rules (zod-only, en-US, no tsc, central auth gate, loopback, additive v1) | pass (C-04 asks for the permission mapping to be named, not for new auth code) |
+| Scope boundaries explicit with owning spec named per exclusion | pass |
+| File-ownership conflicts | pass with note — `pwa/src/route.ts` handled (Risk 6); API-side `analytics/*` dispatcher cohabitation missing (C-01) |
+| Rev-2 findings resolved | pass — B-01 (FR-03/AC-04), C-01→DEC-02, C-02 (FR-08), C-03 (FR-07/AC-04), C-04 (NFR-03/AC-14), N-01..N-03 all carry visible Resolves: markers that match their claims |
+| Prior-cycle staleness flag | closed correctly — design rev 3 / tasks rev 4 pin `reviewing_requirements_revision: 3` per STATUS.md |
 
----
+## Verdict
 
-## Verdict: approve
-
-Zero blockers. All pass-1 findings (B-01 + C-01..C-04 + N-01..N-03) are resolved
-against the correct as-built surface, and the revision introduced no new issues.
-Two design-phase pins remain honestly recorded (OQ-2 systemKind traversal
-semantics with a recommended inclusive-any default; FR-08 reuse-or-add with the
-candidate routes named) — both are appropriate for the design phase, not
-requirements blockers. Ready to proceed to design.
+**approve** — zero blockers. Revision 3 does exactly and only what it
+claims: a narrow, complete, verifiable XD-02 conformance repoint, with
+the split-brain consequence surfaced honestly (Risk 7). Every
+load-bearing code citation checks out; the only citation defects are
+stale route/line references (N-01/N-02). The four concerns share one
+shape — seams left implicit that the design phase must pin visibly:
+API-namespace cohabitation (C-01), threshold-less status semantics
+(C-02), sparkline loading strategy aligned with AC-12 (C-03), RBAC
+permission mapping (C-04). None blocks requirements approval; all four
+must be visibly closed in design.md (C-02 and C-03 land naturally in
+DEC-01's server-side status authority and the KPI-panel design section,
+which the XD-02 conformance pass already touches).

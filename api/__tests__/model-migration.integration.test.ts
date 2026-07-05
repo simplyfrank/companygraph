@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 import { migrateRetailToModel } from "../src/scripts/migrate-retail-to-model";
 import { api, newCleanup, runCleanup } from "./helpers/model-fixtures";
+import { buildModelWithJourney } from "./helpers/model-fixtures";
 
 // model-workspace-core T-16 / AC-08 — retail → Business Model #1
 // migration: idempotent apply, re-run-after-user-model (B-03), the
@@ -139,5 +140,62 @@ describe("integration: model-workspace-core AC-08 retail migration", () => {
     const restored = await counts();
     expect(restored.refModels).toBe(1);
     expect(restored.inModelToRef).toBeGreaterThanOrEqual(before.inModelToRef);
+  });
+});
+
+// T-25 (design-review N-13) — forced --down orphaning warning.
+describe("integration: model-workspace-core T-25 forced --down orphan warning", () => {
+  test("stderr orphan-count warning appears when ModuleInstances exist, absent when none do", async () => {
+    const driver = getDriver();
+
+    // Ensure applied state.
+    await migrateRetailToModel(driver, "apply").catch(() => {});
+
+    // Build a model with a module instance so the orphan count > 0.
+    const fx = await buildModelWithJourney(cleanup, "orphan-warn");
+    const mod = await api<{ id: string }>("POST", "/modules", {
+      sourceModelId: fx.modelId,
+      sourceJourneyId: fx.journeyId,
+      name: "orphan-warn-module",
+    });
+    await api<{ id: string }>("POST", `/modules/${mod.body.id}/versions`, {});
+    const inst = await api<{ id: string }>("POST", `/models/${fx.modelId}/module-instances`, {
+      moduleId: mod.body.id,
+      targetDomainId: fx.domainId,
+    });
+    expect(inst.status).toBe(201);
+
+    // Spawn the script with --down --force and capture stderr.
+    // The warning line should appear because a ModuleInstance exists.
+    const proc1 = Bun.spawn(["bun", "run", "api/src/scripts/migrate-retail-to-model.ts", "--down", "--force"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [exitCode1] = await Promise.all([proc1.exited]);
+    const stderr1 = await new Response(proc1.stderr).text();
+    expect(exitCode1).toBe(0);
+    expect(stderr1).toContain("WARNING:");
+    expect(stderr1).toContain("ModuleInstance");
+    expect(stderr1).toContain("orphaned");
+
+    // Re-apply to restore the reference model (no user models now since
+    // we'll clean up the user model first).
+    // Delete the user model so re-apply works.
+    await api("DELETE", `/models/${fx.modelId}`);
+    cleanup.modelIds = cleanup.modelIds.filter((id) => id !== fx.modelId);
+    await migrateRetailToModel(driver, "apply");
+
+    // Now spawn --down --force again — no ModuleInstances exist → no warning.
+    const proc2 = Bun.spawn(["bun", "run", "api/src/scripts/migrate-retail-to-model.ts", "--down", "--force"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [exitCode2] = await Promise.all([proc2.exited]);
+    const stderr2 = await new Response(proc2.stderr).text();
+    expect(exitCode2).toBe(0);
+    expect(stderr2).not.toContain("WARNING:");
+
+    // Restore applied state.
+    await migrateRetailToModel(driver, "apply");
   });
 });

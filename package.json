@@ -16,6 +16,8 @@
     "migrate:system-kind": "bun --cwd api scripts/migrate-system-kind.ts",
     "register:model": "bun --cwd api src/scripts/register-model-labels.ts",
     "register:story": "bun --cwd api src/scripts/register-story-labels.ts",
+    "register:capability": "bun --cwd api src/scripts/register-capability-labels.ts",
+    "register:kpi-impact": "bun --cwd api src/scripts/register-kpi-impact-edges.ts",
     "migrate:model": "bun --cwd api src/scripts/migrate-retail-to-model.ts",
     "typecheck": "bun build api/src/server.ts --target=bun --no-bundle > /dev/null && bun build pwa/src/main.tsx --target=browser --no-bundle > /dev/null",
     "test": "bash scripts/test-unit.sh",

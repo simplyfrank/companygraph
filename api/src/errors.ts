@@ -54,6 +54,35 @@ export const ERROR_CODES = [
   "story_activity_required",
   "story_activity_not_in_model",
   "acceptance_criterion_clause_required",
+  // key-activity-optimizer T-07 (design §3.4) — ONE additive code.
+  // 404, thrown from POST/DELETE …/key-activities/:activityId/mark
+  // when — after the getModel gate has confirmed the model exists —
+  // :activityId is not a model-scoped Activity (cross-model or
+  // non-existent; no cross-model mark). `model_not_found` is NOT added
+  // here — it already exists above (model-workspace-core) and the
+  // key-activity handlers consume it via the getModel gate.
+  "activity_not_found",
+  // ddd-system-modeling T-03 (design §3.5) — three additive codes for
+  // the Capability / system-model surface. Additive-only per NFR-11.
+  // Each is reachable from ≥1 route (api/src/routes/capabilities.ts).
+  // Deliberately REUSED, not re-added: `model_not_found` (create with
+  // unknown :modelId), `not_found` (bad needed-by activityId/storyId,
+  // details.field), `edge_endpoint_label_mismatch` (wrong endpoint
+  // pair via the getEdgeEndpoints check, DD-12), `invalid_payload`.
+  "capability_not_found",
+  "bounded_context_not_found",
+  "system_not_found",
+  // requirements-export T-05a (FR-06) — one additive code for the
+  // spec-export format negotiation. 400, thrown from the T-04 route
+  // when ?format is not json/markdown (incl. pdf). model_not_found is
+  // NOT added here — it already exists above (model-workspace-core).
+  "unsupported_export_format",
+  // kpi-impact-mapping T-02 (DD-05) — two additive codes.
+  // 404 — link POSTs when kpiId is unknown/archived.
+  "kpi_not_found",
+  // 404 — link DELETEs when :linkId matches no edge of that type
+  // (incl. a mis-routed cross-type id, AC-03).
+  "impact_link_not_found",
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

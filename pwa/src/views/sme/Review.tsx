@@ -57,12 +57,12 @@ export function SmeReview() {
       label,
       value,
       color:
-        label === "UserJourney" ? "#22c55e" :
-        label === "Activity" ? "#3b82f6" :
-        label === "Role" ? "#f59e0b" :
-        label === "System" ? "#ef4444" :
-        label === "Domain" ? "#8b5cf6" :
-        "#64748b",
+        label === "UserJourney" ? "var(--cat-4)" :
+        label === "Activity" ? "var(--cat-2)" :
+        label === "Role" ? "var(--cat-1)" :
+        label === "System" ? "var(--sev-4)" :
+        label === "Domain" ? "var(--cat-3)" :
+        "var(--cat-5)",
     }));
   }, [queue]);
 

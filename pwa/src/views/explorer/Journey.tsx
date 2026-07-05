@@ -237,9 +237,9 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
           style={{
             margin: "12px 0",
             padding: "10px 14px",
-            background: "var(--warn-bg, #fff4d6)",
-            borderLeft: "4px solid var(--warn, #d28a00)",
-            color: "var(--warn-fg, #5a3d00)",
+            background: "var(--warn-soft)",
+            borderLeft: "4px solid var(--warn)",
+            color: "var(--warn-text)",
             fontSize: 13,
             borderRadius: 4,
           }}

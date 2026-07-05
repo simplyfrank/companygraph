@@ -59,6 +59,33 @@ colors:
   good-text:          "oklch(38% 0.08 145)"
   # Pure white — primary-button foreground.
   on-accent:     "oklch(100% 0 0)"
+  # DD-02 semantic ramps — categorical (distinguishable, non-ordinal)
+  cat-1:         "oklch(70% 0.16 75)"    # amber — open / Role / warn node
+  cat-2:         "oklch(62% 0.17 255)"   # blue — mitigating / Activity
+  cat-3:         "oklch(58% 0.19 300)"   # violet — accepted / Domain
+  cat-4:         "oklch(64% 0.16 145)"   # green — resolved / UserJourney / good node
+  cat-5:         "oklch(60% 0.02 250)"   # slate — neutral fallback
+  cat-6:         "oklch(66% 0.16 200)"   # sky — accent node, Erd
+  # DD-02 ordinal severity ramp (low → critical)
+  sev-1:         "oklch(64% 0.16 145)"   # green — low
+  sev-2:         "oklch(75% 0.15 95)"    # yellow — medium
+  sev-3:         "oklch(70% 0.17 55)"    # orange — high
+  sev-4:         "oklch(60% 0.22 25)"    # red — critical
+  sev-5:         "oklch(48% 0.20 20)"    # deep red — reserved
+  # DD-02 tint / soft family (light backgrounds for chips/rows)
+  good-soft:     "oklch(95% 0.03 145)"
+  warn-soft:     "oklch(95% 0.04 80)"
+  danger-soft:   "oklch(95% 0.03 25)"
+  muted-soft:    "oklch(96% 0.004 250)"
+  info:          "oklch(60% 0.14 235)"
+  info-soft:     "oklch(95% 0.03 235)"
+  accent-bg:     "oklch(96% 0.03 255)"   # light accent row highlight
+  # DD-02 interaction family
+  hover:         "oklch(97% 0.004 250)"  # surface hover
+  accent-hover:  "oklch(52% 0.18 255)"
+  accent-fg:     "oklch(100% 0 0)"       # text on accent fill
+  ent-color:     "oklch(58% 0.18 255)"   # base default; ERD overrides inline
+  edge-arrow:    "oklch(36% 0.12 250)"   # canvas edge arrowhead
 
 typography:
   h1:
@@ -113,6 +140,47 @@ spacing:
   xl:  "24px"
   2xl: "28px"
   3xl: "48px"
+
+# DD-02 motion family — quiet, ≤200ms (pwa-ux-conformance T-01)
+motion:
+  dur-fast:    "120ms"
+  dur-base:    "200ms"
+  ease-out:    "cubic-bezier(0.2, 0, 0, 1)"
+  ease-linear: "linear"
+  ease-in-out: "cubic-bezier(0.4, 0, 0.2, 1)"
+
+# DD-01 legacy aliases — rename bridges emitted as --legacy: var(--canonical)
+# in a second :root block by the generator. See pwa-ux-conformance §5a.
+legacy_aliases:
+  success:        "good"
+  warning:        "warn"
+  rule:           "border"
+  border-subtle:  "border"
+  chip-bg:        "surface-2"
+  bg-subtle:      "surface-2"
+  bg-2:           "surface-2"
+  text:           "fg"
+  tone-good:      "good"
+  tone-warn:      "warn"
+  tone-danger:    "danger"
+  tone-accent:    "accent"
+  tone-neutral:   "muted"
+  warn-bg:        "warn-soft"
+  warn-fg:        "warn-text"
+  warning-bg:     "warn-soft"
+  warning-fg:     "warn-text"
+  warning-border: "warn"
+  warning-bg-hover: "warn-soft"
+  warning-soft:   "warn-soft"
+  success-subtle: "good-soft"
+  success-soft:   "good-soft"
+  danger-subtle:  "danger-soft"
+  success-bg:     "good-soft"
+  success-fg:     "good-text"
+  error-bg:       "danger-soft"
+  error-fg:       "danger-text"
+  error:          "danger"
+  surface-3:      "surface-2"
 
 # Layout dimensions — companygraph-specific addition (not in the PA
 # schema). Consumed by hand-rolled components, not auto-emitted.

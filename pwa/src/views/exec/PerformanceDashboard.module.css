@@ -1,0 +1,143 @@
+/* kpi-okr-performance-dashboards T-14 — tokens-only styling (UX-02):
+ * every value is a var(--…) declared in
+ * pwa/src/styles/companygraph/tokens.css. No hex/rgba/oklch literals. */
+
+.slicer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.axis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.axisLabel {
+  color: var(--muted);
+  font-size: var(--type-lede-size);
+}
+
+.select {
+  background: var(--surface-2);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--type-body-size);
+}
+
+.select:disabled {
+  color: var(--muted);
+}
+
+.kindGroup {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.section {
+  margin-bottom: var(--space-xl);
+}
+
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-line-height);
+  color: var(--fg);
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+/* A KPI tile is a real <button> (keyboard-activatable, UX-05) wrapping
+ * the catalog KpiCard; the pill under it carries the status as text. */
+.kpiButton {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.kpiButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  color: var(--muted);
+  font-size: var(--type-body-size);
+}
+
+.emptyHint {
+  color: var(--muted);
+  font-size: var(--type-lede-size);
+  margin: 0;
+}
+
+.clearRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.okrBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.krList,
+.domainList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.krRow,
+.domainRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--type-body-size);
+  color: var(--fg);
+}
+
+.krProgress {
+  color: var(--muted);
+  font-size: var(--type-lede-size);
+}
+
+.weight {
+  color: var(--muted);
+  font-size: var(--type-lede-size);
+}

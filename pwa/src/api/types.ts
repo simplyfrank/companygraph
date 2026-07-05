@@ -66,4 +66,23 @@ export interface BoundedContextRow {
   entity_count: number;
   entities: string[];
   relationships: Array<{ type: string; target: string }>;
+  shared_domains: string[];
+  namespaces: string[];
+}
+
+export interface SharedDomainRow {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  bounded_contexts: string[];
+}
+
+export interface NamespaceRow {
+  id: string;
+  name: string;
+  description: string;
+  model_id: string;
+  model_name?: string | null;
+  bounded_contexts: string[];
 }

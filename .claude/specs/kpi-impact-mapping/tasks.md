@@ -2,7 +2,7 @@
 feature: "kpi-impact-mapping"
 created: "2026-07-04"
 author: "spec-author (blueprint: business-modeling-studio, XD-04)"
-status: "draft"
+status: "approved"
 revision: 1
 reviewing_requirements_revision: "2 (req-review pass 2/2 = approve, 0 blockers; carry-forward C-05/C-06)"
 reviewing_design_revision: "1 (design-review pass 1 = approve, 0 blockers, 2 concerns, 3 nits)"

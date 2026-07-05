@@ -5,9 +5,10 @@ author: "spec-author"
 status: "approved"
 approved_by: "review-gate (review-design.md pass 2/2: approve, 0 blockers)"
 approved_at: "2026-07-04"
-revision: 2
+revision: 3
 reviewing_requirements_revision: 1
-addresses_review: "review-design.md (pass 1)"
+addresses_review: "review-design.md (pass 1); rev 3 additionally reconciles the post-cap cold re-review (review-design.md on disk, verdict approve)"
+amended_at: "2026-07-04"
 size: "medium"
 ---
 
@@ -78,6 +79,24 @@ the `design-review` prefix to avoid ambiguity.
 | N-01 (path citations) | §4.3 and §4.6 now cite `api/src/ontology/storage/migrations.ts` and `api/src/ontology/storage/node-labels.ts` (~317–337) in full. |
 | N-02 (empty event diff) | §4.3 step 3 now emits the route handler's exact diff shape: `[{op: "replace", path: "/nodeLabels/System", value: row}]` (`routes/ontology-node-labels.ts:121-126` — verified). |
 | N-03 (dry-run gains a DB dependency) | §4.5 note added: the updated route header comment states that dry-run now requires a reachable registry (a READ per node row) and 500s if the DB is down mid-loop — parity with real import, but a change from the previously pure `dryRunPasses`. |
+
+### 2.3 Post-cap cold re-review findings (review-design.md on disk, verdict approve) — revision 3 reconciliation
+
+The `review-design.md` now on disk is a **cold re-review** performed after
+implementation (its own provenance note records this; it is labeled
+`review_pass: 1` but is in fact a third look, post the 2-pass cap). Verdict
+approve, zero blockers. This revision-3 amendment is **non-normative** — no
+FR/AC/DD semantics change; it reconciles the design text with the review's
+findings and the recorded execution deviations. Finding IDs below are the
+cold re-review's own (distinct from §2.1/§2.2 IDs of the same shape).
+
+| Finding | Resolution |
+|---------|-----------|
+| C-01 (review provenance / frontmatter self-approval) | **Orchestrator-level; recorded in STATUS.md.** The true pass history is: pass 1 (revise) → pass 2 (approve, cap reached) → post-cap cold re-review (approve). The frontmatter `approved_by`/`approved_at` above are the gate's rev-2 fields, preserved verbatim — this amendment does not write a new approval. STATUS.md carries the reconciliation note. |
+| C-02 (implementation preceded this review) | **Recorded; condition discharged.** The review's approval was conditional on the deterministic gates passing on the built state — STATUS.md's verification block records them green (`bun run typecheck` exit 0, both test suites, `design-conformance` clean on the touched view — AC-14/AC-15). The consolidated report states that the cold re-review post-dates implementation. |
+| C-03 (shadow `kind` vocabulary absent from §4.6) | **Closed in this revision**: §4.6 gains the legacy read-path note naming `pwa/src/lib/journeyData.ts:189-190` + `JourneyCanvas` and assigning the `kind` → `systemKind` migration to the canvas-owning spec. Matches the binding pin already in tasks.md ("Open design concerns" C-01 row) and STATUS.md consolidated-report line 3. |
+| N-01 (root script text drift) | **Closed in this revision**: §4.3 now specifies the as-built no-`run` form `"bun --cwd api scripts/migrate-system-kind.ts"` — not merely cosmetic: the `run` form is broken under Bun 1.3.9 (prints usage; same defect as the pre-existing `schema:apply`), per STATUS.md execution deviation 1. |
+| N-02 (§4.5 "before zod parsing" phrasing) | **Closed in this revision**: §4.5 now pins the call site — after `handleImport`'s envelope-level `importPayloadSchema` parse, before per-row `nodeWithLabelSchema` parsing, inside `dryRunPasses`/`realImport` (never hoisted into `handleImport`). Matches the as-built `import.ts` and the tasks.md N-02 pin. |
 
 ## 3. Data model
 
@@ -278,8 +297,11 @@ Algorithm (each step idempotent):
 - **Standalone**: `api/scripts/migrate-system-kind.ts` — loads env,
   builds a driver, runs the migration, prints the result JSON, exits
   non-zero on error. Root `package.json` gains
-  `"migrate:system-kind": "bun --cwd api run scripts/migrate-system-kind.ts"`
-  (the `schema:apply` house pattern).
+  `"migrate:system-kind": "bun --cwd api scripts/migrate-system-kind.ts"`
+  (no `run` — the `bun --cwd <ws> run <script-path>` form is broken under
+  Bun 1.3.9, printing usage instead of executing; the pre-existing
+  `schema:apply` script shares the defect. The working form mirrors the
+  root `seed` script — cold re-review N-01, STATUS execution deviation 1).
 
 **Rollback** (requirements-review N-04 / DD-11): forward-only. To loosen, re-patch the System
 doc permissive via the ontology REST surface; backfilled `"functional"`
@@ -310,8 +332,11 @@ semantics are untouched: `attributes` present → whole-map validation;
 `api/src/routes/import.ts`, two additions:
 
 1. **Injection (OQ-1 closed — inject on import only).** Pure helper
-   applied to each raw node row in **both** `realImport` and
-   `dryRunPasses`, before zod parsing:
+   applied to each raw node row **inside both** `realImport` and
+   `dryRunPasses` — i.e. *after* `handleImport`'s envelope-level
+   `importPayloadSchema` parse and *before* per-row `nodeWithLabelSchema`
+   parsing (cold re-review N-02: the call site is pinned; do not hoist it
+   into `handleImport`):
 
    ```ts
    function injectSystemKindDefault(raw: unknown): unknown {
@@ -363,6 +388,21 @@ export files round-trip via injection (AC-15 keeps
 | `seedBoundedContexts` (bootstrap) | BoundedContext/Entity only | n/a |
 | Ontology migrations executor (`api/src/ontology/storage/migrations.ts`) | attribute transforms on existing rows; cannot delete a required key without an operator choosing to | migration step 4 drift backfill (backstop) |
 | Any future raw-Cypher path | uncontrolled | migration step 4 drift backfill on every boot + step 5 report |
+
+**Legacy read-path note (not a write path — cold re-review C-03, XD-15
+shadow vocabulary):** `pwa/src/lib/journeyData.ts:189-190` reads a legacy
+`attributes.kind` key off System nodes and the journey canvas renders it
+(`pwa/src/components/JourneyCanvas.tsx`, CSS class `.systemKind` in
+`JourneyCanvas.module.css`). That `kind` key is NOT the vocabulary: no
+write path populates it, the AC-01 grep guard cannot catch it (it hunts
+`"ai_predictive"`, not `kind`), and this spec's Systems view reads only
+`systemKind` from `attributes_json` (binding constraint in tasks.md T-14).
+The `kind` → `systemKind` read-path migration is **assigned to the spec
+that next owns the journey canvas** (`ddd-system-modeling` when it touches
+system rendering, else the process-explorer-ui surface owner) — carried in
+the consolidated report so a downstream author cannot mistake `kind` for
+the vocabulary. No code change in this spec (scope-creep edits outside the
+§7 table would themselves violate spec governance).
 
 ### 4.7 Seed fixtures (FR-08 — DD-10)
 

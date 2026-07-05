@@ -34,6 +34,13 @@
 //   never an unqualified IN_MODEL sweep, so a later-created model's
 //   IN_MODEL edges and subgraph survive intact). Domains/journeys/
 //   activities untouched → counts identical to pre-migration.
+//   LIMITATION (T-25, design-review N-13): a forced --down DETACH
+//   DELETEs the reference root, so any ModuleInstance whose
+//   INSTANCE_IN edge pointed at it loses that edge and remains orphaned
+//   (forked subtrees stay live under their now-unscoped domains). The
+//   operator should re-run `migrate:model` to re-establish scoping —
+//   but re-apply after a forced --down while user models exist trips
+//   the step-1 guard by design (see ORDERING RULE above).
 // - --dry-run: read-only MATCHes; prints the deltas it WOULD write;
 //   commits nothing (`/api/v1/stats` unchanged).
 
@@ -86,6 +93,26 @@ export async function migrateRetailToModel(
           );
         }
       }
+      // T-25 (design-review N-13): count ModuleInstances about to be
+      // orphaned by the DETACH DELETE of the reference root. Read-only
+      // count; no change to what is deleted. The warning line is printed
+      // to stderr only when the count is > 0.
+      const orphanCount = await session.executeRead((tx) =>
+        tx.run(
+          `MATCH (mi:ModuleInstance)-[:INSTANCE_IN]->(:BusinessModel {isReference: true})
+           RETURN count(mi) AS n`,
+        ),
+      );
+      const orphanedInstances = (orphanCount.records[0]?.get("n") as number) ?? 0;
+      if (orphanedInstances > 0) {
+        process.stderr.write(
+          `WARNING: ${orphanedInstances} ModuleInstance(s) will be orphaned — ` +
+            `their INSTANCE_IN edge to the reference model is removed by DETACH DELETE. ` +
+            `Forked subtrees stay live under now-unscoped domains. ` +
+            `Re-apply migrate:model to re-establish scoping (unsupported after forced --down with user models — see script header).\n`,
+        );
+      }
+
       const result = await session.executeWrite(async (tx) => {
         const edges = await tx.run(
           `MATCH (:Domain)-[r:IN_MODEL]->(m:BusinessModel {isReference: true})

@@ -1,59 +1,73 @@
 ---
 feature: "business-model-authoring"
 reviewing: "design"
-artifact: "design.md (revision 1)"
+reviewing_revision: 4
 reviewer: "spec-review-agent"
 verdict: "approve"
-reviewed_at: "2026-07-04"
-review_pass: "1 of 2"
+review_pass: 1
+reviewed_at: "2026-07-05"
 ---
 
-# Design Review: business-model-authoring
+# Review: business-model-authoring / design (fresh pass 1 on artifact revision 4)
 
-Reviewed `design.md` (rev 1) cold against the approved `requirements.md`
-(rev 2), `blueprint.md`, `.claude/CLAUDE.md`, the upstream dep specs
-(`model-workspace-core`, `story-spec-core`), and the codebase. Every
-load-bearing interface claim was checked against reality.
+> **Provenance note.** This is a cold, fresh review of design.md **rev 4** by a
+> reviewer who authored none of the prior artifacts. The prior review history on
+> disk is genuine (pass 1 → revise on rev 2; pass 2/2 → approve on rev 3); that
+> pass-2 record is preserved verbatim at `review-design-rev3-pass2.md` so the
+> DR3-* citations in design §2.5 stay resolvable. Rev 4's **unreviewed deltas**
+> (DD-09 orphan-tolerant scope semantics, the DR3-N-01 label-mismatch check,
+> the §4.4 `scopedNodeIds` composition statement, the §5.0 ratification status)
+> were the focus of this pass, and **every load-bearing code citation was
+> re-verified against disk**, including: `realImport` private at
+> `api/src/routes/import.ts` (~157) with `handleImport` exported (66);
+> `generateId()` (`api/src/ids.ts:4`); `upsertNode`'s `ON MATCH SET
+> name/description/updatedAt/attributes_json` (`api/src/storage/nodes.ts`
+> ~245-251) — the DR2-C-02 MERGE-update claim is true; `patchNode` partial
+> dynamic SET (~169); `scopedNodeIds` **including `ModuleInstance` pins via
+> `INSTANCE_IN`** (`api/src/storage/model-scope.ts:22-35`) — DR3-N-02's fix in
+> §4.4 is correct and necessary; mwc's D-2 `IN_MODEL` check
+> (`api/src/storage/modules.ts:520-532`); the sibling delegate pattern
+> (`api/src/router.ts:396-407` — `registerModelRoutes`, `registerStoryRoutes`);
+> mwc's 3-segment POST-only domains arm (`api/src/routes/models.ts:295-296`);
+> `.../stories/bootstrap` (`api/src/routes/stories.ts:199-200`); the RBAC rows
+> and positional matcher (`api/src/auth/rbac-permissions.ts` — no PATCH row
+> shadows `models/:id/domains/:domainId`; literal segments must match);
+> `business_architect` deliberately without `node:write`/`edge:write` and with
+> `query:read`+`story:*` (`api/src/scripts/seed-rbac-roles.ts:90-115`); all
+> five reused error codes incl. `model_not_found` and `not_found`
+> (`api/src/errors.ts`); the `uuidv7` zod validator
+> (`shared/src/schema/nodes.ts:26-29`); `JourneyData` single-journey,
+> column-index contract + `LayoutMode` `"multi"` routing to `MultiJourneyView`
+> (`pwa/src/components/JourneyCanvas.tsx:37-47`,
+> `pwa/src/views/explorer/JourneyGraph.tsx:679`); the `canvas` tab currently on
+> `ModelTabPlaceholder` (`pwa/src/views/index.tsx:162`); `Typeahead` `label`
+> prop; `api.search`; `tokens.css` at the cited path; `design-conformance.ts`
+> `--view` enforced/positional-inert. Upstream: requirements.md **rev 3 is on
+> disk** (`status: revised`, awaiting ratification) and carries the exact DD-06
+> amendment (FR-13/FR-14/Scope Boundaries → three routes; FR-03 names the
+> PATCH; five-code FR-13 list). Blueprint checks: `#/model/canvas` →
+> `ModelCanvas` [owner: business-model-authoring] verbatim (blueprint View Tree
+> line 101/112); UX-01..06 and XD-08/09/13/18 as cited.
 
-**Bottom line:** a strong, unusually well-traced design. All 14 FRs and all
-20 ACs map to file changes and tests. Every upstream-interface claim I could
-verify on disk is accurate. No blockers. Two concerns worth fixing in the
-tasks phase, plus nits.
+## Verdict
 
-## Reality checks that passed (so the author gets credit where due)
+**approve** — zero blockers. Rev 4's deltas do what the pass-2 review's own
+recommendations prescribed, and each was verified sound against the code:
+DD-09's orphan-tolerant test is exactly review option (i) (reject only
+provably-foreign ids; `modelIds` empty → re-anchorable), the label-mismatch
+check closes the duplicate-node-id hole DR3-N-01 named, and §4.4 no longer
+misstates `scopedNodeIds`' composition. The design remains a genuinely thin
+composition layer: every write path delegates to a verified on-disk upstream
+surface, the three new routes are the minimum the must-FRs need, and the
+riskiest reuse claims (`upsertNode` ON MATCH update; delegate dispatch with no
+ordering constraint; RBAC positional matching) are all literally true on disk.
 
-- `import.ts`: `realImport` is indeed private at line 157; `handleImport` is
-  the only export; return shape is `{ imported:{nodes,edges}, errors?:RowError[] }`
-  with `RowError = {section,index,code,message,details?}` — exactly as §4.7 states.
-  The `export` keyword is the sole edit needed. ✓
-- The assembled edge shape `{ id, type, fromId, toId }` (§4.3) matches the real
-  `edgeCreateSchema` in `shared/src/schema/edges.ts` (fields `fromId`/`toId`,
-  `uuidv7` validators) that `edgeImportSchema` wraps. ✓
-- `import`'s node row accepts `label: z.string().min(1)` (registry-permissive),
-  so `UserJourney`/`Activity`/`Role` flow through without a compile-time change
-  (AC-20). ✓
-- `POST /models/:id/domains` → `model:write` and `POST …/module-instances` →
-  `module:write` are present verbatim in `api/src/auth/rbac-permissions.ts`
-  (lines 263/265) — the §5.2 "consumed, not re-mapped" claim is accurate. ✓
-- `module-instances` requires `targetDomainId` and validates it is `IN_MODEL`
-  the model (`api/src/storage/modules.ts:520`), confirming C-01 / §4.2's
-  "ensure a target domain first" ordering. ✓
-- `sourceModelId` + `isReference` exist (`modules.ts:229`, `models.ts:27`);
-  `GET /api/v1/modules` (mwc design line 724, `module:read`) + `listModules`
-  exist — DD-04's discover-and-loop is feasible. ✓
-- Catalog components (`Typeahead`, `Card`, `Modal`, `SidePanel`, `Button`),
-  `_shared.tsx` `Loading`/`ErrorState`, `scripts/design-conformance.ts`, and
-  `JourneyCanvas` all exist on disk. ✓
-- `ERROR_CODES` contains `invalid_payload`, `attribute_violation`,
-  `edge_endpoint_label_mismatch`, `model_not_found` — §5.3's "no new code" holds. ✓
-- The router `models*` dispatch block (`router.ts:391`, `sub.startsWith("models/")`)
-  exists; adding `authoring/apply`/`authoring/graph` arms inside it (§5.1) follows
-  the same pattern story-spec-core's design uses. ✓
-- `story-spec-core` design's bootstrap route (`POST …/stories/bootstrap`),
-  `story:write`/`story:read` mappings, and the `business_architect` grant of
-  `story:*` are all present in that spec's design (lines 442–465) — the §4.6 /
-  §5.2 citations are accurate to the *design* (the code is not yet on disk; this
-  is the correct wave-3 build-order dependency, not a gap).
+Four concerns are recorded. C-01 (ratification) and C-04 (pass accounting +
+tasks touch-up) are **hard gates before execution**, carried from the prior
+review cycle. C-02 and C-03 are **new findings of this pass** — both rooted in
+`upsertEdge`'s real MERGE semantics, which no prior pass examined — but both
+land in the `should` tier (FR-10) or in a crafted/degenerate-client path, so
+per the severity rules they do not block a must-scope-complete design.
 
 ## Blockers
 
@@ -61,134 +75,142 @@ None.
 
 ## Concerns
 
-### C-01 — §4.4 canvas projection shape does not match the real `JourneyData` contract
+- **C-01 — (carried, still open) DD-06's requirements amendment is authored
+  but not ratified.** `requirements.md` rev 3 is on disk with the exact
+  amendment table, but its frontmatter is `status: revised` — the currently
+  *approved* requirements text (rev 2) still says "exactly one new endpoint"
+  in FR-13/FR-14/Scope Boundaries and therefore contradicts this design. The
+  design did everything an artifact can (DD-06 §5.0 paper trail, Open Question
+  to the orchestrator, execution preconditions in tasks.md/STATUS.md).
+  **Recommendation:** obtain user ratification (flip requirements rev 3 to
+  `approved`) before design acceptance is finalized and before any of the
+  three routes is implemented; if ratification is declined, this design must
+  be re-cut to one route and FR-03's edit-in-place clause re-negotiated — do
+  not let two disagreeing approved artifacts coexist.
 
-§4.4 says `authoring/graph` returns
-`{ journeys:[{id,name,domainId, activities:[{id,name,order}], …}], roles:[…],
-systems:[…], locations:[…], precedes:[…] }` and is "mapped into the `JourneyData`
-interface client-side." But the real `JourneyData` (`pwa/src/components/JourneyCanvas.tsx`)
-is **column-index-based, per-journey**:
-`ActivityNode { id, name, column:number }`, `RoleNode { columns:number[],
-durations:Record<column,number> }`, `SystemNode { usages:[{column,…}] }`,
-`LocationNode { columns:number[] }`, `PrecedesEdge { from_col, to_col }`.
-Roles/systems/locations reference activities by **column position**, not id, and
-`JourneyData` is a **single journey's** lane model, not a `journeys[]` collection
-(the multi-journey layout mode is a separate concern). The design's server shape
-is reasonable, but the id→column mapping (assign columns, resolve each role's
-executed columns, map `PRECEDES` id pairs → `from_col`/`to_col`, handle
-cross-journey precedes) is nontrivial and entirely unspecified.
+- **C-02 — (new) FR-10/AC-15's "persists the new `PRECEDES` order via the
+  authoring endpoint" has no implementable write path as designed.** Reorder
+  means *removing or re-pointing* existing `PRECEDES` edges, but: (a)
+  `authoring/apply` is upsert-only — it has no delete semantics; (b)
+  `upsertEdge` MERGEs on `(a {id:$fromId})-[r:TYPE {id}]->(b {id:$toId})`
+  (`api/src/storage/edges.ts:170-178`), so re-submitting an echoed edge `id`
+  with **changed endpoints** does not re-point the edge — it creates a
+  *second* same-type edge with a **duplicate id** (see C-03); (c) submitting
+  a fresh edge for the new pair leaves the **stale** `PRECEDES` edge in
+  place, corrupting §4.4's topological `order` (two competing successors, or
+  a cycle); and (d) the only delete surface, `DELETE /api/v1/edges/:id`, maps
+  to `edge:write` (`rbac-permissions.ts:48`), which `business_architect`
+  **deliberately does not carry** (`seed-rbac-roles.ts:92-94`) — the same
+  permission-unreachable-mechanism class as DR2-B-03. The cited reuse seam
+  (`JourneyCanvas`'s `onReorder`) is client-visual only today
+  (`JourneyGraph.tsx:716` → `setManualOrder`; nothing persists). Because
+  FR-10 is `should` and the requirements explicitly allow it to ship "after
+  the wizard or not at all in v1" (Risk row 3), this is not a blocker — but
+  as written, an executor reaching FR-10/AC-15 hits a wall.
+  **Recommendation:** before FR-10 is implemented, amend the design with a
+  real reorder mechanism — e.g. `authoring/apply` gains a bounded
+  *replace-intra-journey-`PRECEDES`-set* semantic (transactional
+  delete+recreate scoped to one journey's activities, still via existing
+  primitives), or FR-10's reorder clause is formally re-deferred. Record
+  which in tasks.md so T-15/FR-10 work does not start against the current
+  text.
 
-**Recommendation:** In the tasks phase, either (a) specify the client mapper
-(`GET …/authoring/graph` response → per-journey `JourneyData`) as its own task
-with its own DoD, or (b) have `authoring/graph` emit `JourneyData` (or a
-`journeyId → JourneyData` map) directly so the client does a pass-through. Name
-the layout mode used for multi-journey models (the canvas supports
-`"multi"`). AC-11 currently asserts "renders … on JourneyCanvas from
-authoring/graph" without pinning this seam — it will pass or fail on an
-unspecified transform.
+- **C-03 — (new) step 5 has no edge analog of the DR3-N-01 node label check:
+  a re-run edge `id` with drifted endpoints or type mints a duplicate edge
+  id or strands a stale edge.** Verified on disk: `validateEdge` rejects
+  only **cross-type** id collisions (`WHERE type(r) <> $edgeType`,
+  `edges.ts:56`); a same-type re-run id between *different* endpoints passes
+  validation and MERGE-creates a second edge with the same id. The design's
+  deterministic key scheme (`"<type>:<from>-><to>"`) protects a well-behaved
+  wizard (endpoint change → new key → no id reuse), but then the old edge
+  survives as a stale duplicate relationship (C-02(c)), and a buggy or
+  crafted client re-submitting an echoed edge `id` under new endpoints
+  corrupts the id-uniqueness invariant graph-core's C-10 exists to protect.
+  §4.3 step 5 already resolves referenced ids in one query — the fix is the
+  same shape as the label check. **Recommendation:** extend step 5 to
+  resolve re-run edge `id`s and reject rows whose persisted `(type, fromId,
+  toId)` differ from the submitted row (per-row `invalid_payload`,
+  `details:{endpointMismatch:[<id>]}`, row excluded). One additional AC-08
+  assertion: re-run edge id with changed endpoints → per-row error, no
+  duplicate-id edge created. Fold into the same tasks touch-up as DD-09
+  (T-04/T-16).
 
-### C-02 — AC-10 was silently renumbered to AC-10a/AC-10b (approved-AC drift)
-
-Requirements rev 2 (approved) defines a single **AC-10** covering both authz
-(model:write / module:write 403s + business_architect) **and** the OpenAPI
-assertion ("the authoring/apply route + any error codes appear in
-`GET /api/v1/openapi.json`"). The design's §8 test table splits this into
-**AC-10a** (authz, now also adding a `story:write` 403 assertion from C-06) and
-**AC-10b** (OpenAPI), and §2/§4.6 reference "AC-10a" as if it were an approved
-id. Renumbering/splitting an approved AC inside the design — and adding a new
-sub-assertion (the story:write 403) — is requirements drift dressed as a design
-detail. The added story:write coverage is *good*, but it changes the approved
-AC set without an amendment note.
-
-**Recommendation:** Either keep the id **AC-10** and note that the design widens
-its assertion to include the story:write 403 (folding the C-06 resolution into
-the existing AC), or explicitly record "AC-10 → split into AC-10a/AC-10b
-(proposed requirements amendment)" so traceability tooling and the tasks author
-don't see a phantom id. Right now `spec-traceability` will look for AC-10 and
-find AC-10a/AC-10b instead.
+- **C-04 — (process) the review-pass accounting is now inconsistent and the
+  pass-2/2 record was about to be destroyed.** STATUS.md declares the design
+  review cap "2/2 consumed", yet this review was commissioned as "pass 1 of
+  at most 2" on rev 4 and targets the same `review-design.md` path that held
+  the pass-2/2 approve record cited throughout design §2.5. This reviewer
+  archived that record to `review-design-rev3-pass2.md` before writing this
+  file. **Recommendation:** the orchestrator reconciles the ledger (either
+  this pass re-opens the count for rev 4 — then update STATUS.md's
+  `review_passes` — or it is an out-of-band audit pass; pick one and record
+  it), and closes the still-owed tasks touch-up (DD-09 + label check +
+  C-03's endpoint check into T-04/T-16/T-06) before execution.
 
 ## Nits
 
-### N-01 — §3.1 schema is shown without the `id?` field, then patched in §4.3
+- **N-01 — DD-09's orphan re-anchoring is first-writer-wins across models.**
+  An orphan stranded by model B's failed run (name/description authored in
+  B's session) can be anchored into model A by any `model:write` holder who
+  learns its UUID, after which B's own echoed-id retry is `outOfModel`-
+  rejected. Practically gated by UUIDv7 unguessability and a single-org
+  persona, and "belongs to no model" makes the read-isolation claim true —
+  but §4.3/DD-09 should carry one sentence acknowledging the race and why it
+  is accepted, so a future hardening pass doesn't mistake it for an
+  oversight.
+- **N-02 — the step-5 resolution query is label-less
+  (`MATCH (n) WHERE n.id IN $ids`) and cannot use the per-label id indexes**
+  — on Neo4j this is an AllNodesScan per apply call. Fine at wizard batch
+  sizes on today's graphs; cheap fix if it ever shows up in traces: UNION
+  the six known candidate labels (the schema already narrows what a row can
+  claim). Note it in §4.3 so the executor doesn't "optimize" it into a
+  correctness change.
+- **N-03 — stale line citations.** `handleSearch` dispatch is now
+  `api/src/router.ts:475` (design says 459); the story RBAC rows sit at
+  ~284-293 (design says 282-287). Cosmetic drift as files grow — consider
+  citing by symbol + approximate line.
 
-The `authoringNodeSchema`/`authoringEdgeSchema` code block in §3.1 omits the
-optional `id` field; §4.3's "Schema addendum" folds it back in. A reader who
-copies §3.1 verbatim gets a schema that cannot support idempotent re-submit
-(the whole point of rule 2 / N-04). Recommend inlining `id: z.string().uuid().optional()`
-into the §3.1 block so it is correct as written, and dropping the addendum.
+## Completeness / Traceability (requirements rev 3 → design rev 4)
 
-### N-02 — §4.4 edge-id key format is ambiguous vs §3.2
+| FR / AC | Design element(s) | Status |
+|---------|-------------------|--------|
+| FR-01 (wizard shell, resumable, gated) | §3.4 (`WizardState`, `canAdvance`, `resumeStep`), §6, §7 (`wizardModel.ts`, `ModelCanvas.tsx`) | covered |
+| FR-02 (blank + retail clone) | §4.2 (target-domain ordering, DD-04), §7 (`TemplateStep.tsx`) | covered |
+| FR-03 (domains via mwc + edit-in-place PATCH) | §4.1, §4.9/DD-08, §3.5, §7 (`DomainsStep.tsx`) | covered — verified permission-reachable |
+| FR-04 (journeys) | §4.3, §7 (`JourneysStep.tsx`); edit = id-set re-run (DR2-C-02, verified vs `upsertNode`) | covered |
+| FR-05 (activities × roles, pick-or-create-global) | §4.5 (existing `query/search` + `Typeahead`), §7 | covered |
+| FR-06 (stories + ACs via story-spec-core) | §4.6 (routes verified on disk), §7 (`StoriesStep.tsx`) | covered |
+| FR-07 (batch apply; id echo; scope check) | §3.1-3.2, §4.3 (7 steps; DD-07/DD-09), §4.7 (`realImport` export) | covered — C-03 edge-id guard recommended |
+| FR-08 (clone via module instantiation only) | §4.2, §9; lifecycle guard asserted by AC-09 | covered |
+| FR-09 (review canvas from model-scoped read) | §3.3, §4.4/DD-01, §4.8/DD-05 (`toJourneyData`, per-journey `chain`) | covered |
+| FR-10 (should — direct manipulation) | §6 last bullet, §7 `ModelCanvas.tsx` row | **gap — C-02**: reorder persistence mechanism unimplementable as written |
+| FR-11 (four view states) | §6 (loading/empty/error/ready → AC-12/13/14/11) | covered |
+| FR-12 (active model, reload, isolation) | §3.4 (draft non-persistence), §4.4, §6 (`useActiveModel`) | covered |
+| FR-13 (three routes, openapi, five codes) | §5.0/DD-06, §5.1, §5.3, §7 openapi row | covered — **conditional on C-01 ratification** |
+| FR-14 (RBAC rows; four families; no re-map) | §5.2 (rows verified against on-disk matcher/neighbors) | covered (same condition) |
+| NFR-01/02 (no new label/edge/store/role/perm) | §3 preamble, §4.3 payload constraints, AC-20 | covered |
+| NFR-03 (model isolation, both sides) | §4.3 step 5 (DD-07/DD-09), §4.4, AC-18 incl. recovery case | covered |
+| NFR-04 (central gate, zod-only, `/api/v1/`) | §4.3 step 1, §4.9 step 1, §5.1/§5.2 | covered |
+| NFR-05 (tokens-only, `--view` conformance) | §6, AC-16 (enforced form verified in script) | covered |
+| NFR-06 (must/should gating) | §1 rule 4, §8 (AC-15 isolated as should/manual) | covered |
+| AC-01..AC-14, AC-16..AC-20 (must) | §8 — all approved ids verbatim; AC-10 single id, two artifacts; AC-08/AC-18 widened per DR3 recommendations (additive to the AC text, allowed) | covered |
+| AC-15 (should) | §8 manual repro with input mode + observable outcome | procedure fine; mechanism gap = C-02 |
+| Blueprint View Tree | `#/model/canvas` → `ModelCanvas`, owner verbatim (blueprint:101/112); `route.ts`/`SURFACES` untouched; placeholder swap at `views/index.tsx:162` verified real | pass |
+| UX-01..06 | four states; tokens/catalog/`--view`; Platforms & Input Modes + Native Conflicts tables present in requirements (lines 193/210) and honored in §6; desktop-first; keyboard/ARIA (AC-17); verbatim route + reload (AC-19) | pass |
+| XD-08 / XD-09 / XD-13 / XD-18 | central-gate persona §5.2; generate-then-edit surfaced §4.6; clone via module instantiation only §4.2/§9; real-Neo4j AC-06 | pass |
+| House rules (en-US, zod-only, no tsc, no per-route auth, file ownership) | throughout; `routes/models.ts` untouched; `import.ts` = one `export` keyword | pass |
 
-§3.2 says edge ids are keyed `"<type>:<fromClientKeyOrId>->:<toClientKeyOrId>"`
-(note the stray `->:`), while §4.3 step 6 says `"<type>:<from>-><to>"`. Pick one
-delimiter and use it in both places so the client can reconstruct keys
-deterministically for re-submit.
+Every FR maps to ≥1 file-change row and every §7 row serves ≥1 FR — checked
+row by row; no orphan file changes found.
 
-### N-03 — `existingId` (§3.1) vs `id` (§4.3) both live on a node row
+## Summary
 
-A node row can now carry `existingId` (pick-an-existing global Role, no import
-row emitted) **and** `id` (re-run of a previously-minted node, import row emitted
-with that id). These are different cases with opposite emit behaviour. §4.3
-handles both, but the schema comments should state the precedence (if both are
-present, which wins?) so the handler has no ambiguity. Minor — pin it in tasks.
-
-## Completeness / Traceability
-
-### FR → design coverage
-
-| FR | Covered by | Status |
-|----|-----------|--------|
-| FR-01 wizard shell + step gating | §3.3 (`wizardModel.ts`, `canAdvance`), §6, File Changes | ✓ |
-| FR-02 template choice + clone target-domain | §4.2 (ensure-domain → discover → instantiate) | ✓ |
-| FR-03 domains via mwc route | §4.1 | ✓ (verified route exists, `model:write`) |
-| FR-04 journeys PART_OF domain | §4.5 step 1 / §3.1 edge enum, File Changes (JourneysStep) | ✓ |
-| FR-05 activities × roles, pick-or-create-global | §4.5, §3.1 (`existingId`), B-01 handling | ✓ (matches DEC-01(a)) |
-| FR-06 stories via story-spec-core | §4.6 | ✓ (dep design cited accurately) |
-| FR-07 batched authoring write | §3.1/§3.2/§4.3/§4.7 | ✓ (realImport reuse verified) |
-| FR-08 clone via module instantiation | §4.2, DD-04 | ✓ |
-| FR-09 ModelCanvas review surface | §4.4, §6, DD-01 | ⚠ see C-01 (projection seam) |
-| FR-10 canvas direct-manip (should) | §6 Input modes, Native Conflicts | ✓ (gated should) |
-| FR-11 four view states | §6 States | ✓ |
-| FR-12 model-scoped + reload survival | §3.3, §4.4 isolation, §6 active-model | ✓ |
-| FR-13 route in openapi, existing codes | §5.1, §5.3 | ✓ |
-| FR-14 route-permission mapping | §5.2 | ✓ (no new perm, no re-map — verified) |
-| NFR-01..06 | §3 intro, §4.3 no-IN_MODEL, §6 tokens/a11y, §9 | ✓ |
-
-### AC → test coverage (§8)
-
-| AC | Test artifact | Status |
-|----|--------------|--------|
-| AC-01,02,03,11 | model-canvas*.test.tsx | ✓ |
-| AC-04,05,08 | authoring-apply.integration.test.ts | ✓ (real shape asserted) |
-| AC-06 | authoring-key-activity-per-role.integration.test.ts (real Neo4j) | ✓ (XD-18 kept as integration, per Risk 5) |
-| AC-07 | model-canvas-stories-step.test.tsx | ✓ |
-| AC-09 | authoring-template-clone.integration.test.ts | ✓ |
-| AC-10 | **renumbered → AC-10a + AC-10b** | ⚠ see C-02 |
-| AC-12,13,14 | model-canvas-states.test.tsx | ✓ |
-| AC-15 (should) | manual repro | ✓ |
-| AC-16 | design-conformance `--view` | ✓ (enforced form) |
-| AC-17 | manual keyboard repro | ✓ |
-| AC-18 | authoring-model-scope.integration.test.ts | ✓ (Role excluded correctly) |
-| AC-19 | model-canvas-context.spec.ts (e2e) | ✓ |
-| AC-20 | typecheck + git diff + grep | ✓ |
-
-**Gap:** AC-10 appears in the design only as AC-10a/AC-10b (C-02). Every other
-approved AC is present with a matching id.
-
-### Blueprint / house-rule conformance
-
-- Route `#/model/canvas` + view `ModelCanvas` taken verbatim from the View Tree,
-  owner `business-model-authoring`. ✓
-- No new route outside `/api/v1/`; auth via central gate + `api/src/auth/` only;
-  zod-only; no tsc; en-US identifiers. ✓
-- Tokens-only + catalog-first + design-conformance `--view` (AC-16). ✓
-- No new node label / edge type / store (NFR-01, AC-20). ✓
-- XD-13 (clone via module instantiation, not bespoke copy) honoured. ✓
-
-## Verdict
-
-**approve** — zero blockers. C-01 (canvas projection seam) and C-02 (AC-10
-renumbering) are real and should be resolved in the tasks phase; neither
-requires a design re-review. Fold the C-01 mapper into its own task with a DoD,
-and reconcile the AC-10/AC-10a/AC-10b numbering against the approved
-requirements (as an amendment note or by keeping AC-10 and widening it).
+Rev 4 is implementable, honest about its one sanctioned deviation, and its
+previously-unreviewed deltas (DD-09, the label check) are correct against the
+real Cypher on disk. What this fresh pass adds is the first look at
+`upsertEdge`'s actual MERGE semantics: the `should`-tier reorder story (FR-10)
+needs a real mechanism before anyone builds it (C-02), and step 5 deserves an
+edge-id endpoint-consistency guard symmetrical to its new label check (C-03) —
+both bounded, both foldable into the already-owed tasks touch-up. The two
+process gates (C-01 ratification, C-04 ledger reconciliation) must close
+before execution starts. Approved with those four concerns recorded.

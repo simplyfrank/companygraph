@@ -197,7 +197,7 @@ function AssignPersonaForm({
             style={{ width: "100%", padding: "0.5rem" }}
           />
         </label>
-        {error && <div style={{ color: "var(--danger, #c0392b)" }}>{error}</div>}
+        {error && <div style={{ color: "var(--danger)" }}>{error}</div>}
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <Button tone="primary" disabled={saving}>
             {saving ? "Assigning…" : "Assign"}

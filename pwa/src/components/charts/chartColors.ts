@@ -5,13 +5,13 @@
 
 export const CHART_COLORS = {
   accent:  "var(--accent)",
-  success: "#22c55e",
-  info:    "#3b82f6",
-  warning: "#f59e0b",
-  danger:  "#ef4444",
-  purple:  "#8b5cf6",
-  teal:    "#14b8a6",
-  gray:    "#64748b",
+  success: "var(--cat-4)",
+  info:    "var(--cat-2)",
+  warning: "var(--cat-1)",
+  danger:  "var(--sev-4)",
+  purple:  "var(--cat-3)",
+  teal:    "var(--cat-6)",
+  gray:    "var(--cat-5)",
 } as const;
 
 export const ENTITY_COLORS: Record<string, string> = {

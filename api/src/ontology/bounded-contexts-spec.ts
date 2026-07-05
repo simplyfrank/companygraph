@@ -980,5 +980,51 @@ export const BOUNDED_CONTEXTS_SPEC = {
       to: "BC3 Supplier & Procurement",
       type: "UPSTREAM_OF"
     }
+  ],
+  sharedDomains: [
+    {
+      id: "01934567-7890-abcd-ef01-234567890a01",
+      name: "Shared Reference Data",
+      description: "Reusable reference data components shared across all business models — common master data patterns, taxonomy, and base entities",
+      bounded_contexts: ["BC2 Merchandise Hierarchy"],
+      tags: ["reference-data", "master-data", "shared"]
+    },
+    {
+      id: "01934567-7890-abcd-ef01-234567890a02",
+      name: "Shared Workflow Components",
+      description: "Reusable workflow components for procurement, allocation, and collaboration processes that can be instantiated across business models",
+      bounded_contexts: ["BC3 Supplier & Procurement", "BC7 Allocation & Replenishment", "BC8 Supplier Collaboration"],
+      tags: ["workflow", "process", "shared"]
+    },
+    {
+      id: "01934567-7890-abcd-ef01-234567890a03",
+      name: "Shared Pricing Engine",
+      description: "Pricing and promotion components shared across business models — price zones, markdown rules, and promotion types",
+      bounded_contexts: ["BC4 Pricing & Markdown", "BC5 Promotion Management"],
+      tags: ["pricing", "promotion", "shared"]
+    }
+  ],
+  namespaces: [
+    {
+      id: "01945678-7890-abcd-ef01-234567890b01",
+      name: "Retail Operations",
+      description: "Namespace for retail operations team — product catalogue, merchandise hierarchy, and assortment work",
+      model_id: "01912345-6789-abcd-ef01-234567890abc",
+      bounded_contexts: ["BC1 Product Catalogue", "BC2 Merchandise Hierarchy", "BC6 Assortment & Range"]
+    },
+    {
+      id: "01945678-7890-abcd-ef01-234567890b02",
+      name: "Procurement & Supply Chain",
+      description: "Namespace for procurement and supply chain team — supplier management, allocation, and collaboration work",
+      model_id: "01912345-6789-abcd-ef01-234567890abc",
+      bounded_contexts: ["BC3 Supplier & Procurement", "BC7 Allocation & Replenishment", "BC8 Supplier Collaboration"]
+    },
+    {
+      id: "01945678-7890-abcd-ef01-234567890b03",
+      name: "Pricing & Promotions",
+      description: "Namespace for pricing and promotions team — pricing strategy, markdown, and promotion management work",
+      model_id: "01912345-6789-abcd-ef01-234567890abc",
+      bounded_contexts: ["BC4 Pricing & Markdown", "BC5 Promotion Management"]
+    }
   ]
 } as const;

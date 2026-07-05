@@ -236,6 +236,65 @@ describe("integration: AC-13 openapi covers the KPI/OKR governance surface", () 
   });
 });
 
+// kpi-okr-performance-dashboards T-13 / AC-06 — the three read-only
+// performance aggregate paths (registered by registerPerformancePaths,
+// design §4.6) appear in the document, and the slice-param contract
+// holds at runtime: a malformed hard-validated `domain` → the standard
+// 400 envelope; `?kind=nonsense` → 200 with the `all` slice (N-03),
+// never a 400. Purely additive — every pre-existing assertion above
+// stays green (AC-13).
+describe("integration: AC-06 openapi covers the performance aggregates", () => {
+  test("paths cover the three /analytics/performance/* routes (FR-09)", async () => {
+    const doc = await getDoc();
+    const paths = Object.keys(doc.paths);
+    const required = [
+      "/api/v1/analytics/performance/kpis",
+      "/api/v1/analytics/performance/okr",
+      "/api/v1/analytics/performance/journeys",
+    ];
+    const missing = required.filter((p) => !paths.includes(p));
+    expect(missing).toEqual([]);
+  });
+
+  test("performance schemas ride the shared zod definitions", async () => {
+    const doc = await getDoc();
+    const schemas = getSchemas(doc);
+    const expected = [
+      "PerformanceSliceQuery",
+      "KpiStatusResponse",
+      "OkrPerformanceResponse",
+      "JourneyAxisResponse",
+    ];
+    const missing = expected.filter((n) => !Object.keys(schemas).includes(n));
+    expect(missing).toEqual([]);
+  });
+
+  test("malformed domain → standard 400 {error:{code,message}} envelope", async () => {
+    const res = await fetch(`${BASE_URL}/api/v1/analytics/performance/kpis?domain=not-a-uuid`);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as {
+      error?: { code?: unknown; message?: unknown; details?: unknown };
+    };
+    expect(typeof body.error?.code).toBe("string");
+    expect(typeof body.error?.message).toBe("string");
+  });
+
+  test("?kind=nonsense → 200 with the `all` slice, not 400 (N-03)", async () => {
+    const [nonsense, all] = await Promise.all([
+      fetch(`${BASE_URL}/api/v1/analytics/performance/kpis?kind=nonsense`),
+      fetch(`${BASE_URL}/api/v1/analytics/performance/kpis`),
+    ]);
+    expect(nonsense.status).toBe(200);
+    expect(all.status).toBe(200);
+    const nonsenseRows = ((await nonsense.json()) as { rows: Array<{ kpi_id: string }> }).rows;
+    const allRows = ((await all.json()) as { rows: Array<{ kpi_id: string }> }).rows;
+    // The unknown kind coerces to the `all` slice — same in-scope set.
+    expect(nonsenseRows.map((r) => r.kpi_id).sort()).toEqual(
+      allRows.map((r) => r.kpi_id).sort(),
+    );
+  });
+});
+
 // ---- helpers (typed, no `as any`) ----
 
 interface OpenApiDoc {

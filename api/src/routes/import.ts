@@ -9,6 +9,7 @@ import { upsertNode, checkAttributesAgainstSchema } from "../storage/nodes";
 import { upsertEdge } from "../storage/edges";
 import { error, ok, readJson } from "./_helpers";
 import { ValidationError } from "../errors";
+import { assertNotLifecycleLabel, assertNotLifecycleEdge } from "../storage/model-lifecycle-guard";
 
 // Envelope-level zod (loose on rows — each row is validated individually
 // inside the loop so per-row failures can be collected rather than
@@ -154,10 +155,35 @@ async function dryRunPasses(
     : { imported: { nodes: nodeOk, edges: edgeOk } };
 }
 
-async function realImport(
+// business-model-authoring T-02 (design §4.7, OQ-1 (a)) — exported so
+// handleAuthoringApply can call the proven two-phase collect-and-continue
+// writer in-process with an assembled {nodes, edges} payload. The sole
+// edit is the `export` keyword — body, RowError shape, and
+// handleImport's own use are unchanged.
+export async function realImport(
   driver: ReturnType<typeof getDriver>,
   data: z.infer<typeof importPayloadSchema>,
 ): Promise<{ imported: { nodes: number; edges: number }; errors?: RowError[] }> {
+  // T-23 — Import-route lifecycle guard (requirements pass-2 B-03, option 1).
+  // Pre-scan ALL node + edge rows before any upsertNode/upsertEdge executes.
+  // A single offending row rejects the WHOLE payload with 409
+  // model_lifecycle_route_required and writes nothing. This
+  // payload-atomic rejection is a deliberate divergence from the route's
+  // established per-row error-report contract — correct for a security
+  // guard; do not "fix" it back to row-level partial success.
+  // Lifecycle-aware backup/restore is out of scope (owner: the
+  // requirements rev-5 scope boundary designates).
+  // Add-only: this block is self-contained and modifies neither the
+  // injection nor the per-row upsert loop below.
+  for (const raw of data.nodes) {
+    const label = (raw as Record<string, unknown>)?.label;
+    if (typeof label === "string") assertNotLifecycleLabel(label);
+  }
+  for (const raw of data.edges) {
+    const type = (raw as Record<string, unknown>)?.type;
+    if (typeof type === "string") assertNotLifecycleEdge(type);
+  }
+
   const errors: RowError[] = [];
   let nodeOk = 0, edgeOk = 0;
 
