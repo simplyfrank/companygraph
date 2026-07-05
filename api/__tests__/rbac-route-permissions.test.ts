@@ -54,4 +54,16 @@ describe("kpi-okr-governance RBAC route permissions (NFR-05, DD-12)", () => {
     expect(getRoutePermission("GET", "/api/v1/kpis/audit")).toBe("kpi:read"); // matches kpis/:id
     expect(getRoutePermission("POST", "/api/v1/kpis/archive")).toBeNull(); // POST kpis/:id removed
   });
+
+  // kpi-measurement-alignment FR-18 / AC-13 — param-binding + reconcile routes
+  test("param-binding routes map to kpi:read / kpi:write (never null)", () => {
+    expect(getRoutePermission("POST", "/api/v1/kpis/some-id/param-bindings")).toBe("kpi:write");
+    expect(getRoutePermission("GET", "/api/v1/kpis/some-id/param-bindings")).toBe("kpi:read");
+    expect(getRoutePermission("DELETE", "/api/v1/param-bindings/some-id")).toBe("kpi:write");
+  });
+
+  test("reconcile routes map to kpi:write (never null)", () => {
+    expect(getRoutePermission("POST", "/api/v1/kpis/some-id/reconcile")).toBe("kpi:write");
+    expect(getRoutePermission("POST", "/api/v1/kpis/reconcile-all")).toBe("kpi:write");
+  });
 });

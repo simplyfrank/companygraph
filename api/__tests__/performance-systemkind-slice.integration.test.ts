@@ -7,7 +7,7 @@ import { generateId } from "../src/ids";
 // DD-06 inclusive-any systemKind slice).
 //
 // The retail seed is monochrome (`functional` only — Risk R-3), so the
-// fixtures create KPIs whose CONTRIBUTES_TO paths reach Systems of ALL
+// fixtures create KPIs whose ALIGNED_TO paths reach Systems of ALL
 // THREE kinds. Kind literals come from SYSTEM_KINDS (NFR-05) — never
 // re-declared.
 
@@ -64,13 +64,13 @@ async function rowsFor(query: string): Promise<string[]> {
 
 // Fixture topology (all KPIs flat-scoped to one fresh domain so the
 // ?domain slice isolates this file's fixtures):
-//   kpiFunctional  -CONTRIBUTES_TO-> activityF -USES_SYSTEM-> sysFunctional
-//   kpiAgentic     -CONTRIBUTES_TO-> journeyA  (activityA PART_OF journeyA
+//   kpiFunctional  -ALIGNED_TO-> activityF -USES_SYSTEM-> sysFunctional
+//   kpiAgentic     -ALIGNED_TO-> journeyA  (activityA PART_OF journeyA
 //                                    -USES_SYSTEM-> sysAgentic)
-//   kpiBoth        -CONTRIBUTES_TO-> activityB -USES_SYSTEM-> sysFunctional
+//   kpiBoth        -ALIGNED_TO-> activityB -USES_SYSTEM-> sysFunctional
 //                                              -USES_SYSTEM-> sysAgentic
-//   kpiPredictive  -CONTRIBUTES_TO-> activityP -USES_SYSTEM-> sysPredictive
-//   kpiNoPath      (no CONTRIBUTES_TO at all)
+//   kpiPredictive  -ALIGNED_TO-> activityP -USES_SYSTEM-> sysPredictive
+//   kpiNoPath      (no ALIGNED_TO at all)
 let domainId: string;
 let kpiFunctional: string;
 let kpiAgentic: string;
@@ -87,7 +87,7 @@ beforeAll(async () => {
   const activityF = await createNode("Activity");
   await createEdge(activityF, "USES_SYSTEM", sysFunctional);
   kpiFunctional = await createKpi(domainId);
-  await createEdge(kpiFunctional, "CONTRIBUTES_TO", activityF);
+  await createEdge(kpiFunctional, "ALIGNED_TO", activityF);
 
   const journeyA = await createNode("UserJourney");
   await createEdge(journeyA, "PART_OF", domainId);
@@ -95,18 +95,18 @@ beforeAll(async () => {
   await createEdge(activityA, "PART_OF", journeyA);
   await createEdge(activityA, "USES_SYSTEM", sysAgentic);
   kpiAgentic = await createKpi(domainId);
-  await createEdge(kpiAgentic, "CONTRIBUTES_TO", journeyA);
+  await createEdge(kpiAgentic, "ALIGNED_TO", journeyA);
 
   const activityB = await createNode("Activity");
   await createEdge(activityB, "USES_SYSTEM", sysFunctional);
   await createEdge(activityB, "USES_SYSTEM", sysAgentic);
   kpiBoth = await createKpi(domainId);
-  await createEdge(kpiBoth, "CONTRIBUTES_TO", activityB);
+  await createEdge(kpiBoth, "ALIGNED_TO", activityB);
 
   const activityP = await createNode("Activity");
   await createEdge(activityP, "USES_SYSTEM", sysPredictive);
   kpiPredictive = await createKpi(domainId);
-  await createEdge(kpiPredictive, "CONTRIBUTES_TO", activityP);
+  await createEdge(kpiPredictive, "ALIGNED_TO", activityP);
 
   kpiNoPath = await createKpi(domainId);
 });

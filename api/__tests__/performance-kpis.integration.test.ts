@@ -204,29 +204,27 @@ describe("integration: performance kpis (AC-01 status end-to-end)", () => {
 });
 
 describe("integration: performance kpis (AC-02 slice narrowing)", () => {
-  test("?domain narrows via flat domain_id OR CONTRIBUTES_TO path; ?journey via CONTRIBUTES_TO; filters intersect", async () => {
+  test("?domain narrows via ALIGNED_TO path; ?journey via ALIGNED_TO; filters intersect", async () => {
     const domainId = await createNode("Domain", `perf-domain-${generateId()}`);
     const journeyId = await createNode("UserJourney", `perf-journey-${generateId()}`);
     await createEdge(journeyId, "PART_OF", domainId);
 
-    const flatKpi = await createKpi({ domain_id: domainId }); // (a) flat property
-    const pathKpi = await createKpi({}); // (b) null domain_id + CONTRIBUTES_TO path
-    await createEdge(pathKpi, "CONTRIBUTES_TO", journeyId);
+    // kpi-measurement-alignment FR-04: domain filter uses ALIGNED_TO only
+    // (flat domain_id property is no longer read).
+    const alignedKpi = await createKpi({}); // null domain_id + ALIGNED_TO path
+    await createEdge(alignedKpi, "ALIGNED_TO", journeyId);
     const outsider = await createKpi({});
 
     const byDomain = await getRows(`?domain=${domainId}`);
-    expect(statusOf(byDomain, flatKpi)).toBeDefined();
-    expect(statusOf(byDomain, pathKpi)).toBeDefined(); // OR semantics (C-02)
+    expect(statusOf(byDomain, alignedKpi)).toBeDefined(); // via ALIGNED_TO→journey→PART_OF→domain
     expect(statusOf(byDomain, outsider)).toBeUndefined();
 
     const byJourney = await getRows(`?journey=${journeyId}`);
-    expect(statusOf(byJourney, pathKpi)).toBeDefined();
-    expect(statusOf(byJourney, flatKpi)).toBeUndefined(); // no CONTRIBUTES_TO
+    expect(statusOf(byJourney, alignedKpi)).toBeDefined();
     expect(statusOf(byJourney, outsider)).toBeUndefined();
 
     const combined = await getRows(`?domain=${domainId}&journey=${journeyId}`);
-    expect(statusOf(combined, pathKpi)).toBeDefined();
-    expect(statusOf(combined, flatKpi)).toBeUndefined(); // intersection
+    expect(statusOf(combined, alignedKpi)).toBeDefined(); // intersection
   });
 
   test("unknown well-formed domain id → {rows:[]} (200, not 404)", async () => {

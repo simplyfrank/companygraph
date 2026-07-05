@@ -61,7 +61,7 @@ export function humanizeApiError(raw: string): string {
   return raw;
 }
 
-export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorState({ message, onRetry }: { message: string; onRetry?: (() => void) | undefined }) {
   const human = humanizeApiError(message);
   const showRaw = Boolean(import.meta.env?.DEV) && human !== message;
   return (

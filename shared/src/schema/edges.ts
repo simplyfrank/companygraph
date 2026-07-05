@@ -12,6 +12,8 @@ export const EDGE_TYPES = [
   "PARTICIPATES_IN",  // Persona→UserJourney
   "CONTRIBUTES_TO",   // RETIRED for KPI endpoints (kpi-measurement-alignment FR-05);
                       // edge type kept for backward compat with pre-migration edges.
+  "ALIGNED_TO",      // KPI→UserJourney/Activity/Domain (kpi-measurement-alignment FR-04;
+                    // replaces CONTRIBUTES_TO for KPI alignment)
   "HAS_KEY_RESULT",  // OKRDirective→KeyResult
   "DRIVES_KPI",       // KeyResult→KPI (with baseline→target delta)
   "HAS_BASELINE",    // KPI→OKRDirective (baseline snapshot)
@@ -38,6 +40,7 @@ export const EDGE_ENDPOINTS = {
   PERFORMS_AS:     [["Persona", "Role"]],
   PARTICIPATES_IN: [["Persona", "UserJourney"]],
   CONTRIBUTES_TO:  [] as const, // RETIRED — KPI endpoints migrated to ALIGNED_TO (FR-05)
+  ALIGNED_TO:      [["KPI", "UserJourney"], ["KPI", "Activity"], ["KPI", "Domain"]], // FR-04
   HAS_KEY_RESULT:  [["OKRDirective", "KeyResult"]],
   DRIVES_KPI:      [["KeyResult", "KPI"]],
   HAS_BASELINE:    [["KPI", "OKRDirective"]],
