@@ -1,126 +1,120 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 import { generateId } from "../src/ids";
-import { getDriver } from "../src/neo4j/driver";
 
 // kpi-measurement-alignment AC-04, AC-05 — performance aggregate uses
 // ALIGNED_TO (not CONTRIBUTES_TO) and shows real status (not no_data)
-// when a measurement is recorded via REST (dual-write populates Neo4j).
+// when a measurement exists as a Neo4j :KPIMeasurement node.
+//
+// Fixture pattern mirrors performance-kpis.integration.test.ts:
+// nodes/edges/measurements seeded via direct driver, not REST.
 
 const API_BASE = "http://127.0.0.1:8787/api/v1";
 
-const kpiIds: string[] = [];
-const domainIds: string[] = [];
+const cleanupIds: string[] = [];
 
-async function createKpi(name: string, targetValue: number, direction: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/kpis`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      name,
-      category: "efficiency",
-      unit: "%",
-      target_value: targetValue,
-      target_direction: direction,
-      measurement_frequency: "daily",
-    }),
-  });
-  const body = await res.json();
-  kpiIds.push(body.id);
-  return body.id;
+async function runWrite(cypher: string, params: Record<string, unknown>): Promise<void> {
+  const session = getDriver().session({ defaultAccessMode: "WRITE" });
+  try {
+    await session.run(cypher, params);
+  } finally {
+    await session.close();
+  }
 }
 
-async function createDomain(name: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/nodes`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ label: "Domain", name, description: "test domain" }),
-  });
-  const body = await res.json();
-  domainIds.push(body.id);
-  return body.id;
+async function createNode(label: string, name: string): Promise<string> {
+  const id = generateId();
+  cleanupIds.push(id);
+  await runWrite(
+    `CREATE (:\`${label}\` {id: $id, name: $name, description: "perf fixture", attributes_json: "{}", createdAt: $now, updatedAt: $now})`,
+    { id, name, now: new Date().toISOString() },
+  );
+  return id;
 }
 
-async function createAlignment(kpiId: string, targetType: string, targetId: string): Promise<void> {
-  await fetch(`${API_BASE}/kpi-alignments`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      kpi_id: kpiId,
-      target_type: targetType,
-      target_id: targetId,
-      weight: 1.0,
-      attribution_type: "direct",
-    }),
-  });
+async function createEdge(fromId: string, type: string, toId: string): Promise<void> {
+  await runWrite(
+    `MATCH (a {id: $fromId}), (b {id: $toId}) CREATE (a)-[:\`${type}\` {id: $edgeId}]->(b)`,
+    { fromId, toId, edgeId: generateId() },
+  );
 }
 
-async function postMeasurement(kpiId: string, value: number): Promise<void> {
-  await fetch(`${API_BASE}/kpi-measurements`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      kpi_id: kpiId,
-      measured_at: new Date().toISOString(),
-      value,
-    }),
-  });
+async function createKpi(targetValue: number, direction: string): Promise<string> {
+  const id = generateId();
+  cleanupIds.push(id);
+  await runWrite(
+    `CREATE (k:KPI {id: $id, name: $name, category: "efficiency", unit: "%",
+      target_value: $targetValue, target_direction: $direction,
+      measurement_frequency: "daily", created_at: $now, updated_at: $now,
+      archived_at: null})`,
+    { id, name: `perf-align-${id}`, targetValue, direction, now: new Date().toISOString() },
+  );
+  return id;
+}
+
+async function seedMeasurement(kpiId: string, value: number): Promise<void> {
+  const id = generateId();
+  cleanupIds.push(id);
+  await runWrite(
+    `CREATE (:KPIMeasurement {id: $id, kpi_id: $kpiId, measured_at: $measuredAt, value: $value})`,
+    { id, kpiId, measuredAt: new Date().toISOString(), value },
+  );
+}
+
+interface KpiRow {
+  kpi_id: string;
+  status: string;
+  latest_value: number | null;
+}
+
+async function getRows(query: string): Promise<KpiRow[]> {
+  const res = await fetch(`${API_BASE}/analytics/performance/kpis${query}`);
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { rows: KpiRow[] };
+  return body.rows;
+}
+
+function statusOf(rows: KpiRow[], kpiId: string): KpiRow | undefined {
+  return rows.find((r) => r.kpi_id === kpiId);
 }
 
 describe("integration: performance alignment via ALIGNED_TO (AC-04, AC-05)", () => {
-  beforeAll(async () => {
-    // Nothing special needed — Neo4j should be running
-  });
-
   afterAll(async () => {
-    const driver = getDriver();
-    const session = driver.session();
+    const session = getDriver().session();
     try {
-      // Clean up KPIs
-      for (const id of kpiIds) {
-        await session.run("MATCH (k:KPI {id: $id}) DETACH DELETE k", { id });
-      }
-      // Clean up domains
-      for (const id of domainIds) {
-        await session.run("MATCH (d:Domain {id: $id}) DETACH DELETE d", { id });
-      }
-      // Clean up measurements
-      for (const id of kpiIds) {
-        await session.run("MATCH (m:KPIMeasurement {kpi_id: $id}) DETACH DELETE m", { id });
+      for (const id of cleanupIds) {
+        await session.run("MATCH (n) WHERE n.id = $id DETACH DELETE n", { id });
       }
     } finally {
       await session.close();
     }
+    _resetDriver();
+    await closeDriver();
   });
 
-  test("AC-04: performance shows real status (not no_data) for KPI with REST measurement", async () => {
-    const domainId = await createDomain("perf-test-domain-1");
-    const kpiId = await createKpi("perf-test-kpi-1", 90, "higher_is_better");
-    await createAlignment(kpiId, "domain", domainId);
-    await postMeasurement(kpiId, 95); // above target → on_target
+  test("AC-04: performance shows real status (not no_data) for KPI with ALIGNED_TO + measurement", async () => {
+    const domainId = await createNode("Domain", "perf-align-domain-1");
+    const kpiId = await createKpi(90, "higher_is_better");
+    await createEdge(kpiId, "ALIGNED_TO", domainId);
+    await seedMeasurement(kpiId, 95); // above target → on_target
 
-    const res = await fetch(`${API_BASE}/analytics/performance/kpis?domain=${domainId}`);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.rows).toBeDefined();
-    const kpi = data.rows.find((r: any) => r.kpi_id === kpiId);
+    const rows = await getRows(`?domain=${domainId}`);
+    const kpi = statusOf(rows, kpiId);
     expect(kpi).toBeDefined();
-    expect(kpi.status).not.toBe("no_data"); // AC-04 — dual-write makes it visible
-    expect(kpi.latest_value).toBe(95);
-    expect(kpi.status).toBe("on_target"); // 95 >= 90
+    expect(kpi!.status).not.toBe("no_data"); // AC-04
+    expect(kpi!.latest_value).toBe(95);
+    expect(kpi!.status).toBe("on_target"); // 95 >= 90
   });
 
-  test("AC-05: domain filter traverses ALIGNED_TO (KPI with ALIGNED_TO but no domain_id)", async () => {
-    const domainId = await createDomain("perf-test-domain-2");
-    const kpiId = await createKpi("perf-test-kpi-2", 100, "lower_is_better");
-    // Create ALIGNED_TO edge (not domain_id property)
-    await createAlignment(kpiId, "domain", domainId);
-    await postMeasurement(kpiId, 80); // below target → on_target for lower_is_better
+  test("AC-05: domain filter traverses ALIGNED_TO (KPI with ALIGNED_TO, no domain_id property)", async () => {
+    const domainId = await createNode("Domain", "perf-align-domain-2");
+    const kpiId = await createKpi(100, "lower_is_better");
+    await createEdge(kpiId, "ALIGNED_TO", domainId);
+    await seedMeasurement(kpiId, 80); // below target → on_target for lower_is_better
 
-    const res = await fetch(`${API_BASE}/analytics/performance/kpis?domain=${domainId}`);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    const kpi = data.rows.find((r: any) => r.kpi_id === kpiId);
+    const rows = await getRows(`?domain=${domainId}`);
+    const kpi = statusOf(rows, kpiId);
     expect(kpi).toBeDefined(); // AC-05 — found via ALIGNED_TO traversal
-    expect(kpi.status).toBe("on_target"); // 80 <= 100
+    expect(kpi!.status).toBe("on_target"); // 80 <= 100
   });
 });

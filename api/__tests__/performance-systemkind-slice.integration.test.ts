@@ -88,6 +88,7 @@ beforeAll(async () => {
   await createEdge(activityF, "USES_SYSTEM", sysFunctional);
   kpiFunctional = await createKpi(domainId);
   await createEdge(kpiFunctional, "ALIGNED_TO", activityF);
+  await createEdge(kpiFunctional, "ALIGNED_TO", domainId); // domain slice membership
 
   const journeyA = await createNode("UserJourney");
   await createEdge(journeyA, "PART_OF", domainId);
@@ -95,20 +96,23 @@ beforeAll(async () => {
   await createEdge(activityA, "PART_OF", journeyA);
   await createEdge(activityA, "USES_SYSTEM", sysAgentic);
   kpiAgentic = await createKpi(domainId);
-  await createEdge(kpiAgentic, "ALIGNED_TO", journeyA);
+  await createEdge(kpiAgentic, "ALIGNED_TO", journeyA); // already reaches domain via journeyA PART_OF domain
 
   const activityB = await createNode("Activity");
   await createEdge(activityB, "USES_SYSTEM", sysFunctional);
   await createEdge(activityB, "USES_SYSTEM", sysAgentic);
   kpiBoth = await createKpi(domainId);
   await createEdge(kpiBoth, "ALIGNED_TO", activityB);
+  await createEdge(kpiBoth, "ALIGNED_TO", domainId); // domain slice membership
 
   const activityP = await createNode("Activity");
   await createEdge(activityP, "USES_SYSTEM", sysPredictive);
   kpiPredictive = await createKpi(domainId);
   await createEdge(kpiPredictive, "ALIGNED_TO", activityP);
+  await createEdge(kpiPredictive, "ALIGNED_TO", domainId); // domain slice membership
 
   kpiNoPath = await createKpi(domainId);
+  await createEdge(kpiNoPath, "ALIGNED_TO", domainId); // domain slice membership, but no system path
 });
 
 afterAll(async () => {

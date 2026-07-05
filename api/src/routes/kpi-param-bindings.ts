@@ -150,7 +150,9 @@ export async function handleParamBindingDelete(req: Request, bindingId: string):
       { id: bindingId },
     );
 
-    if (result.records[0]?.get("deleted")?.toNumber() === 0) {
+    const deletedRaw = result.records[0]?.get("deleted");
+    const deletedCount = typeof deletedRaw?.toNumber === "function" ? deletedRaw.toNumber() : Number(deletedRaw ?? 0);
+    if (deletedCount === 0) {
       return error(404, "not_found", "param binding not found", { id: bindingId });
     }
 

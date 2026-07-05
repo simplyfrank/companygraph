@@ -54,7 +54,8 @@ describe("integration: alignment migration (AC-06)", () => {
          DELETE old
          RETURN count(old) AS converted`,
       );
-      const converted = result.records[0]?.get("converted")?.toNumber() ?? 0;
+      const convertedRaw = result.records[0]?.get("converted");
+      const converted = typeof convertedRaw?.toNumber === "function" ? convertedRaw.toNumber() : Number(convertedRaw ?? 0);
       expect(converted).toBeGreaterThanOrEqual(1);
 
       // Verify ALIGNED_TO edge exists with preserved weight
@@ -73,7 +74,9 @@ describe("integration: alignment migration (AC-06)", () => {
         `MATCH (k:KPI {id: $kpiId})-[r:CONTRIBUTES_TO]->() RETURN count(r) AS cnt`,
         { kpiId },
       );
-      expect(remaining.records[0]?.get("cnt")?.toNumber()).toBe(0);
+      const remainingRaw = remaining.records[0]?.get("cnt");
+      const remainingCount = typeof remainingRaw?.toNumber === "function" ? remainingRaw.toNumber() : Number(remainingRaw ?? 0);
+      expect(remainingCount).toBe(0);
 
       // Run migration again — idempotent (no new edges, no error)
       const result2 = await session.run(
@@ -88,14 +91,18 @@ describe("integration: alignment migration (AC-06)", () => {
          DELETE old
          RETURN count(old) AS converted`,
       );
-      expect(result2.records[0]?.get("converted")?.toNumber()).toBe(0);
+      const converted2Raw = result2.records[0]?.get("converted");
+      const converted2 = typeof converted2Raw?.toNumber === "function" ? converted2Raw.toNumber() : Number(converted2Raw ?? 0);
+      expect(converted2).toBe(0);
 
       // Still exactly one ALIGNED_TO edge
       const aligned2 = await session.run(
         `MATCH (k:KPI {id: $kpiId})-[r:ALIGNED_TO]->() RETURN count(r) AS cnt`,
         { kpiId },
       );
-      expect(aligned2.records[0]?.get("cnt")?.toNumber()).toBe(1);
+      const cnt2Raw = aligned2.records[0]?.get("cnt");
+      const cnt2 = typeof cnt2Raw?.toNumber === "function" ? cnt2Raw.toNumber() : Number(cnt2Raw ?? 0);
+      expect(cnt2).toBe(1);
     } finally {
       await session.close();
     }

@@ -1,63 +1,65 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 import { generateId } from "../src/ids";
-import { getDriver } from "../src/neo4j/driver";
 
 // kpi-measurement-alignment AC-07, AC-08 — param-binding CRUD + reconcile.
+// Uses direct Neo4j driver for fixture setup (same pattern as
+// performance-kpis.integration.test.ts), REST only for the routes being tested.
 
 const API_BASE = "http://127.0.0.1:8787/api/v1";
 
-const kpiIds: string[] = [];
-const activityIds: string[] = [];
+const cleanupIds: string[] = [];
 
-async function createKpi(name: string, targetValue: number): Promise<string> {
-  const res = await fetch(`${API_BASE}/kpis`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      name,
-      category: "efficiency",
-      unit: "%",
-      target_value: targetValue,
-      target_direction: "higher_is_better",
-      measurement_frequency: "daily",
-    }),
-  });
-  const body = await res.json();
-  kpiIds.push(body.id);
-  return body.id;
+async function runWrite(cypher: string, params: Record<string, unknown>): Promise<void> {
+  const session = getDriver().session({ defaultAccessMode: "WRITE" });
+  try {
+    await session.run(cypher, params);
+  } finally {
+    await session.close();
+  }
 }
 
-async function createActivity(name: string, attrs: Record<string, unknown>): Promise<string> {
-  const res = await fetch(`${API_BASE}/nodes`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ label: "Activity", name, description: "test", attributes: attrs }),
-  });
-  const body = await res.json();
-  activityIds.push(body.id);
-  return body.id;
+async function createKpi(targetValue: number): Promise<string> {
+  const id = generateId();
+  cleanupIds.push(id);
+  await runWrite(
+    `CREATE (k:KPI {id: $id, name: $name, category: "efficiency", unit: "%",
+      target_value: $targetValue, target_direction: "higher_is_better",
+      measurement_frequency: "daily", created_at: $now, updated_at: $now,
+      archived_at: null})`,
+    { id, name: `binding-${id}`, targetValue, now: new Date().toISOString() },
+  );
+  return id;
+}
+
+async function createActivity(attrs: Record<string, unknown>): Promise<string> {
+  const id = generateId();
+  cleanupIds.push(id);
+  await runWrite(
+    `CREATE (a:Activity {id: $id, name: $name, description: "test",
+      attributes_json: $attrsJson, createdAt: $now, updatedAt: $now})`,
+    { id, name: `activity-${id}`, attrsJson: JSON.stringify(attrs), now: new Date().toISOString() },
+  );
+  return id;
 }
 
 describe("integration: param-bindings CRUD + reconcile (AC-07, AC-08)", () => {
-  const driver = getDriver();
-
   afterAll(async () => {
-    const session = driver.session();
+    const session = getDriver().session();
     try {
-      for (const id of kpiIds) {
-        await session.run("MATCH (k:KPI {id: $id}) DETACH DELETE k", { id });
-      }
-      for (const id of activityIds) {
-        await session.run("MATCH (a:Activity {id: $id}) DETACH DELETE a", { id });
+      for (const id of cleanupIds) {
+        await session.run("MATCH (n) WHERE n.id = $id DETACH DELETE n", { id });
       }
     } finally {
       await session.close();
     }
+    _resetDriver();
+    await closeDriver();
   });
 
   test("AC-07: POST/GET/DELETE param-bindings", async () => {
-    const kpiId = await createKpi("binding-test-kpi", 50);
-    const activityId = await createActivity("binding-test-activity", { throughputTarget: 75 });
+    const kpiId = await createKpi(50);
+    const activityId = await createActivity({ throughputTarget: 75 });
 
     // POST — create binding
     const postRes = await fetch(`${API_BASE}/kpis/${kpiId}/param-bindings`, {
@@ -99,8 +101,8 @@ describe("integration: param-bindings CRUD + reconcile (AC-07, AC-08)", () => {
   });
 
   test("AC-08: POST reconcile updates KPI param from entity attribute", async () => {
-    const kpiId = await createKpi("reconcile-test-kpi", 50);
-    const activityId = await createActivity("reconcile-test-activity", { throughputTarget: 80 });
+    const kpiId = await createKpi(50);
+    const activityId = await createActivity({ throughputTarget: 80 });
 
     // Create binding: target_value ← activity.attributes.throughputTarget
     const postRes = await fetch(`${API_BASE}/kpis/${kpiId}/param-bindings`, {
@@ -130,10 +132,11 @@ describe("integration: param-bindings CRUD + reconcile (AC-07, AC-08)", () => {
     expect(reconciled.new_value).toBe(80);
 
     // Verify KPI target_value was updated in Neo4j
-    const session = driver.session();
+    const session = getDriver().session();
     try {
       const result = await session.run("MATCH (k:KPI {id: $id}) RETURN k.target_value AS tv", { id: kpiId });
-      expect(result.records[0]?.get("tv")).toBe(80);
+      const tv = result.records[0]?.get("tv");
+      expect(tv).toBe(80);
     } finally {
       await session.close();
     }

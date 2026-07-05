@@ -868,7 +868,7 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
     if (method === "GET") return handleParamBindingsGet(req, id);
   }
   const paramBindingOne = sub.match(/^param-bindings\/([^/]+)$/);
-  if (paramBindingOne && method === "DELETE") return handleParamBindingDelete(req, decodeURIComponent(paramBindingOne[1]!));
+  if (paramBindingOne && method === "DELETE") return handleParamBindingDelete(req, paramBindingOne[1]!);
 
   // KPI reconciliation routes (kpi-measurement-alignment FR-11)
   if (sub === "kpis/reconcile-all" && method === "POST") return handleKpiReconcileAll(req);
