@@ -43,10 +43,18 @@ export function ModelCanvas({ route }: { route: Route }) {
         authoring.graph(mid),
         storiesApi.list(mid),
         // Domains come from the graph's journey domains, but we also
-        // need them for the domain selector — fetch via query API
-        fetch(`/api/v1/query/listDomains`).then((r) => r.json()) as Promise<
-          Array<{ id: string; name: string; description: string }>
-        >,
+        // need them for the domain selector — fetch via query API.
+        // The query endpoint wraps rows in a { rows: [...] } envelope
+        // (graph-core NFR-05); unwrap it (tolerating a bare array too).
+        fetch(`/api/v1/query/listDomains`)
+          .then((r) => r.json())
+          .then((body) =>
+            (Array.isArray(body) ? body : body?.rows ?? []) as Array<{
+              id: string;
+              name: string;
+              description: string;
+            }>,
+          ),
         modulesApi.list(),
       ]);
       setGraph(g);
@@ -66,6 +74,7 @@ export function ModelCanvas({ route }: { route: Route }) {
 
       setState("ready");
     } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
       setErrorMsg(err instanceof Error ? err.message : String(err));
       setState("error");
     }
@@ -128,7 +137,8 @@ export function ModelCanvas({ route }: { route: Route }) {
 
   if (state === "loading") return <Loading what="authoring graph" />;
   if (state === "empty") return <ViewHeader title="Model canvas" lede="Select or create a model first" />;
-  if (state === "error") return <ErrorState message={errorMsg} />;
+  if (state === "error")
+    return <ErrorState message={errorMsg} onRetry={modelId ? () => fetchAll(modelId) : undefined} />;
   if (!graph) return <Loading what="authoring graph" />;
 
   return (

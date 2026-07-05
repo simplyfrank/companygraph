@@ -26,7 +26,12 @@ export function useFetch<T>(
     fn(controller.signal).then(
       (data) => { if (!controller.signal.aborted) setState({ status: "ok", data }); },
       (err) => {
-        if (controller.signal.aborted) return;
+        // Swallow cancellations from ANY source, not just this controller:
+        // page navigation or the api client's own timeout signal produces an
+        // AbortError whose abort was not triggered by our controller, so
+        // controller.signal.aborted is false. Rendering it as an app error
+        // was the "signal is aborted without reason" leak on nav/unmount.
+        if (controller.signal.aborted || (err as Error)?.name === "AbortError") return;
         setState({ status: "error", error: String((err as Error)?.message ?? err) });
       },
     );

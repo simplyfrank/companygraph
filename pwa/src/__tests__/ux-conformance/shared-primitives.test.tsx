@@ -1,7 +1,7 @@
 // pwa-ux-conformance T-02 — shared primitives unit tests.
 // Verifies EmptyState and ViewRegion render the expected markup.
 
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from "vitest";
 import { renderToString } from "react-dom/server";
 import { EmptyState, ViewRegion } from "../../views/_shared";
 

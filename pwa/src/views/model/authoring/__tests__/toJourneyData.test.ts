@@ -2,7 +2,7 @@
 // Fixture graph with two ordered activities, a role executing both, a
 // system on one, a PRECEDES between them.
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import type { AuthoringGraph } from "@companygraph/shared/schema/authoring";
 import { toJourneyData } from "../toJourneyData";
 

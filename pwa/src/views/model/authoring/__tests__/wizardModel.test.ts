@@ -1,7 +1,7 @@
 // business-model-authoring T-07 — wizard model unit tests (design §3.4).
 // Pure reducer + canAdvance + resumeStep assertions. No I/O.
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import type { AuthoringGraph } from "@companygraph/shared/schema/authoring";
 import {
   wizardReducer,

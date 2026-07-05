@@ -20,8 +20,66 @@ export function Loading({ what }: { what: string }) {
   return <div className={styles.state}>Loading {what}…</div>;
 }
 
-export function ErrorState({ message }: { message: string }) {
-  return <div className={`${styles.state} ${styles.error}`} data-testid="error-state">Error: {message}</div>;
+// Map error codes from the API's ErrorEnvelope to human sentences. The api
+// client throws `Error("<status> <statusText> <path> <json-body>")`, so raw
+// messages leak the wire payload into the UI unless humanized here.
+const HUMAN_ERROR: Record<string, string> = {
+  not_found: "We couldn't find that data.",
+  neo4j_unreachable: "The graph database is temporarily unavailable — please retry.",
+  internal_error: "Something went wrong on the server.",
+  internal: "Something went wrong on the server.",
+  invalid_payload: "That request wasn't valid.",
+  unauthorized: "Please sign in to view that.",
+  forbidden: "You don't have permission for that.",
+  model_lifecycle_route_required:
+    "That change must go through the model lifecycle actions, not a direct edit.",
+};
+
+// Turn a raw api-client error string into a human, non-technical sentence.
+// Exported so views can reuse it; ErrorState calls it automatically.
+export function humanizeApiError(raw: string): string {
+  if (!raw) return "Something went wrong.";
+  if (/abort/i.test(raw)) return "The request was cancelled — please retry.";
+  const brace = raw.indexOf("{");
+  if (brace !== -1) {
+    try {
+      const parsed = JSON.parse(raw.slice(brace));
+      const code: string | undefined = parsed?.error?.code;
+      const msg: string | undefined = parsed?.error?.message;
+      if (code === "not_found" && msg === "no route") return "This data isn't available yet.";
+      if (code && HUMAN_ERROR[code]) return HUMAN_ERROR[code];
+      if (msg && msg.length < 120 && !msg.startsWith("/")) return msg;
+    } catch {
+      /* fall through to status heuristics */
+    }
+  }
+  const status = raw.match(/^(\d{3})\s/)?.[1];
+  if (status === "404") return "We couldn't find that data.";
+  if (status === "403") return "You don't have permission for that.";
+  if (status === "401") return "Please sign in to view that.";
+  if (status && status.startsWith("5")) return "The server had a problem — please retry.";
+  return raw;
+}
+
+export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const human = humanizeApiError(message);
+  const showRaw = Boolean(import.meta.env?.DEV) && human !== message;
+  return (
+    <div className={`${styles.state} ${styles.error}`} data-testid="error-state" role="alert">
+      <span>{human}</span>
+      {onRetry && (
+        <button type="button" className={styles.retry} onClick={onRetry} data-testid="error-retry">
+          Retry
+        </button>
+      )}
+      {showRaw && (
+        <details className={styles.errRaw}>
+          <summary>Technical details</summary>
+          <code>{message}</code>
+        </details>
+      )}
+    </div>
+  );
 }
 
 export function EmptyState({ what }: { what: string }) {
