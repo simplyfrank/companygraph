@@ -89,7 +89,7 @@ export function Modal({ isOpen, onClose, title, children, disableFocusTrap = fal
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backgroundColor: "color-mix(in oklch, var(--fg) 50%, transparent)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

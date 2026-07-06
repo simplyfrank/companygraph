@@ -221,7 +221,7 @@ export function Typeahead({
               color: "var(--fg)",
               border: "1px solid var(--rule)",
               borderRadius: 4,
-              boxShadow: "0 6px 16px rgba(0,0,0,0.18)",
+              boxShadow: "0 6px 16px color-mix(in oklch, var(--fg) 18%, transparent)",
               zIndex: 9999,
               fontSize: 13,
             }}

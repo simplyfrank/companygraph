@@ -204,7 +204,7 @@ export function SearchPalette({ forceOpen }: Props = {}) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0, 0, 0, 0.35)",
+        background: "color-mix(in oklch, var(--fg) 35%, transparent)",
         zIndex: 9999,
         display: "flex",
         alignItems: "flex-start",
@@ -225,7 +225,7 @@ export function SearchPalette({ forceOpen }: Props = {}) {
           color: "var(--fg)",
           border: "1px solid var(--rule)",
           borderRadius: 8,
-          boxShadow: "0 10px 32px rgba(0,0,0,0.25)",
+          boxShadow: "0 10px 32px color-mix(in oklch, var(--fg) 25%, transparent)",
           overflow: "hidden",
         }}
       >

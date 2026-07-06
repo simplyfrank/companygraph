@@ -614,7 +614,7 @@ export function JourneyCanvas({
     >
       <defs>
         <marker id="jc-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill="oklch(36% 0.12 250)" />
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--edge-arrow)" />
         </marker>
       </defs>
 

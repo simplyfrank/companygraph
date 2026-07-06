@@ -37,7 +37,7 @@ export function KpiTrendChart({ data, kpiName, unit }: KpiTrendChartProps) {
           border: "1px solid var(--border)",
           borderRadius: "8px",
           padding: "12px",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+          boxShadow: "0 4px 12px color-mix(in oklch, var(--fg) 10%, transparent)",
           color: "var(--fg)",
           fontSize: "13px",
         }}>
