@@ -1,5 +1,5 @@
 # Spec: pwa-ux-conformance
-**Size**: large | **Created**: 2026-07-04 | **Current Phase**: approved — execution deferred
+**Size**: large | **Created**: 2026-07-04 | **Current Phase**: execution:complete
 
 | Phase | Status | Approved By | Date |
 |-------|--------|-------------|------|
@@ -9,7 +9,12 @@
 | Design Review | approve with notes (pass 2: 0 blockers; pass-1 5 concerns + 3 nits all resolved; 1 must-carry concern C2-01) | - | 2026-07-04 |
 | Tasks | approved (rev 2) | review-spec.md pass 2 | 2026-07-04 |
 | Task Review | approve (full-spec review-spec.md, pass 2) | - | 2026-07-04 |
-| Execution | not started — deferred until the studio build lands (see requirements §Dependencies) | - | - |
+| Execution | **complete** — landed in two passes: the studio build independently remediated all 70 views (ViewRegion/EmptyState/token ramps); a final 13-file shared-component token sweep closed the remainder on main (commit 82a7814). Full in-scope sweep: 220 pass / 0 fail. | orchestrator | 2026-07-06 |
+
+**Verification (execution):**
+- `verified_at`: 2026-07-06
+- `verification_artifact`: `scripts/ux-conformance-sweep.sh` exits 0 across all in-scope files (views `.tsx`+`.module.css`, `components/**` incl. `charts/`, `styles/*`, `_shared.*`); `bun run typecheck` exits 0 (api + pwa); `cd pwa && bun run test` 407 pass / 0 fail (116 files) — FR-08 behavior oracle unbroken; 13-file remediation diff is 27/27 pure color-token swaps (behavior-preserving).
+- **Residual (out of scope, flagged to studio owner):** `pwa/src/views/model/SpecExport.module.css` references 4 undeclared tokens (`--weight-bold`, `--text-strong`, `--surface-warn`, `--type-sm-size`) — a `model/**` studio file owned by `requirements-export`, not this spec. Its own ACs mandate UX conformance; the fix is either declaring those tokens in the stitch source or swapping to existing ones. Excluded from this spec's sweep (which waives `model/**`).
 
 **review_passes**: 2 (cap reached)
 
