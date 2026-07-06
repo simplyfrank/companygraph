@@ -38,9 +38,16 @@ check_spec() {
     return 1
   fi
 
+  # Extract only DEFINED requirements — an FR-/AC- that is the first token of
+  # a definition line (a `| FR-01 |` table row, a `### FR-01` heading, or a
+  # `- **FR-01**` list item). This deliberately excludes (a) `NFR-11`, whose
+  # `FR-11` substring a bare `FR-[0-9]+` match would wrongly capture, and
+  # (b) mid-line CROSS-REFERENCES to other specs' requirements (e.g.
+  # "(graph-core FR-16)") which are not this spec's own requirements. Both
+  # produced spurious "never reaches tasks" gaps on complete specs.
   local frs acs
-  frs="$(grep -ohE 'FR-[0-9]+' "$req" | sort -u)"
-  acs="$(grep -ohE 'AC-[0-9]+' "$req" | sort -u)"
+  frs="$(grep -oE '^[|#*[:space:]-]*FR-[0-9]+' "$req" | grep -oE 'FR-[0-9]+' | sort -u)"
+  acs="$(grep -oE '^[|#*[:space:]-]*AC-[0-9]+' "$req" | grep -oE 'AC-[0-9]+' | sort -u)"
 
   # FR flow: requirements -> design (if present) -> tasks
   local fr
@@ -73,15 +80,24 @@ check_spec() {
     # Split tasks.md into blocks per task heading and require a Verification
     # line (test path or manual:) inside each block.
     local missing
+    # A task passes when its block carries BOTH a Verification label and a
+    # concrete proof token somewhere in the block. Scanning block-wide (not
+    # just the Verification line) tolerates multi-line verification prose that
+    # cites the test path on a following line. The token set covers the house
+    # verification styles: a *.test./*.spec. path, an inline test(, a
+    # __tests__ dir, `bun test`/`bun run test`, playwright/vitest, a curl
+    # repro, or an explicit "manual:" procedure.
     missing="$(awk '
+      function proof() { return (hasV && hasTok) }
       /^#{2,4} +T-[0-9]+/ {
-        if (intask && !ok) print id
-        intask = 1; ok = 0; id = $0
+        if (intask && !proof()) print id
+        intask = 1; hasV = 0; hasTok = 0; id = $0
         sub(/^#+ +/, "", id); sub(/ .*$/, "", id)
         next
       }
-      intask && /[Vv]erification/ && (/manual:/ || /\.test\./ || /\.spec\./ || /test\(/ || /__tests__/) { ok = 1 }
-      END { if (intask && !ok) print id }
+      intask && /[Vv]erification/ { hasV = 1 }
+      intask && (/manual:/ || /\.test\./ || /\.spec\./ || /test\(/ || /__tests__/ || /bun (run )?test/ || /playwright/ || /vitest/ || /curl / || /typecheck/ || /bun build/ || /design-conformance/) { hasTok = 1 }
+      END { if (intask && !proof()) print id }
     ' "$tsk")"
     if [ -n "$missing" ]; then
       local t

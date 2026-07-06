@@ -68,6 +68,41 @@ surface + `#/exec/performance`; live-Neo4j integration + `bun run dev` e2e
 recorded `GET /api/v1/roll-down/contributions` runs invalid Cypher and 500s —
 owned by a follow-up fix on the adopted roll-down surface.
 
+## governance-backfill — auth + risk/compliance specs (2026-07-06)
+
+Closes the last two **owed backfill specs** for adopted-but-ungoverned
+surfaces, surfaced by the spec-completeness audit. Both authored + reviewed
+via the `spec-app` pipeline (plan mode — **specs only, no code**); every phase
+`approve`, 0 blockers, traceability clean.
+
+| Slug | Tier | Size | Req | Design | Tasks | Execution |
+|------|------|------|-----|--------|-------|-----------|
+| `auth-hardening` | foundation | large | approve | approve | approve (13) | planning-complete (deferred) |
+| `risk-compliance-change` | foundation | large | approve | approve | approve (11) | planning-complete (deferred) |
+
+- **`auth-hardening`** formalizes the as-built auth/RBAC/tenancy subsystem
+  (`api/src/auth/*`, `api/src/middleware/*`, the central `router.ts` gate) and
+  specs the **security fix** for the `oauth.ts` unverified-JWT dev fallback —
+  it must fail-closed outside an explicit dev opt-in (extracted to a new
+  `api/src/auth/dev-fallback.ts`); gates any non-local deploy. Adds auth
+  decision-path integration tests.
+- **`risk-compliance-change`** governs the Postgres-backed
+  `risk-register`/`risk-compliance`/`compliance-rules`/`change-requests` routes
+  with a documented data model, gap closure, and CI-Postgres integration tests.
+- **Coordination (at implementation time, not now):** both additively touch
+  the shared hotspots `router.ts` / `errors.ts` / `routes/openapi.ts`; risk
+  also touches `api/src/ontology/storage/` (ontology-manager's area, additive).
+  No hard file-ownership conflicts. Execution is deferred pending user go —
+  `auth-hardening`'s dev-fallback change is security-sensitive.
+
+**Traceability tooling hardened (2026-07-06):** `scripts/spec/spec-traceability.sh`
+had two false-positive bugs the audit exposed — its `FR-[0-9]+` extraction
+matched inside `NFR-11` and captured cross-spec FR references, and its
+verification detector missed `bun test`/`typecheck`/`design-conformance`
+proofs. Fixed to extract only *defined* FR/AC rows and recognize the house
+verification styles. Post-fix sweep: **every completed spec passes**; the only
+FAIL is `kpi-measurement-alignment` (in-flight `requirements:draft`).
+
 ## pwa-ux-conformance — governed UI remediation spec (2026-07-04)
 
 A large **conformance-remediation** spec (not a rewrite — user decision) that
