@@ -1,10 +1,12 @@
-// Bookmark menu (FR-M03) — stub.
+// Bookmark menu (FR-M03).
 //
-// The server-side bookmark endpoint isn't routed in v1 yet (see
-// design.md DD-08: chat_bookmarks table exists but the REST handler
-// is deferred). The button is wired and logs to console so the
-// affordance is visible during development; replace the click
-// handler with `api.chat.bookmark(...)` when the endpoint lands.
+// POST /api/v1/chat/bookmarks — creates a bookmark for the current
+// conversation + question. The chat_bookmarks table and persistence
+// layer already existed (DD-08); the REST route was added alongside
+// the existing chat message routes.
+
+import { useState } from "react";
+import { api } from "../../api";
 
 export interface BookmarkMenuProps {
   conversation_id?: string;
@@ -12,22 +14,40 @@ export interface BookmarkMenuProps {
 }
 
 export function BookmarkMenu(props: BookmarkMenuProps) {
-  const handleClick = (): void => {
-    // eslint-disable-next-line no-console
-    console.log("[chat] bookmark requested (not yet wired)", {
-      conversation_id: props.conversation_id,
-      question: props.question,
-    });
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  const handleClick = async (): Promise<void> => {
+    if (!props.conversation_id || !props.question) return;
+    setState("saving");
+    try {
+      await api.chat.createBookmark({
+        conversation_id: props.conversation_id,
+        question: props.question,
+        name: props.question.slice(0, 80),
+      });
+      setState("saved");
+      setTimeout(() => setState("idle"), 2000);
+    } catch {
+      setState("error");
+      setTimeout(() => setState("idle"), 2000);
+    }
   };
+
+  const label =
+    state === "saving" ? "Saving…" :
+    state === "saved" ? "Bookmarked!" :
+    state === "error" ? "Failed" :
+    "Bookmark";
 
   return (
     <button
       type="button"
       className="bookmark-menu btn ghost"
       onClick={handleClick}
-      title="Bookmark this question (not yet implemented)"
+      disabled={state === "saving" || !props.conversation_id || !props.question}
+      title="Bookmark this question"
     >
-      Bookmark
+      {label}
     </button>
   );
 }

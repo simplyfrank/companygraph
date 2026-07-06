@@ -190,6 +190,23 @@ export const api = {
         `/api/v1/chat/messages/${encodeURIComponent(messageId)}/progress`,
         withSignal(signal),
       ),
+    createBookmark: (data: ChatBookmarkCreate) =>
+      json<ChatBookmark>("/api/v1/chat/bookmarks", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    listBookmarks: (conversationId?: string, signal?: AbortSignal) =>
+      json<{ rows: ChatBookmark[] }>(
+        conversationId
+          ? `/api/v1/chat/bookmarks?conversation_id=${encodeURIComponent(conversationId)}`
+          : "/api/v1/chat/bookmarks",
+        withSignal(signal),
+      ),
+    deleteBookmark: (id: string) =>
+      json<{ deleted: true }>(`/api/v1/chat/bookmarks/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
   },
 
   // ontology-manager — runtime-mutable label / edge-type registry
@@ -1173,6 +1190,22 @@ export interface ReconcileResult {
     entity_id: string;
   }>;
   unchanged: string[];
+}
+
+export interface ChatBookmark {
+  id: string;
+  conversation_id: string;
+  question: string;
+  role_id_pin: string | null;
+  name: string;
+  created_at: string;
+}
+
+export interface ChatBookmarkCreate {
+  conversation_id: string;
+  question: string;
+  role_id_pin?: string | null;
+  name: string;
 }
 
 export interface SLA {

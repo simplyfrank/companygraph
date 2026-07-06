@@ -24,7 +24,7 @@ import {
   handleJourneyTouchpoints,
 } from "./routes/query";
 import { handleHealthz } from "./routes/healthz";
-import { handleChatMessage, handleChatProgress } from "./routes/chat";
+import { handleChatMessage, handleChatProgress, handleBookmarkCreate, handleBookmarkList, handleBookmarkDelete } from "./routes/chat";
 import { handleStats } from "./routes/stats";
 import { handleExportJson, handleExportNdjson } from "./routes/export";
 import { handleOpenapi } from "./routes/openapi";
@@ -524,10 +524,14 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   const journeyTouchpoints = sub.match(/^query\/journeyTouchpoints\/([^/]+)$/);
   if (journeyTouchpoints && method === "GET") return handleJourneyTouchpoints(req, journeyTouchpoints[1]!);
 
-  // Chat routes — /api/v1/chat/messages + progress
+  // Chat routes — /api/v1/chat/messages + progress + bookmarks (FR-M03)
   if (sub === "chat/messages" && method === "POST") return handleChatMessage(req);
   const chatProgress = sub.match(/^chat\/messages\/([^/]+)\/progress$/);
   if (chatProgress && method === "GET") return handleChatProgress(chatProgress[1]!);
+  if (sub === "chat/bookmarks" && method === "POST") return handleBookmarkCreate(req);
+  if (sub === "chat/bookmarks" && method === "GET") return handleBookmarkList(req);
+  const bookmarkOne = sub.match(/^chat\/bookmarks\/([^/]+)$/);
+  if (bookmarkOne && method === "DELETE") return handleBookmarkDelete(req, bookmarkOne[1]!);
   if (sub === "query/search" && method === "GET") return handleSearch(req);
 
   // Ontology routes — /api/v1/ontology/* and /api/v1/schema

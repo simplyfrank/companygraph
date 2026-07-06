@@ -77,6 +77,9 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   // ── Chat ──
   P("POST", "chat/messages", "chat:write"),
   P("GET", "chat/messages/:id/progress", "chat:read"),
+  P("POST", "chat/bookmarks", "chat:write"),
+  P("GET", "chat/bookmarks", "chat:read"),
+  P("DELETE", "chat/bookmarks/:id", "chat:write"),
 
   // ── Ontology ──
   P("GET", "schema", "ontology:read"),
