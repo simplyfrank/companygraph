@@ -57,6 +57,27 @@ describe("integration: ddd-system-modeling AC-02 edge registration (fresh regist
     await applyMetaSchema(driver);
     await wipeMetaNamespace();
     await seedRegistryFromConstTuples(driver);
+    // Register BoundedContext BEFORE registerModelSchema — the model
+    // edges BELONGS_TO_SHARED_DOMAIN + IN_NAMESPACE reference it as an
+    // endpoint, and createEdgeType's assertEndpointLabelsExist will
+    // throw type_pair_violation if the label isn't in the registry yet.
+    // In the real applySchema this is step 3a (bootstrap.ts).
+    const { createNodeLabel } = await import("../src/ontology/storage/node-labels");
+    const { ValidationError } = await import("../src/errors");
+    try {
+      await createNodeLabel(
+        driver,
+        {
+          name: "BoundedContext",
+          description: "A DDD bounded context.",
+          usage_example: "(bc:BoundedContext)",
+          json_schema_doc: {},
+        },
+        "test:ddd-system",
+      );
+    } catch (e) {
+      if (!(e instanceof ValidationError && (e.code as string) === "name_conflict")) throw e;
+    }
     await registerModelSchema(driver);
     await registerStorySchema(driver);
     try {

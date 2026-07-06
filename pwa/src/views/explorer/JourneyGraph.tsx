@@ -356,7 +356,48 @@ function MultiJourneyView({
                     </div>
                   ) : (
                     <div className={styles.expandedView}>
-                      <p className={styles.journeyDescription}>Full journey details would be shown here</p>
+                      <div className={styles.ioSection}>
+                        <div className={styles.ioLabel}>Domain:</div>
+                        <div className={styles.ioList}>
+                          <span className={styles.ioItem}>{journey.domainName}</span>
+                        </div>
+                      </div>
+                      <div className={styles.ioSection}>
+                        <div className={styles.ioLabel}>Depth:</div>
+                        <div className={styles.ioList}>
+                          <span className={styles.ioItem}>{journey.depth}</span>
+                        </div>
+                      </div>
+                      <div className={styles.ioSection}>
+                        <div className={styles.ioLabel}>Feeds from:</div>
+                        <div className={styles.ioList}>
+                          {journey.inputJourneys.length === 0 ? (
+                            <span className={styles.ioEmpty}>None</span>
+                          ) : (
+                            journey.inputJourneys.map(inputId => {
+                              const inputJourney = data.journeys.find(j => j.id === inputId);
+                              return inputJourney ? (
+                                <span key={inputId} className={styles.ioItem}>{inputJourney.name}</span>
+                              ) : null;
+                            })
+                          )}
+                        </div>
+                      </div>
+                      <div className={styles.ioSection}>
+                        <div className={styles.ioLabel}>Feeds into:</div>
+                        <div className={styles.ioList}>
+                          {journey.outputJourneys.length === 0 ? (
+                            <span className={styles.ioEmpty}>None</span>
+                          ) : (
+                            journey.outputJourneys.map(outputId => {
+                              const outputJourney = data.journeys.find(j => j.id === outputId);
+                              return outputJourney ? (
+                                <span key={outputId} className={styles.ioItem}>{outputJourney.name}</span>
+                              ) : null;
+                            })
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                   

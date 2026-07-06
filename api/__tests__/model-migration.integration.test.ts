@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 import { migrateRetailToModel } from "../src/scripts/migrate-retail-to-model";
 import { api, newCleanup, runCleanup } from "./helpers/model-fixtures";
@@ -38,6 +38,31 @@ async function counts(): Promise<{ nodes: number; edges: number; refModels: numb
 }
 
 describe("integration: model-workspace-core AC-08 retail migration", () => {
+  beforeAll(async () => {
+    // Clean up any leftover user models from prior test files — the
+    // migration guard aborts if a user model exists but the reference
+    // model doesn't (e.g. after a prior T-25 run did --down --force).
+    const driver = getDriver();
+    const session = driver.session();
+    try {
+      // Delete all non-reference BusinessModels + their subgraphs.
+      await session.run(
+        `MATCH (m:BusinessModel {isReference: false})
+         OPTIONAL MATCH (m)<-[:IN_MODEL]-(d:Domain)
+         DETACH DELETE m`,
+      );
+      // Also clean up any orphaned domains from prior test runs.
+      await session.run(
+        `MATCH (d:Domain) WHERE NOT (d)-[:IN_MODEL]->(:BusinessModel)
+         DETACH DELETE d`,
+      );
+    } finally {
+      await session.close();
+    }
+    // Now ensure the reference model exists.
+    await migrateRetailToModel(driver, "apply").catch(() => {});
+  });
+
   afterAll(async () => {
     // Leave the graph in the applied state whatever happened above.
     await migrateRetailToModel(getDriver(), "apply").catch(() => {});
@@ -145,6 +170,13 @@ describe("integration: model-workspace-core AC-08 retail migration", () => {
 
 // T-25 (design-review N-13) — forced --down orphaning warning.
 describe("integration: model-workspace-core T-25 forced --down orphan warning", () => {
+  beforeAll(async () => {
+    // AC-08's afterAll ran closeDriver + _resetDriver — re-establish
+    // the driver and ensure the reference model exists.
+    await getDriver().verifyConnectivity();
+    await migrateRetailToModel(getDriver(), "apply").catch(() => {});
+  });
+
   test("stderr orphan-count warning appears when ModuleInstances exist, absent when none do", async () => {
     const driver = getDriver();
 
@@ -152,6 +184,9 @@ describe("integration: model-workspace-core T-25 forced --down orphan warning", 
     await migrateRetailToModel(driver, "apply").catch(() => {});
 
     // Build a model with a module instance so the orphan count > 0.
+    // The module instance must be linked to the REFERENCE model (not a
+    // user model) because the --down script only warns about instances
+    // whose INSTANCE_IN edge points at the reference model.
     const fx = await buildModelWithJourney(cleanup, "orphan-warn");
     const mod = await api<{ id: string }>("POST", "/modules", {
       sourceModelId: fx.modelId,
@@ -159,15 +194,27 @@ describe("integration: model-workspace-core T-25 forced --down orphan warning", 
       name: "orphan-warn-module",
     });
     await api<{ id: string }>("POST", `/modules/${mod.body.id}/versions`, {});
-    const inst = await api<{ id: string }>("POST", `/models/${fx.modelId}/module-instances`, {
+
+    // Find the reference model and attach the module instance to it.
+    const listRes = await api<{ id: string; isReference: boolean }[]>("GET", "/models");
+    const refModel = listRes.body.find((m) => m.isReference);
+    expect(refModel).toBeDefined();
+
+    // Attach a domain to the reference model so we can target it.
+    const refDom = await api<{ id: string }>("POST", `/models/${refModel!.id}/domains`, {
+      name: "orphan-warn-ref-dom",
+    });
+    cleanup.nodeIds.push({ label: "Domain", id: refDom.body.id });
+
+    const inst = await api<{ id: string }>("POST", `/models/${refModel!.id}/module-instances`, {
       moduleId: mod.body.id,
-      targetDomainId: fx.domainId,
+      targetDomainId: refDom.body.id,
     });
     expect(inst.status).toBe(201);
 
     // Spawn the script with --down --force and capture stderr.
     // The warning line should appear because a ModuleInstance exists.
-    const proc1 = Bun.spawn(["bun", "run", "api/src/scripts/migrate-retail-to-model.ts", "--down", "--force"], {
+    const proc1 = Bun.spawn(["bun", "run", "src/scripts/migrate-retail-to-model.ts", "--down", "--force"], {
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -186,7 +233,7 @@ describe("integration: model-workspace-core T-25 forced --down orphan warning", 
     await migrateRetailToModel(driver, "apply");
 
     // Now spawn --down --force again — no ModuleInstances exist → no warning.
-    const proc2 = Bun.spawn(["bun", "run", "api/src/scripts/migrate-retail-to-model.ts", "--down", "--force"], {
+    const proc2 = Bun.spawn(["bun", "run", "src/scripts/migrate-retail-to-model.ts", "--down", "--force"], {
       stdout: "pipe",
       stderr: "pipe",
     });

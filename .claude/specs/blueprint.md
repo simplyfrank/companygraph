@@ -240,3 +240,73 @@ kpi-okr-governance ────────┬─> kpi-impact-mapping
 ## Open Questions
 
 None — all settled in discussion Rounds 1–4 (recorded as XD-06…XD-18).
+
+---
+
+## Round-5 Amendment (navigation-ia, 2026-07-06)
+
+> **Scope:** records the eight-surface IA restructure and route relocations
+> from the `navigation-ia` spec (requirements rev 2, approved). This
+> amendment is the FR-12 design-gate precondition for that spec. It does
+> not modify any XD-* decision, the View Tree, or the feature inventory —
+> it records relocations of already-landed routes with permanent aliases.
+
+### (a) Eight-surface IA
+
+The PWA top-level navigation is restructured from ten spec-silo surfaces
+to eight task-oriented surfaces, in this order:
+
+| Position | Surface | Alt shortcut | Notes |
+|----------|---------|--------------|-------|
+| 1 | `explorer` | Alt+1 | Domains, journeys, activities, roles, systems, locations, path-finder + curation group (review, add, quarterly) |
+| 2 | `model` | Alt+2 | Blueprint-frozen, seven tabs VERBATIM — only TopBar position/shortcut changes |
+| 3 | `chat` | Alt+3 | Thread + conversations (new) |
+| 4 | `insights` | Alt+4 | Merged analyst home: analysis + reports + business groups |
+| 5 | `govern` | Alt+5 | KPI/OKR management, roll-down, risk, compliance, programs |
+| 6 | `ontology` | Alt+6 | Existing six tabs + glossary + generator |
+| 7 | `data` | Alt+7 | Merged Data + API: map, import, export, endpoints, errors |
+| 8 | `admin` | Alt+8 | Personas, RBAC roles, users, platform, settings |
+
+The `model` surface's TopBar position changes from 10th (Alt+0) to 2nd
+(Alt+2). The Alt+0 special case in `App.tsx` is removed; shortcuts are
+index-derived from `SURFACES` array position.
+
+### (b) Route relocations with permanent aliases
+
+All legacy routes resolve permanently via a declarative alias table in
+`pwa/src/route.ts` (not a transition shim). Landing on a legacy hash
+canonicalizes to the new route via `history.replaceState` (no extra
+back-stack entry).
+
+| Legacy route | New canonical route | Status |
+|--------------|---------------------|--------|
+| `#/analytics/{overview,systems,matrix,consolidation,complexity,single-system,critical-paths,ai}` | `#/insights/{same}` | 8 tabs relocated |
+| `#/analytics/exec-summary` | `#/insights/overview` | Tab deleted (duplicates Model/Export) |
+| `#/exec/{finance,people,transform}` | `#/insights/{same}` | 3 tabs relocated |
+| `#/exec/performance` | `#/insights/performance` | Relocated (dashboard landed) |
+| `#/exec/{risk,kpi-management,okr-management}` | `#/govern/{same}` | 3 tabs relocated |
+| `#/exec/ops` | `#/admin/platform` | Relocated (infrastructure, not business) |
+| `#/sme/{review,add,quarterly}` | `#/explorer/{same}` | 3 tabs relocated |
+| `#/sme/home` | `#/admin/settings` | Relocated (home-domain picker) |
+| `#/api/{endpoints,errors,import}` | `#/data/{same}` | 3 tabs relocated |
+| `#/explorer/journey-detail[/:id]` | `#/explorer/journeys[/:id]` | Tab merged |
+| `#/explorer/journey-graph?journey=<id>` | `#/explorer/journeys/:id/graph` | Tab merged + param transform |
+| `#/explorer/journey-graph` (no param) | `#/explorer/journeys?view=graph` | Tab merged |
+| `#/analytics` (bare) | `#/insights/overview` | Surface default |
+| `#/exec` (bare) | `#/insights/finance` | Surface default |
+| `#/sme` (bare) | `#/explorer/review` | Surface default |
+| `#/api` (bare) | `#/data/endpoints` | Surface default |
+
+Identity-mapped (no alias rows needed): `#/chat/*`, `#/data/{map,export}`,
+`#/admin/{personas,rbac-roles,users}`, `#/ontology/*` (existing six),
+`#/model/*`.
+
+### (c) kpi-okr-performance-dashboards registration retarget
+
+`kpi-okr-performance-dashboards` (execution:complete, verified 2026-07-05)
+originally registered `#/exec/performance` as a NEW exec tab per the
+blueprint View Tree. The canonical registration target is retargeted to
+`#/insights/performance`. The alias row `exec/performance →
+insights/performance` is owned by the `navigation-ia` spec. The
+`PerformanceDashboard` view component and its API routes are unchanged —
+only the surface/tab registration moves from `exec` to `insights`.

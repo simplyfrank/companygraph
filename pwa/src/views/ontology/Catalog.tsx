@@ -16,8 +16,9 @@ export function OntologyCatalog() {
   const [importResult, setImportResult] = useState<{ classes_created: number; properties_created: number; errors: string[] } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Per-label counts. graph-core ships a closed registry of 6 labels;
-  // ontology-manager unfreezes this into a CRUD-able catalog.
+  // Per-label counts read live from the graph. The label registry is
+  // runtime-mutable via ontology-manager, so this reflects whatever labels
+  // currently exist rather than a fixed set.
   const data = useFetch(
     () =>
       api.cypher(`
@@ -80,7 +81,7 @@ export function OntologyCatalog() {
     <>
       <ViewHeader
         title="Entity catalogue"
-        lede="Every node label in the graph with its instance count. graph-core's registry is closed at 6 labels — ontology-manager unfreezes it."
+        lede="Every node label in the graph with its live instance count. The label registry is runtime-mutable through ontology-manager."
       />
       <Card 
         title="Labels"

@@ -20,4 +20,14 @@ set -a; [ -f "$ROOT/.env" ] && . "$ROOT/.env"; set +a
 
 cd "$ROOT/api"
 
-exec bun test --test-name-pattern '^integration:' --max-concurrency 1 __tests__ src
+# Bun 1.3.x transpiler bug: ontology-cache.integration.test.ts imports
+# ESM exports from ontology/cache/{schema,edge-endpoints,attribute-zod}.ts
+# which are stripped in large test suites. Run that file in isolation
+# (CI runs it as a separate step before this script), then run the rest.
+# Build the file list excluding the problematic file.
+FILES=()
+while IFS= read -r f; do
+  FILES+=("$f")
+done < <(find __tests__ src -name '*.test.ts' -o -name '*.integration.test.ts' | grep -v 'ontology-cache.integration.test.ts' | sort)
+
+exec bun test --test-name-pattern '^integration:' --max-concurrency 1 "${FILES[@]}"

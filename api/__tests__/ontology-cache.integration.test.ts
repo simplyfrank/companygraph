@@ -21,6 +21,10 @@ import { ontologyEvents } from "../src/ontology/events";
 import { createNodeLabel, deleteNodeLabel } from "../src/ontology/storage/node-labels";
 import { createEdgeType, deleteEdgeType } from "../src/ontology/storage/edge-types";
 import {
+  parseRegistryLabel,
+  parseEdgeTypeName,
+} from "../src/routes/_helpers";
+import {
   getSchema,
   _peekSchemaCache,
   _clearSchemaCache,
@@ -35,13 +39,14 @@ import {
   _peekAttributeZodCache,
   _clearAttributeZodCache,
 } from "../src/ontology/cache/attribute-zod";
-// parseRegistryLabel + parseEdgeTypeName moved to the ontology cache
-// module (co-located with the cache they read from) after the user
-// reverted `routes/_helpers.ts` to its pre-T-13 shape.
+// parseRegistryLabel + parseEdgeTypeName are in the ontology cache
+// module (co-located with the cache they read from). Import via
+// _helpers which re-exports the same functions, to avoid a Bun
+// module-loading bug in large test suites.
 import {
   parseRegistryLabel,
   parseEdgeTypeName,
-} from "../src/ontology/cache/schema";
+} from "../src/routes/_helpers";
 
 const PROBE_LABEL = "CacheProduct";
 const PROBE_LABEL_OTHER = "CachePromoCode";
@@ -129,6 +134,10 @@ describe("integration: schema cache (T-13 §6.1)", () => {
   afterAll(async () => {
     await clearMetaNamespace();
     await dropProbeConstraintsAndIndexes();
+    // Restore the registry so subsequent test files don't see an empty
+    // meta namespace.
+    const { applySchema } = await import("../src/neo4j/bootstrap");
+    await applySchema(getDriver());
     await closeDriver();
     _resetDriver();
   });
@@ -215,6 +224,10 @@ describe("integration: edge-endpoints cache (T-13 §6.2 / FR-04a)", () => {
   afterAll(async () => {
     await clearMetaNamespace();
     await dropProbeConstraintsAndIndexes();
+    // Restore the registry so subsequent test files don't see an empty
+    // meta namespace.
+    const { applySchema } = await import("../src/neo4j/bootstrap");
+    await applySchema(getDriver());
   });
 
   test("first call populates; second call is identity cache hit", async () => {
@@ -280,6 +293,10 @@ describe("integration: attribute-zod cache (T-13 §6.3)", () => {
   afterAll(async () => {
     await clearMetaNamespace();
     await dropProbeConstraintsAndIndexes();
+    // Restore the registry so subsequent test files don't see an empty
+    // meta namespace.
+    const { applySchema } = await import("../src/neo4j/bootstrap");
+    await applySchema(getDriver());
   });
 
   test("first call compiles + caches; second call is identity hit", async () => {

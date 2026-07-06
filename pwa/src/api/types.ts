@@ -38,6 +38,17 @@ export interface OntologyEdgeTypeRow {
   updated_at: string;
 }
 
+// One entry in the ontology-manager schema-version ledger
+// (GET /api/v1/ontology/versions). Each row is a registry mutation.
+export interface OntologyVersionRow {
+  version_id: string;
+  parent_version_id: string | null;
+  actor: string;
+  summary: string;
+  ts: string;
+  diff_jsonpatch: unknown;
+}
+
 export interface OntologyEdgeTypeCreate {
   name: string;
   description: string;

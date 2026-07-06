@@ -312,8 +312,8 @@ export const entityCreateSchema = z.object({
   bounded_context: z.string().min(1).max(200),
   entity_number: z.number().int().nonnegative(),
   status: z.enum(["ACTIVE", "NOT MAINTAINED", "NOT IN USE", "PARTIAL", "UNDER REVIEW"]),
-  oracle_table: z.string().max(100).optional(),
-  note: z.string().max(500).optional(),
+  oracle_table: z.string().max(100).nullable().optional(),
+  note: z.string().max(500).nullable().optional(),
 });
 export type EntityCreate = z.infer<typeof entityCreateSchema>;
 

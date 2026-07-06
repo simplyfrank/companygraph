@@ -88,7 +88,12 @@ async function captureThrow<T>(
 
 describe("integration: per-label attribute schema enforcement (T-15 / FR-04)", () => {
   beforeAll(async () => {
-    await applyMetaSchema(getDriver());
+    // Ensure the registry is populated — a prior test (e.g.
+    // ontology-bootstrap-reconcile) may have cleared the meta namespace
+    // in its beforeAll. Without registry rows, createNodeLabel's
+    // _OntologyAttributeSchema node won't be created properly.
+    const { applySchema } = await import("../src/neo4j/bootstrap");
+    await applySchema(getDriver());
   });
 
   beforeEach(() => {
@@ -119,6 +124,11 @@ describe("integration: per-label attribute schema enforcement (T-15 / FR-04)", (
         },
         "test:t-15",
       );
+
+      // Clear the cache AFTER creating the label (createNodeLabel might
+      // trigger an ontology.changed event that clears it, but another
+      // listener could re-populate it with a permissive entry).
+      _clearAttributeZodCache();
 
       const err = await captureThrow(() =>
         createNode(getDriver(), label as NodeLabel, {

@@ -27,6 +27,8 @@ import {
   registerCapabilitySchema,
   CAPABILITY_EDGE_TYPES,
 } from "../src/scripts/register-capability-labels";
+import { createNodeLabel } from "../src/ontology/storage/node-labels";
+import { ValidationError } from "../src/errors";
 
 const API_BASE = "http://127.0.0.1:8787/api/v1";
 const NEW_LABELS = ["BoundedContext", "Capability"];
@@ -73,6 +75,25 @@ describe("integration: ddd-system-modeling AC-01 label registration (fresh regis
     // model → story → capability. registerCapabilitySchema's own first
     // step is the BoundedContext row (DD-14).
     await seedRegistryFromConstTuples(driver);
+    // Register BoundedContext BEFORE registerModelSchema — the model
+    // edges BELONGS_TO_SHARED_DOMAIN + IN_NAMESPACE reference it as an
+    // endpoint, and createEdgeType's assertEndpointLabelsExist will
+    // throw type_pair_violation if the label isn't in the registry yet.
+    // In the real applySchema this is step 3a (bootstrap.ts).
+    try {
+      await createNodeLabel(
+        driver,
+        {
+          name: "BoundedContext",
+          description: "A DDD bounded context.",
+          usage_example: "(bc:BoundedContext)",
+          json_schema_doc: {},
+        },
+        "test:ddd-system",
+      );
+    } catch (e) {
+      if (!(e instanceof ValidationError && (e.code as string) === "name_conflict")) throw e;
+    }
     await registerModelSchema(driver);
     await registerStorySchema(driver);
     await registerCapabilitySchema(driver);

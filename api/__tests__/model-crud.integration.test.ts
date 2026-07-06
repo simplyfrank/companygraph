@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { getDriver, closeDriver, _resetDriver } from "../src/neo4j/driver";
 import { scopedNodeIds } from "../src/storage/model-scope";
 
@@ -42,6 +42,14 @@ async function createModel(name: string): Promise<ModelRes> {
 }
 
 describe("integration: model-workspace-core AC-03 model CRUD", () => {
+  beforeAll(async () => {
+    // Ensure the reference model exists — a prior test (e.g.
+    // model-migration T-25) may have run `--down --force` which removes
+    // it. Re-apply the retail-to-model migration idempotently.
+    const { migrateRetailToModel } = await import("../src/scripts/migrate-retail-to-model");
+    await migrateRetailToModel(getDriver(), "apply").catch(() => {});
+  });
+
   afterAll(async () => {
     for (const id of createdModelIds) {
       await fetch(`${API_BASE}/models/${id}`, { method: "DELETE" });

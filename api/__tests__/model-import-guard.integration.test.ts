@@ -13,8 +13,8 @@ interface ErrRes {
 }
 
 interface StatsRes {
-  nodes: number;
-  edges: number;
+  nodes: Record<string, number>;
+  edges: Record<string, number>;
 }
 
 const cleanup = newCleanup();
@@ -23,6 +23,13 @@ let fx: JourneyFixture;
 async function getStats(): Promise<StatsRes> {
   const res = await api<StatsRes>("GET", "/stats");
   return res.body;
+}
+
+function totalNodes(s: StatsRes): number {
+  return Object.values(s.nodes).reduce((a, b) => a + b, 0);
+}
+function totalEdges(s: StatsRes): number {
+  return Object.values(s.edges).reduce((a, b) => a + b, 0);
 }
 
 describe("integration: model-workspace-core T-23 import lifecycle guard (AC-22)", () => {
@@ -53,8 +60,8 @@ describe("integration: model-workspace-core T-23 import lifecycle guard (AC-22)"
     expect(res.body.error.code).toBe("model_lifecycle_route_required");
 
     const after = await getStats();
-    expect(after.nodes).toBe(before.nodes);
-    expect(after.edges).toBe(before.edges);
+    expect(totalNodes(after)).toBe(totalNodes(before));
+    expect(totalEdges(after)).toBe(totalEdges(before));
   });
 
   test("mixed payload with an IN_MODEL edge row → 409 + stats unchanged", async () => {
@@ -75,8 +82,8 @@ describe("integration: model-workspace-core T-23 import lifecycle guard (AC-22)"
     expect(res.body.error.code).toBe("model_lifecycle_route_required");
 
     const after = await getStats();
-    expect(after.nodes).toBe(before.nodes);
-    expect(after.edges).toBe(before.edges);
+    expect(totalNodes(after)).toBe(totalNodes(before));
+    expect(totalEdges(after)).toBe(totalEdges(before));
   });
 
   test("lifecycle-free payload still imports (round-trip unaffected)", async () => {
@@ -93,7 +100,7 @@ describe("integration: model-workspace-core T-23 import lifecycle guard (AC-22)"
     expect(res.body.imported.nodes).toBe(1);
 
     const after = await getStats();
-    expect(after.nodes).toBe(before.nodes + 1);
+    expect(totalNodes(after)).toBe(totalNodes(before) + 1);
   });
 
   test("all lifecycle labels are rejected: BusinessModule, BusinessModuleVersion, ModuleInstance", async () => {

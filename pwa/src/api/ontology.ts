@@ -1,6 +1,6 @@
 // Ontology API functions — labels, edge-types, proposals, RDF, query
 
-import type { OntologyLabelRow, OntologyLabelCreate, OntologyLabelUpdate, OntologyEdgeTypeRow, OntologyEdgeTypeCreate, OntologyEdgeTypeUpdate, BoundedContextRow, SharedDomainRow, NamespaceRow } from "./types";
+import type { OntologyLabelRow, OntologyLabelCreate, OntologyLabelUpdate, OntologyEdgeTypeRow, OntologyEdgeTypeCreate, OntologyEdgeTypeUpdate, OntologyVersionRow, BoundedContextRow, SharedDomainRow, NamespaceRow } from "./types";
 import type { OntologyProposalRead } from "@companygraph/shared/schema/ontology";
 import { json, withSignal, guardArray } from "./core";
 
@@ -45,6 +45,10 @@ export const ontology = {
     json<void>(`/api/v1/ontology/edge-types/${encodeURIComponent(name)}`, {
       method: "DELETE",
     }),
+  listVersions: async (signal?: AbortSignal) => {
+    const data = await json<{ rows: OntologyVersionRow[] }>("/api/v1/ontology/versions", withSignal(signal));
+    return data.rows;
+  },
   getBoundedContexts: async (signal?: AbortSignal) => {
     const data = await json<unknown>("/api/v1/ontology/bounded-contexts", withSignal(signal));
     return guardArray<BoundedContextRow>(data, "getBoundedContexts");

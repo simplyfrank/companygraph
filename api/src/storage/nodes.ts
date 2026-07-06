@@ -44,7 +44,16 @@ export async function checkAttributesAgainstSchema(
 ): Promise<{ missing: string[]; type_mismatch: string[] } | null> {
   let validator: z.ZodTypeAny;
   try {
-    validator = await getAttributeValidator(label);
+    // Bun 1.3.x transpiler bug: in large test suites, the exported
+    // `getAttributeValidator` async function body is stripped (returns
+    // undefined). The attribute-zod module stores the real impl on
+    // globalThis as a workaround. Fall back to the direct import if the
+    // globalThis key is missing (e.g. in production where the bug
+    // doesn't manifest).
+    const fn = (globalThis as Record<string, unknown>)["__cg_getAttributeValidator"] as
+      | ((label: string, driverOverride?: unknown) => Promise<z.ZodTypeAny>)
+      | undefined;
+    validator = fn ? await fn(label) : await getAttributeValidator(label);
   } catch (e) {
     // The cache throws `not_found` when the label has no registry row.
     // Treat that as permissive — proceed with the write.

@@ -30,6 +30,7 @@ import {
   seedRegistryFromConstTuples,
   seedBoundedContexts,
 } from "../ontology/seed";
+import { NODE_LABELS } from "@companygraph/shared/schema/nodes";
 import { ontologyEvents } from "../ontology/events";
 import { runSystemKindMigration } from "../ontology/system-kind-migration";
 import { registerModelSchema } from "../scripts/register-model-labels";
@@ -37,13 +38,33 @@ import { registerStorySchema } from "../scripts/register-story-labels";
 import { registerCapabilitySchema } from "../scripts/register-capability-labels";
 import { registerKpiImpactEdges } from "../scripts/register-kpi-impact-edges";
 
+async function hasMissingCoreLabels(driver: Driver): Promise<boolean> {
+  const session = driver.session({ defaultAccessMode: "READ" });
+  try {
+    const r = await session.run(
+      `MATCH (l:_OntologyNodeLabel)
+       WHERE l.name IN $coreLabels
+       RETURN count(l) AS n`,
+      { coreLabels: NODE_LABELS },
+    );
+    const found = (r.records[0]?.get("n") as number) ?? 0;
+    return found < NODE_LABELS.length;
+  } finally {
+    await session.close();
+  }
+}
+
 export async function applySchema(driver: Driver): Promise<void> {
   // Step 1: meta-schema for the registry itself.
   await applyMetaSchema(driver);
 
-  // Step 2: seed the registry from the compile-time const tuples IF EMPTY.
-  // Post-seed emit fires after the tx commits so caches warm from real data.
-  if (await isRegistryEmpty(driver)) {
+  // Step 2: seed the registry from the compile-time const tuples IF EMPTY
+  // OR IF core labels are missing (a partial registry can happen when a
+  // test clears the meta namespace and then registers model-workspace
+  // labels without re-seeding the core labels).
+  const registryEmpty = await isRegistryEmpty(driver);
+  const coreLabelsMissing = await hasMissingCoreLabels(driver);
+  if (registryEmpty || coreLabelsMissing) {
     const result = await seedRegistryFromConstTuples(driver);
     ontologyEvents.emit("ontology.changed", {
       event_id: result.event_id,
@@ -192,6 +213,28 @@ export async function applySchema(driver: Driver): Promise<void> {
     );
   } finally {
     await session.close();
+  }
+
+  // Step 4b (process-explorer-ui T-31 / FR-17): per-label fulltext indexes
+  // for substring search (GET /api/v1/query/search). Named
+  // `<label_lower>_name_fulltext`, created IF NOT EXISTS so re-runs are
+  // no-ops. Only created for labels that have a `name` property (all
+  // registry labels do per the node envelope schema).
+  const ftSession = driver.session();
+  try {
+    const labelsRes2 = await ftSession.run(
+      `MATCH (l:_OntologyNodeLabel) RETURN l.name AS name ORDER BY l.name`,
+    );
+    const allLabels = labelsRes2.records.map((r) => r.get("name") as string);
+    for (const label of allLabels) {
+      const idxName = `${label.toLowerCase()}_name_fulltext`;
+      await ftSession.run(
+        `CREATE FULLTEXT INDEX ${idxName} IF NOT EXISTS
+         FOR (n:\`${label}\`) ON EACH [n.name]`,
+      );
+    }
+  } finally {
+    await ftSession.close();
   }
 
   // Step 5 (system-augmentation-model T-05 / FR-07): tighten the System

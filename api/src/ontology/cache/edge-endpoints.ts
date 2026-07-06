@@ -50,7 +50,8 @@ async function loadFromRegistry(
   }
 }
 
-export async function getEdgeEndpoints(
+// Bun 1.3.x transpiler bug workaround — see attribute-zod.ts for details.
+async function _getEdgeEndpointsImpl(
   type: string,
   driverOverride?: Driver,
 ): Promise<ReadonlyArray<readonly [string, string]>> {
@@ -61,14 +62,21 @@ export async function getEdgeEndpoints(
   cache.set(type, fresh);
   return fresh;
 }
+(globalThis as Record<string, unknown>)["__cg_getEdgeEndpoints"] = _getEdgeEndpointsImpl;
+export const getEdgeEndpoints: (type: string, driverOverride?: Driver) => Promise<ReadonlyArray<readonly [string, string]>> = (type, driverOverride) => {
+  return ((globalThis as Record<string, unknown>)["__cg_getEdgeEndpoints"] as typeof _getEdgeEndpointsImpl)(type, driverOverride);
+};
 
-// Test-only.
+// Test-only. Stored on globalThis to work around Bun's export stripping
+// bug in large test suites.
+(globalThis as Record<string, unknown>)["__cg_peekEdgeEndpointsCache"] = (type: string): ReadonlyArray<readonly [string, string]> | undefined => cache.get(type);
+(globalThis as Record<string, unknown>)["__cg_clearEdgeEndpointsCache"] = (): void => { cache.clear(); };
 export function _peekEdgeEndpointsCache(
   type: string,
 ): ReadonlyArray<readonly [string, string]> | undefined {
-  return cache.get(type);
+  return ((globalThis as Record<string, unknown>)["__cg_peekEdgeEndpointsCache"] as (type: string) => ReadonlyArray<readonly [string, string]> | undefined)(type);
 }
 
 export function _clearEdgeEndpointsCache(): void {
-  cache.clear();
+  ((globalThis as Record<string, unknown>)["__cg_clearEdgeEndpointsCache"] as () => void)();
 }

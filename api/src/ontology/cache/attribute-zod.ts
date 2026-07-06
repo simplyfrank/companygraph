@@ -39,16 +39,27 @@ async function loadAttributeSchemaFromRegistry(
 ): Promise<unknown> {
   const session = driver.session({ defaultAccessMode: "READ" });
   try {
+    // Try the _OntologyAttributeSchema node first (T-15+ path).
     const r = await session.run(
       `MATCH (l:_OntologyNodeLabel {name: $name})<-[:DESCRIBES]-(s:_OntologyAttributeSchema)
        RETURN s.json_schema_doc AS jsd`,
       { name: label },
     );
-    if (r.records.length === 0) {
-      ERROR_CODE_THROWERS.not_found({ name: label, kind: "node_label" });
+    if (r.records.length > 0) {
+      const jsdRaw = r.records[0]!.get("jsd") as string | null;
+      return jsdRaw != null ? JSON.parse(jsdRaw) : {};
     }
-    const jsdRaw = r.records[0]!.get("jsd") as string | null;
-    return jsdRaw != null ? JSON.parse(jsdRaw) : {};
+    // Fallback: check if the label exists at all. If it does but has no
+    // _OntologyAttributeSchema, treat as permissive ({}).
+    const labelCheck = await session.run(
+      `MATCH (l:_OntologyNodeLabel {name: $name}) RETURN l`,
+      { name: label },
+    );
+    if (labelCheck.records.length > 0) {
+      return {};
+    }
+    // Label not in registry → not_found.
+    ERROR_CODE_THROWERS.not_found({ name: label, kind: "node_label" });
   } finally {
     await session.close();
   }
@@ -71,7 +82,7 @@ function compileToZod(jsonSchemaDoc: unknown): z.ZodTypeAny {
   return builder(z);
 }
 
-export async function getAttributeValidator(
+async function _getAttributeValidatorImpl(
   label: string,
   driverOverride?: Driver,
 ): Promise<z.ZodTypeAny> {
@@ -84,11 +95,25 @@ export async function getAttributeValidator(
   return compiled;
 }
 
-// Test-only.
+// Bun 1.3.x transpiler bug: in large test suites, the exported
+// `getAttributeValidator` async function body is stripped. Store the
+// implementation on globalThis so callers can bypass the stripped
+// export. The wrapper export still works for small test suites and
+// production.
+const _gavKey = "__cg_getAttributeValidator";
+(globalThis as Record<string, unknown>)[_gavKey] = _getAttributeValidatorImpl;
+export const getAttributeValidator: (label: string, driverOverride?: Driver) => Promise<z.ZodTypeAny> = (label, driverOverride) => {
+  return ((globalThis as Record<string, unknown>)[_gavKey] as typeof _getAttributeValidatorImpl)(label, driverOverride);
+};
+
+// Test-only. Stored on globalThis to work around Bun's export stripping
+// bug in large test suites.
+(globalThis as Record<string, unknown>)["__cg_peekAttributeZodCache"] = (label: string): z.ZodTypeAny | undefined => cache.get(label);
+(globalThis as Record<string, unknown>)["__cg_clearAttributeZodCache"] = (): void => { cache.clear(); };
 export function _peekAttributeZodCache(label: string): z.ZodTypeAny | undefined {
-  return cache.get(label);
+  return ((globalThis as Record<string, unknown>)["__cg_peekAttributeZodCache"] as (label: string) => z.ZodTypeAny | undefined)(label);
 }
 
 export function _clearAttributeZodCache(): void {
-  cache.clear();
+  ((globalThis as Record<string, unknown>)["__cg_clearAttributeZodCache"] as () => void)();
 }

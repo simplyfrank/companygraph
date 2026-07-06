@@ -61,7 +61,7 @@ export async function registerKpiImpactRoutes(
 
   // DELETE …/activity-links/:linkId
   const actLinkDeleteMatch = sub.match(/^models\/([^/]+)\/kpi-impact\/activity-links\/([^/]+)$/);
-  if (actLinkDeleteMatch && method === "DELETE") return handleActivityLinkDelete(req, actLinkDeleteMatch[1]!, actLinkDeleteMatch[2]!);
+  if (actLinkDeleteMatch && method === "DELETE") return handleActivityLinkDelete(req, actLinkDeleteMatch[1]!, decodeURIComponent(actLinkDeleteMatch[2]!));
 
   // GET/POST …/story-links
   const storyLinksMatch = sub.match(/^models\/([^/]+)\/kpi-impact\/story-links$/);
@@ -72,7 +72,7 @@ export async function registerKpiImpactRoutes(
 
   // DELETE …/story-links/:linkId
   const storyLinkDeleteMatch = sub.match(/^models\/([^/]+)\/kpi-impact\/story-links\/([^/]+)$/);
-  if (storyLinkDeleteMatch && method === "DELETE") return handleStoryLinkDelete(req, storyLinkDeleteMatch[1]!, storyLinkDeleteMatch[2]!);
+  if (storyLinkDeleteMatch && method === "DELETE") return handleStoryLinkDelete(req, storyLinkDeleteMatch[1]!, decodeURIComponent(storyLinkDeleteMatch[2]!));
 
   return null;
 }

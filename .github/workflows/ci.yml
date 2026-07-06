@@ -108,4 +108,10 @@ jobs:
           done
           curl -fsS http://127.0.0.1:8787/api/v1/healthz \
             || { echo "::error::API server failed to boot"; cat "$RUNNER_TEMP/api-server.log"; exit 1; }
+      # Bun 1.3.x transpiler bug: in large test suites, ESM exports from
+      # ontology/cache/{schema,edge-endpoints,attribute-zod}.ts are stripped.
+      # The ontology-cache test imports these directly and fails with a
+      # SyntaxError. Run it in isolation first, then run the rest of the
+      # suite excluding that file.
+      - run: cd api && bun test --test-name-pattern '^integration:' --max-concurrency 1 __tests__/ontology-cache.integration.test.ts
       - run: bun run test:integration

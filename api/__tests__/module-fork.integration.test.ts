@@ -332,12 +332,38 @@ async function countForkNodes(instanceId: string): Promise<number> {
 // T-24 (design-review C-13; rewritten per tasks-review B-01) — fork
 // concurrency gate: lock-first-then-recheck + uniqueness constraints.
 describe("integration: model-workspace-core T-24 fork concurrency gate", () => {
+  beforeAll(async () => {
+    // T-24 is a separate describe block — the AC-06 describe's
+    // afterAll already ran runCleanup + closeDriver + _resetDriver,
+    // so fx/moduleId are stale. Rebuild the fixture here.
+    fx = await buildModelWithJourney(cleanup, "fork-t24");
+    const mod = await api<{ id: string }>("POST", "/modules", {
+      sourceModelId: fx.modelId,
+      sourceJourneyId: fx.journeyId,
+      name: "fork-module-t24",
+    });
+    moduleId = mod.body.id;
+    const v = await api<{ id: string; checksum: string }>(
+      "POST",
+      `/modules/${moduleId}/versions`,
+      {},
+    );
+    versionId = v.body.id;
+    versionChecksum = v.body.checksum;
+  });
+
+  afterAll(async () => {
+    await runCleanup(cleanup);
+    await closeDriver();
+    _resetDriver();
+  });
+
   test("(a) deterministic constraint arm: uniqueness constraints exist, superseded indexes gone, duplicate forkLocalKey fails", async () => {
     const driver = getDriver();
     const session = driver.session({ defaultAccessMode: "READ" });
     try {
       const constraints = await session.run(
-        `SHOW CONSTRAINTS WHERE name IN [
+        `SHOW CONSTRAINTS YIELD name WHERE name IN [
           'user_journey_fork_local_key_unique',
           'activity_fork_local_key_unique'
         ] RETURN name AS name`,
@@ -348,7 +374,7 @@ describe("integration: model-workspace-core T-24 fork concurrency gate", () => {
 
       // Superseded lookup indexes are gone.
       const indexes = await session.run(
-        `SHOW INDEXES WHERE name IN [
+        `SHOW INDEXES YIELD name WHERE name IN [
           'user_journey_fork_local_key',
           'activity_fork_local_key'
         ] RETURN name AS name`,
