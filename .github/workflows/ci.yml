@@ -8,6 +8,12 @@ on:
 jobs:
   unit:
     runs-on: ubuntu-latest
+    env:
+      # Unit tests import modules that call loadEnv() which requires
+      # NEO4J_PASSWORD to be set. No Neo4j connection is made — the
+      # value just satisfies the env validation guard.
+      NEO4J_PASSWORD: unit_test_dummy
+      POSTGRES_URI: postgresql://companygraph:unit_test_dummy@127.0.0.1:5432/companygraph
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
