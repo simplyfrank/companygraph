@@ -1,11 +1,5 @@
 import styles from "./TopBar.module.css";
-
-interface Surface {
-  id: string;
-  label: string;
-  kbd?: string;
-  href?: string;
-}
+import type { Surface } from "../route.js";
 
 interface TopBarProps {
   brand: string;
@@ -17,6 +11,7 @@ interface TopBarProps {
   ontologyVersion?: string;
   user?: { name: string; initials: string };
   onSurface?: (id: string) => void;
+  onSearch?: () => void;
 }
 
 export function TopBar({
@@ -29,6 +24,7 @@ export function TopBar({
   ontologyVersion,
   user,
   onSurface,
+  onSearch,
 }: TopBarProps) {
   return (
     <header className={styles.topbar}>
@@ -41,28 +37,34 @@ export function TopBar({
         <nav className={styles.surfNav}>
           {surfaces.map((s) => {
             const className = `${styles.surf}${s.id === activeSurface ? ` ${styles.surfActive}` : ""}`;
-            const content = (
-              <>
-                <span>{s.label}</span>
-                {s.kbd && <span className={styles.kbd}>{s.kbd}</span>}
-              </>
-            );
-            return s.href ? (
-              <a key={s.id} className={className} href={s.href}>{content}</a>
-            ) : (
+            return (
               <button
                 key={s.id}
                 className={className}
                 onClick={() => onSurface?.(s.id)}
               >
-                {content}
+                <span>{s.label}</span>
               </button>
             );
           })}
         </nav>
       )}
 
-      <div className={styles.spacer} />
+      <div className={styles.spacer}>
+        {onSearch && (
+          <button
+            className={styles.search}
+            onClick={onSearch}
+            aria-label="Search"
+            title="Search"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+              <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {(typeof nodeCount === "number" || typeof edgeCount === "number") && (
         <div className={styles.stat}>

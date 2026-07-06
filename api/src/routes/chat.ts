@@ -13,7 +13,7 @@ import { parseOrThrow } from "../validate";
 import { chatRequestSchema } from "../chat/schemas";
 import { runAgentTurn } from "../chat/agent";
 import { getProgress } from "../chat/progress";
-import { createBookmark, listBookmarks, deleteBookmark } from "../chat/persistence";
+import { createBookmark, listBookmarks, deleteBookmark, listConversations, listMessages, getConversation } from "../chat/persistence";
 import type { ChatRequest } from "@companygraph/shared";
 
 const bookmarkCreateSchema = z.object({
@@ -71,4 +71,19 @@ export function handleBookmarkDelete(req: Request, id: string): Response {
     return error(404, "not_found", "bookmark not found", { id });
   }
   return ok({ deleted: true });
+}
+
+// GET /api/v1/chat/conversations — list conversations newest-first (FR-06).
+export function handleConversationList(): Response {
+  const rows = listConversations();
+  return ok({ rows });
+}
+
+// GET /api/v1/chat/conversations/:id/messages — message history (FR-07).
+export function handleConversationMessages(_req: Request, conversationId: string): Response {
+  if (!getConversation(conversationId)) {
+    return error(404, "not_found", "conversation not found", { id: conversationId });
+  }
+  const rows = listMessages(conversationId);
+  return ok({ rows });
 }

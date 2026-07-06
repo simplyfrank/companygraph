@@ -1174,6 +1174,45 @@ export function getOpenApiDoc(): object {
     },
   });
 
+  // chat-interface — conversation list + message history (FR-06/FR-07).
+  registry.registerPath({
+    method: "get", path: "/api/v1/chat/conversations",
+    description: "List chat conversations newest-first (FR-06).",
+    responses: {
+      200: {
+        description: "ok",
+        content: { "application/json": { schema: z.object({ rows: z.array(z.object({
+          id: z.string(),
+          created_at: z.string(),
+          last_message_at: z.string(),
+          title: z.string().nullable(),
+          role_id_pin: z.string().nullable(),
+        })) }) } },
+      },
+      401: { description: "unauthorized", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/chat/conversations/{id}/messages",
+    description: "Message history for a conversation, ordered by turn_index asc (FR-07).",
+    request: { params: z.object({ id: z.string() }) },
+    responses: {
+      200: {
+        description: "ok",
+        content: { "application/json": { schema: z.object({ rows: z.array(z.object({
+          id: z.string(),
+          conversation_id: z.string(),
+          turn_index: z.number(),
+          role: z.enum(["user", "assistant"]),
+          content_text: z.string(),
+          created_at: z.string(),
+        })) }) } },
+      },
+      401: { description: "unauthorized", content: { "application/json": { schema: errorEnvelopeSchema } } },
+      404: { description: "conversation not found", content: { "application/json": { schema: errorEnvelopeSchema } } },
+    },
+  });
+
   const generator = new OpenApiGeneratorV31(registry.definitions);
   return generator.generateDocument({
     openapi: "3.1.0",

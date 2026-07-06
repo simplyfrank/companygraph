@@ -281,7 +281,7 @@ back-stack entry).
 | Legacy route | New canonical route | Status |
 |--------------|---------------------|--------|
 | `#/analytics/{overview,systems,matrix,consolidation,complexity,single-system,critical-paths,ai}` | `#/insights/{same}` | 8 tabs relocated |
-| `#/analytics/exec-summary` | `#/insights/overview` | Tab deleted (duplicates Model/Export) |
+| `#/analytics/exec-summary` | `#/insights/exec-summary` | Tab relocated (kept — distinct from Model/Export: PDF vs MD/JSON) |
 | `#/exec/{finance,people,transform}` | `#/insights/{same}` | 3 tabs relocated |
 | `#/exec/performance` | `#/insights/performance` | Relocated (dashboard landed) |
 | `#/exec/{risk,kpi-management,okr-management}` | `#/govern/{same}` | 3 tabs relocated |

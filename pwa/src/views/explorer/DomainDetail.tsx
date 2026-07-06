@@ -11,6 +11,8 @@ import { HealthDashboard } from "../../components/HealthDashboard";
 import { PersonaAssignment } from "../../components/PersonaAssignment";
 import { OkrCrud } from "../../components/OkrCrud";
 import { OkrPerformanceBoard } from "../../components/OkrPerformanceBoard";
+import { FlagForReviewButton } from "../../components/FlagForReviewButton";
+import { useTitleStore } from "../../store/titleStore";
 import { calculateHealthScore, getHealthTier, getHealthColor, getVerificationStatus, getVerificationColor } from "../../lib/domainHealth";
 import styles from "./DomainDetail.module.css";
 
@@ -90,6 +92,17 @@ export function DomainDetail({ route }: { route: Route }) {
     [domainId],
   );
 
+  // T-15: publish the domain name to the title store so shell chrome
+  // (breadcrumbs / document title) can reflect the current entity.
+  // Runs unconditionally (rules of hooks) and no-ops until data arrives.
+  const domainName =
+    domain.status === "ok" ? (domain.data.rows[0] as { name?: string } | undefined)?.name : undefined;
+  useEffect(() => {
+    if (domainId && domainName) {
+      useTitleStore.getState().setTitle(domainId, domainName);
+    }
+  }, [domainId, domainName]);
+
   // Early return after all hooks to maintain hook order
   if (!domainId) {
     return <NotFoundPanel route={route} />;
@@ -143,6 +156,9 @@ export function DomainDetail({ route }: { route: Route }) {
   return (
     <>
       <ViewHeader title={domainData.name} lede={domainData.description} />
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <FlagForReviewButton label="Domain" id={domainId} />
+      </div>
       <a href="#/explorer/domains" className={styles.backLink}>
         ← Back to Domains
       </a>

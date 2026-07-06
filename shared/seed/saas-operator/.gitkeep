@@ -1,0 +1,5 @@
+# saas-operator-foundation T-02 (FR-07, design §7) — keep this directory in
+# git so `shared/seed/saas-operator/` always exists. The directory-iterating
+# seed loader (api/scripts/seed-saas-operator.ts) reads every *.json here;
+# `.gitkeep` is skipped by its `.json` filter, so a .gitkeep-only directory
+# is a clean no-op. The six wave-2 content specs drop <function>.json here.

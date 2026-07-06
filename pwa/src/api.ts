@@ -4,6 +4,8 @@ import type {
   ChatEnvelope,
   ChatRequest,
   ProgressSnapshot,
+  ConversationSummary,
+  ConversationMessage,
 } from "@companygraph/shared/types";
 import type { GlossaryCollectionRead, GlossaryTermRead, OntologyProposalRead, ComplianceRuleRead, ComplianceRuleCreate, ComplianceRulePatch } from "@companygraph/shared/schema/ontology";
 // key-activity-optimizer T-13 — types inferred from the shared T-01
@@ -207,6 +209,16 @@ export const api = {
       json<{ deleted: true }>(`/api/v1/chat/bookmarks/${encodeURIComponent(id)}`, {
         method: "DELETE",
       }),
+    listConversations: (signal?: AbortSignal) =>
+      json<{ rows: ConversationSummary[] }>(
+        "/api/v1/chat/conversations",
+        withSignal(signal),
+      ),
+    listMessages: (conversationId: string, signal?: AbortSignal) =>
+      json<{ rows: ConversationMessage[] }>(
+        `/api/v1/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+        withSignal(signal),
+      ),
   },
 
   // ontology-manager — runtime-mutable label / edge-type registry

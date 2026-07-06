@@ -51,30 +51,30 @@ describe("cto-analytics T-21 — accent ramp tokens", () => {
 });
 
 describe("cto-analytics T-21 — systems tab registration", () => {
-  test("route.ts registers the `systems` tab on the analytics surface (RD-3 name)", () => {
-    const analytics = findSurface("analytics");
-    expect(analytics).toBeTruthy();
-    const tabIds = analytics!.tabs.map((t) => t.id);
+  test("route.ts registers the `systems` tab on the insights surface (RD-3 name)", () => {
+    const insights = findSurface("insights");
+    expect(insights).toBeTruthy();
+    const tabIds = insights!.tabs.map((t) => t.id);
     expect(tabIds).toContain("systems");
   });
 
-  test("#/analytics/systems resolves to the systems tab, not a fallback", () => {
+  test("#/analytics/systems aliases to #/insights/systems (navigation-IA)", () => {
     const route = parseHash("#/analytics/systems");
-    expect(route.surface).toBe("analytics");
+    expect(route.surface).toBe("insights");
     expect(route.tab).toBe("systems");
   });
 
-  test("renderView(#/analytics/systems) is not the NotFound panel", () => {
-    render(<>{renderView(parseHash("#/analytics/systems"))}</>);
+  test("renderView(#/insights/systems) is not the NotFound panel", () => {
+    render(<>{renderView(parseHash("#/insights/systems"))}</>);
     // The T-21 pending seam renders a "System map" header via ViewHeader;
     // the NotFoundPanel would render a "Back to Domains" link instead.
     expect(screen.queryByText(/Back to Domains/i)).toBeNull();
     expect(screen.getByTestId("view-header-title")).toHaveTextContent(/System map/i);
   });
 
-  test("the systems tab keeps its position ahead of matrix in the analytics surface", () => {
-    const analytics = SURFACES.find((s) => s.id === "analytics")!;
-    const ids = analytics.tabs.map((t) => t.id);
+  test("the systems tab keeps its position ahead of matrix in the insights surface", () => {
+    const insights = SURFACES.find((s) => s.id === "insights")!;
+    const ids = insights.tabs.map((t) => t.id);
     expect(ids.indexOf("systems")).toBeLessThan(ids.indexOf("matrix"));
   });
 });

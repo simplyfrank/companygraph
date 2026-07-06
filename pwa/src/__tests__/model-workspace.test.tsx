@@ -1,10 +1,11 @@
 // model-workspace-core T-17 + T-20 (AC-11, AC-12) — jsdom pin for the
 // Model surface + ModelWorkspace ready-state behaviour:
-//   * SURFACES carries the Model surface as the 10th entry (kbd "0")
-//     with all seven blueprint View-Tree tabs VERBATIM, in order.
+//   * SURFACES carries the Model surface as the 2nd entry (index 1) under
+//     the 8-surface navigation-IA structure, with all seven blueprint
+//     View-Tree tabs VERBATIM, in order.
 //   * The App.tsx surf-jump key→index mapping is unit-asserted
-//     ("0" → 9, "1" → 0, "9" → 8 — pass-1 N-03: not proven only
-//     manually) and lands on the Model surface for "0".
+//     (Alt+1..8 → indices 0..7; "2" → 1 lands on Model) and lands on
+//     the Model surface for "2".
 //   * ready lists models from the single GET /api/v1/models (ordinal,
 //     reference badge, moduleInstanceCount — no per-model fetch);
 //     create POSTs and the new model appears; switch updates the
@@ -58,12 +59,11 @@ function mount() {
 }
 
 describe("Model surface registration (T-17, FR-14, AC-11)", () => {
-  test("Model is the 10th surface (index 9), kbd \"0\", with the seven View-Tree tabs verbatim in order", () => {
-    const model = SURFACES[9];
+  test("Model is the 2nd surface (index 1) with the seven View-Tree tabs verbatim in order", () => {
+    const model = SURFACES[1];
     expect(model).toBeDefined();
     expect(model!.id).toBe("model");
     expect(model!.label).toBe("Model");
-    expect(model!.kbd).toBe("0");
     expect(model!.tabs.map((t) => t.id)).toEqual([
       "models",
       "canvas",
@@ -75,13 +75,14 @@ describe("Model surface registration (T-17, FR-14, AC-11)", () => {
     ]);
   });
 
-  test("surf-jump key→index mapping: \"0\" → 9, \"1\" → 0, \"9\" → 8 (pass-1 N-03) and \"0\" lands on Model", () => {
-    // The exact expression from the App.tsx keydown branch (T-17).
-    const idx = (key: string) => (key === "0" ? 9 : Number(key) - 1);
-    expect(idx("0")).toBe(9);
+  test("surf-jump key→index mapping: Alt+1..8 → 0..7 (navigation-IA) and \"2\" lands on Model", () => {
+    // The exact expression from the App.tsx keydown branch (T-17):
+    // `if (e.altKey && /^[1-8]$/.test(e.key)) { const idx = Number(e.key) - 1; ... }`
+    const idx = (key: string) => Number(key) - 1;
     expect(idx("1")).toBe(0);
-    expect(idx("9")).toBe(8);
-    expect(SURFACES[idx("0")]!.id).toBe("model");
+    expect(idx("2")).toBe(1);
+    expect(idx("8")).toBe(7);
+    expect(SURFACES[idx("2")]!.id).toBe("model");
     expect(SURFACES[idx("1")]!.id).toBe("explorer");
   });
 });

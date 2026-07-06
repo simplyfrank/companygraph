@@ -44,13 +44,13 @@ describe("deep-link dispatcher (AC-11 / FR-14)", () => {
       <>
         {renderView({
           surface: "explorer",
-          tab: "journey-detail",
+          tab: "journeys",
           entityId: "missing-uuid",
           params: {},
         })}
       </>,
     );
-    // Journey-detail view IS registered → renders the journey view (not
+    // Journeys view IS registered → renders the journey view (not
     // NotFound). The NotFound case fires when api.getJourney returns
     // 404 — that's the entity-detail view's job, not the dispatcher's.
     expect(screen.queryByTestId("not-found-panel")).not.toBeInTheDocument();

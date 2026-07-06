@@ -9,8 +9,8 @@ describe("routeStore", () => {
   });
 
   test("navigate writes location.hash", () => {
-    useRouteStore.getState().navigate({ surface: "sme", tab: "review" });
-    expect(window.location.hash).toBe("#/sme/review");
+    useRouteStore.getState().navigate({ surface: "explorer", tab: "review" });
+    expect(window.location.hash).toBe("#/explorer/review");
   });
 
   test("navigate encodes query params", () => {
@@ -30,9 +30,9 @@ describe("routeStore", () => {
   });
 
   test("setFromHash parses current location.hash", () => {
-    window.location.hash = "#/sme/add";
+    window.location.hash = "#/explorer/add";
     useRouteStore.getState().setFromHash();
-    expect(useRouteStore.getState().route.surface).toBe("sme");
+    expect(useRouteStore.getState().route.surface).toBe("explorer");
     expect(useRouteStore.getState().route.tab).toBe("add");
   });
 });

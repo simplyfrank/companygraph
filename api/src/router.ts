@@ -24,7 +24,7 @@ import {
   handleJourneyTouchpoints,
 } from "./routes/query";
 import { handleHealthz } from "./routes/healthz";
-import { handleChatMessage, handleChatProgress, handleBookmarkCreate, handleBookmarkList, handleBookmarkDelete } from "./routes/chat";
+import { handleChatMessage, handleChatProgress, handleBookmarkCreate, handleBookmarkList, handleBookmarkDelete, handleConversationList, handleConversationMessages } from "./routes/chat";
 import { handleStats } from "./routes/stats";
 import { handleExportJson, handleExportNdjson } from "./routes/export";
 import { handleOpenapi } from "./routes/openapi";
@@ -532,6 +532,9 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   if (sub === "chat/bookmarks" && method === "GET") return handleBookmarkList(req);
   const bookmarkOne = sub.match(/^chat\/bookmarks\/([^/]+)$/);
   if (bookmarkOne && method === "DELETE") return handleBookmarkDelete(req, bookmarkOne[1]!);
+  if (sub === "chat/conversations" && method === "GET") return handleConversationList();
+  const convMessages = sub.match(/^chat\/conversations\/([^/]+)\/messages$/);
+  if (convMessages && method === "GET") return handleConversationMessages(req, convMessages[1]!);
   if (sub === "query/search" && method === "GET") return handleSearch(req);
 
   // Ontology routes — /api/v1/ontology/* and /api/v1/schema

@@ -5,6 +5,7 @@ import type {
   ChatEnvelope,
   ChatRequest,
   ChatRoleId,
+  ConversationMessage,
 } from "@companygraph/shared/types";
 import { CHAT_ROLE_IDS } from "@companygraph/shared/types";
 import { api } from "../../api";
@@ -34,18 +35,41 @@ function parseRolePrefix(input: string): {
   return { message: input };
 }
 
-export function AgentChat(): JSX.Element {
+export function AgentChat({ conversationId: propId }: { conversationId?: string } = {}): JSX.Element {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [roleId, setRoleId] = useState<ChatRoleId | undefined>(undefined);
   const [conversationId, setConversationId] = useState<string | undefined>(
-    undefined,
+    propId ?? undefined,
   );
   const [degraded, setDegraded] = useState<boolean>(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const hydratedRef = useRef<string | undefined>(undefined);
+
+  // NFR-04(c): hydrate message history when conversationId is provided
+  // via prop (deep-link resume). Only fires once per conversationId.
+  useEffect(() => {
+    if (!propId || hydratedRef.current === propId) return;
+    hydratedRef.current = propId;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { rows } = await api.chat.listMessages(propId);
+        if (cancelled || rows.length === 0) return;
+        setMessages(rows.map((m: ConversationMessage): ChatMessage =>
+          m.role === "user"
+            ? { role: "user", text: m.content_text }
+            : { role: "assistant", env: { message_id: m.id, conversation_id: m.conversation_id, role_id: m.role_id_used ?? "graph_analyst", answer: m.content_text, citations: [], highlight: { nodes: [], edges: [], paths: [] }, explorer_deep_link: null, tool_calls: [], latency_ms_breakdown: { total_ms: 0, llm_calls: 0, per_tool_ms: {} } } },
+        ));
+      } catch {
+        // Silently fail — user can still send new messages.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [propId]);
 
   // Auto-scroll on new message.
   useEffect(() => {
@@ -183,8 +207,3 @@ export function AgentChat(): JSX.Element {
     </>
   );
 }
-
-// Preserve the existing import path from views/index.tsx
-// (`import { ChatThread } from "./chat/Thread"`). The Thread.tsx
-// re-export keeps this name reachable.
-export { AgentChat as ChatThread };

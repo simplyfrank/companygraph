@@ -3,6 +3,7 @@ import { api } from "../../api";
 import { Card } from "../../components/Card";
 import { PieChartCard, HorizontalBarChartCard } from "../../components/charts";
 import { ViewHeader, Loading, ErrorState } from "../_shared";
+import { ExecRisk } from "./Risk";
 import styles from "./Risk.module.css";
 
 interface RiskSummary {
@@ -420,6 +421,11 @@ export function ExecRiskDashboard() {
             </div>
           )}
         </Card>
+      </div>
+
+      <div style={{ marginTop: "32px" }}>
+        <h2 className="text-xl font-semibold mb-4">Register</h2>
+        <ExecRisk />
       </div>
     </>
   );

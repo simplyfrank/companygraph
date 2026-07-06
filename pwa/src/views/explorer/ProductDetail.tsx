@@ -5,6 +5,8 @@ import { Card } from "../../components/Card";
 import { Pill } from "../../components/Pill";
 import { Button } from "../../components/Button";
 import { OkrCrud } from "../../components/OkrCrud";
+import { FlagForReviewButton } from "../../components/FlagForReviewButton";
+import { useTitleStore } from "../../store/titleStore";
 
 interface Product {
   id: string;
@@ -141,6 +143,13 @@ export function ProductDetail({ productId }: { productId: string }) {
     }
   };
 
+  // T-15: publish product name to title store for breadcrumbs.
+  useEffect(() => {
+    if (productId && product?.name) {
+      useTitleStore.getState().setTitle(productId, product.name);
+    }
+  }, [productId, product?.name]);
+
   if (loading) return <Loading what="product" />;
   if (error) return <ErrorState message={error} />;
   if (!product) return <ErrorState message="Product not found" />;
@@ -151,6 +160,9 @@ export function ProductDetail({ productId }: { productId: string }) {
         title={product.name}
         lede={product.description || "Product management and performance tracking"}
       />
+      <div style={{ marginBottom: 16 }}>
+        <FlagForReviewButton label="Product" id={productId} />
+      </div>
 
       <div className="flex gap-4 mb-6">
         <button

@@ -2,8 +2,8 @@
 feature: "navigation-ia"
 created: "2026-07-06"
 author: "Claude (spec-workflow) with Frank"
-status: "draft"
-revision: 1
+status: "approved"
+revision: 2
 reviewing_requirements_revision: 2
 size: "large"
 ---
@@ -28,6 +28,11 @@ rules:
    all flow from the `SURFACES` array; no hardcoded `kbd` strings.
 4. **Graceful degradation** — the shell never blocks on a missing entity name
    or a failed section; it shows the id until the name resolves.
+5. **NFR-04 exceptions are explicit** — five view files have interior changes
+   beyond pure relocation: (a) `ChatConversations.tsx` (new), (b) journeys
+   dispatch adapter in `views/index.tsx`, (c) `AgentChat.tsx` resume hydration,
+   (d) `FlagForReviewButton` embedding in detail views, (e) `RiskDashboard.tsx`
+   embedding `ExecRisk` as a Register section (de-duplication per FR-21).
 
 **Key trade-offs:**
 - **Alias table vs. redirect server:** chosen alias-in-parseHash because the
@@ -255,6 +260,7 @@ export const SURFACES: Surface[] = [
       { id: "single-system",     label: "Single-system" },
       { id: "critical-paths",    label: "Critical paths" },
       { id: "ai",                label: "AI" },
+      { id: "exec-summary",      label: "Exec summary" },
       { id: "finance",           label: "Finance" },
       { id: "people",            label: "People" },
       { id: "transform",         label: "Transform" },
@@ -262,7 +268,7 @@ export const SURFACES: Surface[] = [
     ],
     groups: [
       { id: "analysis",  label: "", tabIds: ["overview","systems","matrix","complexity","context-alignment"] },
-      { id: "reports",   label: "", tabIds: ["consolidation","single-system","critical-paths","ai"] },
+      { id: "reports",   label: "", tabIds: ["consolidation","single-system","critical-paths","ai","exec-summary"] },
       { id: "business",  label: "", tabIds: ["finance","people","transform","performance"] },
     ],
   },
@@ -272,6 +278,7 @@ export const SURFACES: Surface[] = [
       { id: "kpi-management", label: "KPI Management" },
       { id: "okr-management", label: "OKR Management" },
       { id: "roll-down",      label: "Roll-down" },
+      { id: "roll-down-analytics", label: "Roll-down Analytics" },
       { id: "risk",           label: "Risk" },
       { id: "compliance",     label: "Compliance" },
       { id: "programs",       label: "Programs" },
@@ -357,7 +364,7 @@ export const ROUTE_ALIASES: readonly AliasRow[] = [
   { from: { surface: "analytics", tab: "single-system" },  to: { surface: "insights", tab: "single-system" } },
   { from: { surface: "analytics", tab: "critical-paths" }, to: { surface: "insights", tab: "critical-paths" } },
   { from: { surface: "analytics", tab: "ai" },             to: { surface: "insights", tab: "ai" } },
-  { from: { surface: "analytics", tab: "exec-summary" },   to: { surface: "insights", tab: "overview" } },
+  // exec-summary is NOT aliased — it is kept as insights/exec-summary (rev 2).
 
   { from: { surface: "api", tab: "endpoints" }, to: { surface: "data", tab: "endpoints" } },
   { from: { surface: "api", tab: "errors" },    to: { surface: "data", tab: "errors" } },
@@ -632,23 +639,24 @@ ordered retrieval with a limit parameter.
 | File | Disposition | Rationale |
 |------|-------------|-----------|
 | `exec/RollDown.tsx` | **Wire** at `#/govern/roll-down` | Primary roll-down view; `DomainDetail`'s embedded `RollDownTab` is a per-domain slice, not the full roll-down — de-duplicate by keeping both: this is the full-model view, `RollDownTab` is the inline domain-scoped view |
-| `exec/RollDownAnalytics.tsx` | **Wire** as sub-component of `RollDown` | Already imported by `RollDown.tsx` (verify); if not, embed it |
-| `exec/RiskDashboard.tsx` | **Wire** at `#/govern/risk` alongside `ExecRisk` | `ExecRisk` is the register (table); `RiskDashboard` is the visual dashboard (charts). Render `RiskDashboard` as the primary view with `ExecRisk` as a tab within it, or vice versa. **Design decision: `RiskDashboard` is the primary view at `#/govern/risk`; `ExecRisk` content is embedded as a "Register" section within it.** This avoids shipping two competing risk UIs. |
-| `exec/ProgramManagement.tsx` | **Wire** at `#/govern/programs` | Direct wiring, no interior change |
-| `exec/ContextAlignment.tsx` | **Wire** at `#/insights/context-alignment` | Direct wiring, no interior change |
-| `ontology/GlossaryManager.tsx` | **Wire** at `#/ontology/glossary` | Direct wiring, no interior change |
-| `ontology/ComplianceManager.tsx` | **Wire** at `#/ontology/audit` as a sub-section, OR at `#/govern/compliance` | **Design decision: wire at `#/govern/compliance`** — compliance is a governance concern, not an ontology concern. The requirements FR-05 lists `compliance` under `govern`, and FR-06 does not list it under `ontology`. |
-| `ontology/OntologyGenerator.tsx` | **Wire** at `#/ontology/generator` | Direct wiring, no interior change |
-| `explorer/DomainDetailSlide.tsx` | **Delete** (with `.module.css` if present) | Superseded by `DomainDetail.tsx` which handles the full detail view including slides/panels. Verified: `DomainDetail` is 1400+ lines with its own tab system; `DomainDetailSlide` is a standalone slide-over that was never integrated. |
-| `explorer/JourneyDetailSlide.tsx` | **Delete** (with `.module.css` if present) | Superseded by `Journey.tsx` which handles journey detail. Verified: `Journey.tsx` is the registered view; `JourneyDetailSlide` was never integrated. |
-| `analytics/Settings.tsx` | **Delete** | Not in the view registry, not referenced by any spec, not mentioned in requirements. Appears to be an abandoned experiment. |
-| `analytics/ExecSummary.tsx` | **Delete** | See §4.3 note — duplicates Model/Export functionality; aliases to `insights/overview`. |
+| `exec/RollDownAnalytics.tsx` | **Wire** at `#/govern/roll-down-analytics` as a separate tab | Not imported by `RollDown.tsx` (verified). Wiring as a separate govern tab avoids an NFR-04 interior change. Export name: `RollDownAnalytics`. |
+| `exec/RiskDashboard.tsx` | **Wire** at `#/govern/risk` (NFR-04 exception (e)) | `ExecRisk` is the register (table); `RiskDashboard` is the visual dashboard (charts). **Design decision: `RiskDashboard` is the primary view at `#/govern/risk`; `ExecRisk` is imported and embedded as a "Register" section within it.** This is NFR-04 exception (e) — an interior change to `RiskDashboard.tsx` to import and render `ExecRisk` as a sub-section. Export name: `ExecRiskDashboard`. |
+| `exec/ProgramManagement.tsx` | **Wire** at `#/govern/programs` | Direct wiring, no interior change. Export name: `ProgramManagement`. |
+| `exec/ContextAlignment.tsx` | **Wire** at `#/insights/context-alignment` | Direct wiring, no interior change. Export name: `ContextAlignment`. |
+| `ontology/GlossaryManager.tsx` | **Wire** at `#/ontology/glossary` | Direct wiring, no interior change. Export name: `GlossaryManager`. |
+| `ontology/ComplianceManager.tsx` | **Wire** at `#/govern/compliance` | Compliance is a governance concern, not an ontology concern. FR-05 lists `compliance` under `govern`, FR-06 does not list it under `ontology`. Export name: `ComplianceManager`. |
+| `ontology/OntologyGenerator.tsx` | **Wire** at `#/ontology/generator` | Direct wiring, no interior change. Export name: `OntologyGenerator`. |
+| `explorer/DomainDetailSlide.tsx` | **Delete** (with `.module.css`) | Superseded by `DomainDetail.tsx`. Verified: not imported anywhere (grep confirmed 0 external imports). |
+| `explorer/JourneyDetailSlide.tsx` | **Delete** (with `.module.css`) | Superseded by `Journey.tsx`. Verified: not imported anywhere (grep confirmed 0 external imports). |
+| `analytics/Settings.tsx` | **Keep as internal module** | NOT an orphan — `Complexity.tsx:9` imports `AnalyticsSettings` and `COMPLEXITY_WEIGHT_DEFAULTS` from it. It is a shared internal component, not a view. Stays out of the view registry but is NOT deleted. |
+| `analytics/ExecSummary.tsx` | **Keep** — wire at `#/insights/exec-summary` | See §4.3 note (rev 2) — distinct from Model/Export (PDF vs MD/JSON). Owned by `cto-analytics-reporting` (execution:complete). Export name: `AnalyticsExecSummary`. |
 
 **Orphan guard test (FR-22):** `pwa/src/__tests__/view-orphans.test.ts`
 enumerates `pwa/src/views/**/*.tsx` and asserts every file is transitively
 imported from `views/index.tsx` or `App.tsx`, with an allowlist for shared
-fragments (`_shared.tsx`, `*ComparisonInline.tsx`, chat sub-components like
-`MessageList.tsx`, `Citation.tsx`, etc.).
+internal modules (`_shared.tsx`, `Settings.tsx` — consumed by `Complexity.tsx`,
+`*ComparisonInline.tsx`, chat sub-components like `MessageList.tsx`,
+`Citation.tsx`, etc.).
 
 ### 4.14 FlagForReviewButton embedding (FR-20)
 
@@ -741,9 +749,9 @@ equivalent. No new tokens needed.
 | `pwa/src/views/explorer/Activities.tsx` | modify | FR-20 | FlagForReviewButton embed (detail mode) |
 | `pwa/src/views/explorer/DomainDetailSlide.tsx` | delete | FR-21 | Superseded |
 | `pwa/src/views/explorer/JourneyDetailSlide.tsx` | delete | FR-21 | Superseded |
-| `pwa/src/views/analytics/Settings.tsx` | delete | FR-21 | Orphan, unreferenced |
-| `pwa/src/views/analytics/ExecSummary.tsx` | delete | FR-21 | Duplicates Model/Export |
-| `pwa/src/views/exec/RiskDashboard.tsx` | modify | FR-05, FR-21 | Embed ExecRisk as section (de-duplication) |
+| `pwa/src/views/analytics/Settings.tsx` | — | — | NOT deleted — internal module consumed by `Complexity.tsx` |
+| `pwa/src/views/analytics/ExecSummary.tsx` | modify | FR-21 | Wire at `insights/exec-summary`; update test route |
+| `pwa/src/views/exec/RiskDashboard.tsx` | modify | FR-05, FR-21, NFR-04(e) | Embed ExecRisk as Register section (de-duplication) |
 | `api/src/routes/chat.ts` | modify | FR-10 | handleConversationList, handleConversationMessages |
 | `api/src/chat/persistence.ts` | modify | FR-10 | listConversations function |
 | `api/src/router.ts` | modify | FR-10 | Register conversation routes |
@@ -755,11 +763,12 @@ equivalent. No new tokens needed.
 | `pwa/src/__tests__/breadcrumbs.test.tsx` | new | AC-15 | Breadcrumb derivation + landmark |
 | `pwa/src/__tests__/conversations.test.tsx` | new | AC-06, AC-07 | ChatConversations view + resume |
 | `pwa/src/__tests__/view-orphans.test.ts` | new | AC-22 | Orphan guard test |
-| `pwa/src/__tests__/deep-link.test.tsx` | modify | AC-16 | Alt+1..8 shortcuts, no Alt+0 |
-| `pwa/src/__tests__/touch-targets.test.tsx` | modify | AC-14 | New tab groups + search button |
+| `pwa/src/__tests__/deep-link.test.tsx` | modify | AC-16 | Alt+1..8 shortcuts, no Alt+0; update `journey-detail` test case for alias |
+| `pwa/src/__tests__/touch-targets.test.tsx` | modify | AC-14 | New tab groups + search button; structure-only assertions (existing pattern) |
 | `pwa/src/__tests__/sme-review-flag.test.tsx` | modify | AC-21 | FlagForReviewButton on detail views |
 | `api/src/__tests__/chat-conversations.test.ts` | new | AC-20 | API route tests |
 | `pwa/src/store/__tests__/routeStore.test.ts` | modify | AC-17 | Alias table exhaustive iteration |
+| `pwa/src/__tests__/analytics-exec-summary-launcher.test.tsx` | modify | AC-08 | Update route from `analytics/exec-summary` to `insights/exec-summary` |
 
 ## 8. Test strategy
 
@@ -778,7 +787,7 @@ equivalent. No new tokens needed.
 | AC-11 | `route-parse.test.ts` | unit | api/import → data/import alias; all data tabs resolve |
 | AC-12 | `route-parse.test.ts` | unit | exec/ops → admin/platform; sme/home → admin/settings |
 | AC-13 | `search.test.tsx` | component | / and Cmd+K open palette; Escape closes + focus return; focus trap |
-| AC-14 | `touch-targets.test.tsx` | component | Tab groups + search button ≥ 44px |
+| AC-14 | `touch-targets.test.tsx` | component | Tab groups + search button structure-only assertions (existing pattern — jsdom cannot compute CSS; pixel-size verified manually) |
 | AC-15 | `breadcrumbs.test.tsx` | component | Breadcrumb text/links + nav landmark + entity name |
 | AC-16 | `deep-link.test.tsx` | component | Alt+1..8 jumps; no Alt+0; typing guard |
 | AC-17 | `route-parse.test.ts` | unit | Alias table exhaustive iteration + dangling-target guard + history-replace |
@@ -802,16 +811,21 @@ surface → each tab, verify view renders data or its own empty state.
 - **Separate store for last-visited tabs:** rejected — `prefStore` already
   has the localStorage persistence pattern; adding a `lastTabs` map is a
   minimal extension.
-- **Keeping `exec-summary` as a virtual tab:** rejected — the
-  `AnalyticsExecSummary` view is a thin PDF launcher that duplicates the
-  Model surface's Export tab. Deleting it simplifies the insights surface
-  and avoids a 14th tab. If needed later, it can be re-added as a virtual
-  tab.
+- **Deleting `ExecSummary.tsx`:** rejected (rev 2) — the view is a wired,
+  tested, spec-owned PDF launcher (`cto-analytics-reporting` T-08,
+  execution:complete) with a dedicated test file. It serves a distinct
+  purpose from Model/Export (executive PDF vs per-model MD/JSON). Kept as
+  `insights/exec-summary`.
 - **Merging `RiskDashboard` and `ExecRisk` into one new component:**
   rejected — would violate NFR-04 (interior redesign). Instead,
-  `RiskDashboard` is the primary view and `ExecRisk` content is embedded as
-  a section within it, requiring only a wrapping change in the view
-  registry.
+  `RiskDashboard` is the primary view and `ExecRisk` is imported and
+  embedded as a "Register" section within it. This is NFR-04 exception (e)
+  — an explicit, enumerated interior change for de-duplication per FR-21.
+- **Wiring `RollDownAnalytics` as a sub-component of `RollDown`:** rejected
+  — `RollDown.tsx` does not import it (verified), and embedding would be an
+  unscoped NFR-04 interior change. Instead, wired as a separate tab at
+  `#/govern/roll-down-analytics`.
+
 - **Generalized virtual tabs on all surfaces:** rejected for now — only
   `explorer` needs virtual tabs today. The mechanism is available via the
   per-surface `VIRTUAL_TABS` map if design risk 2 materializes, but no

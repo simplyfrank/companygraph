@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { Route } from "../../route";
 import { api, type KPIAlignmentRow, type SLAAlignmentRow } from "../../api";
 import { useFetch } from "../../useFetch";
@@ -6,6 +7,8 @@ import { Pill } from "../../components/Pill";
 import { Button } from "../../components/Button";
 import { ViewHeader, Loading, ErrorState, SecLabel } from "../_shared";
 import { NotFoundPanel } from "../_shared";
+import { FlagForReviewButton } from "../../components/FlagForReviewButton";
+import { useTitleStore } from "../../store/titleStore";
 import { activityFilterAnd } from "../../data/cypher-queries";
 
 // FR-04 + FR-09: list mode (multi-filter on system/role/location via URL
@@ -155,6 +158,15 @@ function ActivityDetail({ id }: { id: string }) {
   const kpiAlignments = useFetch(() => api.kpi.getAlignments("activity", id), [id]);
   const slaAlignments = useFetch(() => api.sla.getAlignments("activity", id), [id]);
 
+  // T-15: publish the activity name to the title store so shell chrome
+  // (breadcrumbs / document title) can reflect the current entity.
+  const activityName = activity.status === "ok" ? activity.data.rows[0]?.name : undefined;
+  useEffect(() => {
+    if (id && activityName) {
+      useTitleStore.getState().setTitle(id, activityName);
+    }
+  }, [id, activityName]);
+
   if (activity.status === "loading") return <Loading what="activity" />;
   if (activity.status === "error") {
     // 404 from getActivity is the entity-detail "not found" surface.
@@ -180,6 +192,9 @@ function ActivityDetail({ id }: { id: string }) {
   return (
     <>
       <ViewHeader title={row.name} lede={row.description} />
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <FlagForReviewButton label="Activity" id={id} />
+      </div>
       <div style={{ marginBottom: 12 }}>
         <Button tone="ghost" href="#/explorer/activities">← All activities</Button>
       </div>

@@ -41,6 +41,10 @@ let dbInstance: DatabaseInstance | null = null;
 let resolvedDbPath: string | null = null;
 
 function resolveDbPath(rawPath: string): string {
+  // Preserve the SQLite in-memory sentinel (`:memory:`) verbatim —
+  // resolving it against cwd would turn it into a literal file named
+  // ":memory:" instead of an ephemeral in-process database.
+  if (rawPath === ":memory:") return rawPath;
   return isAbsolute(rawPath) ? rawPath : resolve(process.cwd(), rawPath);
 }
 
@@ -166,6 +170,15 @@ export function createConversation(input: CreateConversationInput = {}): Convers
     title: input.title ?? null,
     role_id_pin: input.role_id_pin ?? null,
   };
+}
+
+export function listConversations(): ConversationRow[] {
+  const db = getDb();
+  return db.prepare(
+    `SELECT id, created_at, last_message_at, title, role_id_pin
+     FROM chat_conversations
+     ORDER BY last_message_at DESC`,
+  ).all() as ConversationRow[];
 }
 
 export function getConversation(id: string): ConversationRow | null {
@@ -453,4 +466,23 @@ export function deleteBookmark(id: string): boolean {
     .prepare(`DELETE FROM chat_bookmarks WHERE id = ?`)
     .run(id);
   return result.changes > 0;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Message history (FR-07, design §3.5).
+// ────────────────────────────────────────────────────────────────────
+
+export function listMessages(conversationId: string): ChatMessageRow[] {
+  const db = getDb();
+  const raw = db
+    .prepare(
+      `SELECT id, conversation_id, turn_index, role, content_text,
+              role_id_used, tool_calls, highlight, explorer_deep_link,
+              latency_ms_breakdown, created_at
+       FROM chat_messages
+       WHERE conversation_id = ?
+       ORDER BY turn_index ASC`,
+    )
+    .all(conversationId) as RawMessageRow[];
+  return raw.map(hydrateMessage);
 }

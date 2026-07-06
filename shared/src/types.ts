@@ -196,3 +196,23 @@ export interface ProgressSnapshot {
   error?: ToolError;
 }
 
+// Conversation list item (FR-06, design §3.5).
+export interface ConversationSummary {
+  id: string;
+  created_at: string;
+  last_message_at: string;
+  title: string | null;
+  role_id_pin: ChatRoleId | null;
+}
+
+// Conversation message history item (FR-07, design §3.5).
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  turn_index: number;
+  role: "user" | "assistant";
+  content_text: string;
+  role_id_used: ChatRoleId | null;
+  created_at: string;
+}
+

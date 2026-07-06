@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { Route } from "../../route";
 import { api, type DomainRow, type JourneyDetailRow } from "../../api";
 import { useFetch } from "../../useFetch";
@@ -9,6 +9,8 @@ import { Pill } from "../../components/Pill";
 import { Button } from "../../components/Button";
 import { ViewHeader, Loading, ErrorState, SecLabel } from "../_shared";
 import { SLAchip } from "../../components/SLAchip";
+import { FlagForReviewButton } from "../../components/FlagForReviewButton";
+import { useTitleStore } from "../../store/titleStore";
 import { orderJourneyActivities } from "../../lib/journeyOrder";
 import { loadJourneyData } from "../../lib/journeyData";
 import { fetchComplianceStatus, type ComplianceStatus } from "../../lib/journeyHealth";
@@ -135,6 +137,15 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
     [journeyId],
   );
 
+  // T-15: publish the journey name to the title store so shell chrome
+  // (breadcrumbs / document title) can reflect the current entity.
+  const journeyName = journey.status === "ok" ? journey.data.rows[0]?.name : undefined;
+  useEffect(() => {
+    if (journeyId && journeyName) {
+      useTitleStore.getState().setTitle(journeyId, journeyName);
+    }
+  }, [journeyId, journeyName]);
+
   // FR-03 / AC-02 — reorder activities by PRECEDES; on cycle, fall
   // back to createdAt ASC and surface a warning ribbon.
   //
@@ -217,6 +228,9 @@ function JourneyDetail({ journeyId, activeActivityId }: { journeyId: string; act
   return (
     <>
       <ViewHeader title={row.name} lede={row.description} />
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <FlagForReviewButton label="UserJourney" id={journeyId} />
+      </div>
       <JourneyKpiBanner 
         row={row} 
         verification={verification} 

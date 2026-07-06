@@ -1,0 +1,15 @@
+/* saas-operator-foundation T-03 — tokens-only placeholder styling (UX-02). */
+
+.placeholder {
+  padding: var(--space-lg);
+  color: var(--muted);
+  font-family: var(--font-body);
+}
+
+.placeholder code {
+  font-family: var(--font-mono);
+  color: var(--fg);
+  background: var(--surface-2);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}

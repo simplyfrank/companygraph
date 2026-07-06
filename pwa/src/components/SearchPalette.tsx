@@ -26,11 +26,12 @@ function hrefForHit(hit: Result): string {
   const id = encodeURIComponent(hit.id);
   switch (hit.label) {
     case "Domain":      return `#/explorer/domains/${id}`;
-    case "UserJourney": return `#/explorer/journey-detail/${id}`;
+    case "UserJourney": return `#/explorer/journeys/${id}`;
     case "Activity":    return `#/explorer/activities/${id}`;
     case "System":      return `#/explorer/systems/${id}`;
     case "Role":        return `#/explorer/roles/${id}`;
     case "Location":    return `#/explorer/locations/${id}`;
+    case "Product":     return `#/explorer/product-detail/${id}`;
     default:            return "#/explorer/domains";
   }
 }
@@ -68,7 +69,7 @@ export function SearchPalette({ forceOpen }: Props = {}) {
     [schema],
   );
 
-  // Open on "/" outside an editable field; close on "Escape".
+  // Open on "/" or Cmd/Ctrl+K outside an editable field; close on "Escape".
   useEffect(() => {
     function onKey(e: KeyboardEvent): void {
       const target = e.target as HTMLElement | null;
@@ -77,6 +78,13 @@ export function SearchPalette({ forceOpen }: Props = {}) {
         tag === "input" ||
         tag === "textarea" ||
         target?.isContentEditable === true;
+      // Cmd/Ctrl+K opens the palette from anywhere (even editable fields).
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        lastTriggerRef.current = (document.activeElement as HTMLElement) ?? null;
+        setOpen(true);
+        return;
+      }
       if (e.key === "/" && !editable) {
         e.preventDefault();
         lastTriggerRef.current = (document.activeElement as HTMLElement) ?? null;
@@ -87,6 +95,36 @@ export function SearchPalette({ forceOpen }: Props = {}) {
         e.preventDefault();
         setOpen(false);
         lastTriggerRef.current?.focus();
+        return;
+      }
+      // Focus trap: while the palette is open, Tab/Shift+Tab cycles
+      // within the palette instead of escaping to the page beneath.
+      // We intercept every Tab so focus movement is deterministic
+      // (browsers are inconsistent about honouring preventDefault on
+      // the default Tab focus shift).
+      if (open && e.key === "Tab") {
+        const palette = document.querySelector('[data-testid="search-palette"]');
+        if (!palette) return;
+        const focusables = Array.from(
+          palette.querySelectorAll<HTMLElement>(
+            'input, a[href], button, [tabindex]:not([tabindex="-1"])',
+          ),
+        );
+        if (focusables.length === 0) return;
+        const activeIdx = focusables.findIndex(
+          (el) => el === document.activeElement,
+        );
+        e.preventDefault();
+        if (e.shiftKey) {
+          const nextIdx = activeIdx <= 0 ? focusables.length - 1 : activeIdx - 1;
+          focusables[nextIdx]!.focus();
+        } else {
+          const nextIdx =
+            activeIdx < 0 || activeIdx >= focusables.length - 1
+              ? 0
+              : activeIdx + 1;
+          focusables[nextIdx]!.focus();
+        }
       }
     }
     document.addEventListener("keydown", onKey);
