@@ -57,6 +57,38 @@ export async function applySchema(driver: Driver): Promise<void> {
   // This runs every bootstrap but is idempotent (checks if already seeded).
   await seedBoundedContexts(driver);
 
+  // Step 3a (ddd-system-modeling DD-14): register the BoundedContext
+  // _OntologyNodeLabel row BEFORE registerModelSchema. The model-workspace
+  // edges BELONGS_TO_SHARED_DOMAIN and IN_NAMESPACE both reference
+  // BoundedContext as an endpoint, and createEdgeType's
+  // assertEndpointLabelsExist will throw type_pair_violation if the label
+  // isn't in the registry yet. seedBoundedContexts only creates DATA nodes
+  // (BoundedContext label instances), not the registry row. The registry
+  // row was previously created in step 3d (registerCapabilitySchema),
+  // which runs AFTER registerModelSchema — too late. Idempotent.
+  const { createNodeLabel } = await import("../ontology/storage/node-labels");
+  const { ValidationError } = await import("../errors");
+  try {
+    await createNodeLabel(
+      driver,
+      {
+        name: "BoundedContext",
+        description:
+          "A DDD bounded context from the bounded-contexts ontology surface. Data nodes are seeded by api/src/ontology/seed.ts (seedBoundedContexts); this row registers the LABEL so model-workspace + capability edges can target it.",
+        usage_example:
+          "(bc:BoundedContext)-[:BELONGS_TO_SHARED_DOMAIN]->(sd:SharedDomain)",
+        json_schema_doc: {},
+      },
+      "system:ddd-system",
+    );
+  } catch (e) {
+    // name_conflict = already registered (idempotent). Any other error
+    // propagates.
+    if (!(e instanceof ValidationError && (e.code as string) === "name_conflict")) {
+      throw e;
+    }
+  }
+
   // Step 3b (model-workspace-core T-03 / FR-01–04, NFR-01): register the
   // four model-workspace lifecycle labels + five edges through the runtime
   // registry (never the compile-time consts). Idempotent — name_conflict

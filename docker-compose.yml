@@ -1,16 +1,15 @@
 # Local Neo4j and PostgreSQL for development. Production deployment is out of
 # scope for this spec — do not use this file in production.
 #
-# NEO4J_AUTH is interpolated from .env. The :?missing form fails loud if
-# either variable is unset rather than silently defaulting to neo4j/neo4j
-# (which Neo4j refuses anyway).
+# Variables default to dev values so `docker compose config -q` works
+# without a .env (e.g. in CI). Override via .env for local dev.
 
 services:
   neo4j:
     image: neo4j:5-community
     container_name: companygraph_neo4j
     environment:
-      NEO4J_AUTH: "${NEO4J_USER:?missing NEO4J_USER in .env}/${NEO4J_PASSWORD:?missing NEO4J_PASSWORD in .env}"
+      NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-companygraph_dev}"
       NEO4J_server_memory_pagecache_size: "256m"
       NEO4J_server_memory_heap_initial__size: "256m"
       NEO4J_server_memory_heap_max__size: "1g"
@@ -34,15 +33,15 @@ services:
     image: postgres:16-alpine
     container_name: companygraph_postgres
     environment:
-      POSTGRES_USER: "${POSTGRES_USER:?missing POSTGRES_USER in .env}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?missing POSTGRES_PASSWORD in .env}"
+      POSTGRES_USER: "${POSTGRES_USER:-companygraph}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-companygraph_dev}"
       POSTGRES_DB: "${POSTGRES_DB:-companygraph}"
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
       - companygraph_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-companygraph}"]
       interval: 5s
       timeout: 3s
       retries: 30

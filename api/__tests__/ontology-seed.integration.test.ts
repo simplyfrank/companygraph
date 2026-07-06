@@ -89,8 +89,21 @@ describe("integration: seedRegistryFromConstTuples (T-08 / AC-15)", () => {
     // when the schema cache reloads an empty registry).
     await clearMetaNamespace();
     const driver = getDriver();
-    await applyMetaSchema(driver);
-    await seedRegistryFromConstTuples(driver);
+    // Use applySchema (not just seedRegistryFromConstTuples) so the
+    // model/story/capability/kpi-impact labels + edges are also
+    // registered — seedRegistryFromConstTuples only seeds the base
+    // NODE_LABELS/EDGE_TYPES, leaving BoundedContext/UserStory/etc.
+    // missing and cascading `unknown_label` failures into every
+    // downstream test that touches those labels.
+    try {
+      const { applySchema } = await import("../src/neo4j/bootstrap");
+      await applySchema(driver);
+    } catch {
+      // APOC missing or similar — fall back to base seed only so at
+      // least the 6 core labels are present.
+      await applyMetaSchema(driver);
+      await seedRegistryFromConstTuples(driver);
+    }
     await closeDriver();
     _resetDriver();
   });

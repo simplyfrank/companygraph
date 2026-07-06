@@ -42,6 +42,12 @@ jobs:
           NEO4J_AUTH: neo4j/companygraph_ci_password
           NEO4J_server_memory_pagecache_size: "256m"
           NEO4J_server_memory_heap_max__size: "1g"
+          # APOC required by ontology-manager migrations + forceBackfill
+          # path + system-kind-migration drift backfill (uses
+          # apoc.convert.fromJsonMap / apoc.map.setKey). Must match
+          # docker-compose.yml's NEO4J_PLUGINS setting.
+          NEO4J_PLUGINS: '["apoc"]'
+          NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
         ports:
           - 7687:7687
           - 7474:7474

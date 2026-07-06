@@ -358,6 +358,14 @@ describe("integration: parseRegistryLabel / parseEdgeTypeName (T-13 §5.5)", () 
   afterAll(async () => {
     await clearMetaNamespace();
     await dropProbeConstraintsAndIndexes();
+    // Restore the full registry (base labels + model/story/capability/
+    // kpi-impact) so downstream test files see a valid schema.
+    try {
+      const { applySchema } = await import("../src/neo4j/bootstrap");
+      await applySchema(getDriver());
+    } catch {
+      // APOC missing or similar — best-effort.
+    }
   });
 
   test("parseRegistryLabel admits a runtime-added label", async () => {

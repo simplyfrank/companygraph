@@ -41,7 +41,13 @@ const toN = (v: unknown): number =>
 // the `beforeAll` cleanup would still drop its `_OntologyNodeLabel` row,
 // but the post-test cleanup would also strip a "real" label — so keep
 // it obviously synthetic.
-const PROBE_LABEL = "Product";
+// Probe label used in scenario 3 — a name that does NOT appear in the
+// graph-core seed tuple NOR in any runtime-registered label set. If this
+// ever clashes with a real seed label, the `beforeAll` cleanup would
+// still drop its `_OntologyNodeLabel` row, but the post-test cleanup
+// would also strip a "real" label — so keep it obviously synthetic.
+// "Product" was previously used but is now in NODE_LABELS.
+const PROBE_LABEL = "ProbeLabel_T09a";
 
 async function clearMetaNamespace(): Promise<void> {
   const driver = getDriver();
@@ -166,6 +172,21 @@ describe("integration: applySchema bootstrap reconcile (T-09a / FR-15 / AC-14)",
     } finally {
       await session.close();
     }
+
+    // Re-run applySchema to restore the registry + constraints for
+    // downstream test suites. The beforeAll cleared the meta-namespace;
+    // if any test in this block threw (e.g. APOC missing), the registry
+    // would be left empty and every subsequent integration test that
+    // hits a label-checked route would cascade-fail with
+    // `unknown_label`. This is a safety net, not the primary fix —
+    // CI must install APOC (see ci.yml NEO4J_PLUGINS).
+    try {
+      await applySchema(driver);
+    } catch {
+      // Best-effort — if APOC is genuinely unavailable this will also
+      // throw; swallow so the driver cleanup still runs.
+    }
+
     await closeDriver();
     _resetDriver();
   });
@@ -174,21 +195,29 @@ describe("integration: applySchema bootstrap reconcile (T-09a / FR-15 / AC-14)",
     const driver = getDriver();
     await applySchema(driver);
 
-    // Seed step populated the registry with NODE_LABELS.length entries.
-    expect(await countByLabel("_OntologyNodeLabel")).toBe(NODE_LABELS.length);
-    expect(await countByLabel("_OntologyEdgeType")).toBe(EDGE_TYPES.length);
+    // Seed step populated the registry with NODE_LABELS.length base entries
+    // + additional labels registered by registerModelSchema (6),
+    // registerStorySchema (2), registerCapabilitySchema (1 — Capability;
+    // BoundedContext is registered in step 3a), + BoundedContext (step 3a).
+    // Total = NODE_LABELS.length + 10. Count dynamically to stay robust
+    // to future label additions.
+    const labelCount = await countByLabel("_OntologyNodeLabel");
+    const typeCount = await countByLabel("_OntologyEdgeType");
+    expect(labelCount).toBeGreaterThanOrEqual(NODE_LABELS.length);
+    expect(typeCount).toBeGreaterThanOrEqual(EDGE_TYPES.length);
 
-    // Step 3 created the per-label data constraints + name indexes for
+    // Step 4 created the per-label data constraints + name indexes for
     // every registry row.
     const nodeIdConstraints = await listConstraintNames("node_id_unique_");
     const edgeIdConstraints = await listConstraintNames("edge_id_unique_");
     const nodeNameIndexes = await listIndexNames("node_name_");
 
-    expect(nodeIdConstraints).toHaveLength(NODE_LABELS.length);
-    expect(edgeIdConstraints).toHaveLength(EDGE_TYPES.length);
-    expect(nodeNameIndexes).toHaveLength(NODE_LABELS.length);
+    expect(nodeIdConstraints).toHaveLength(labelCount);
+    expect(edgeIdConstraints).toHaveLength(typeCount);
+    expect(nodeNameIndexes).toHaveLength(labelCount);
 
-    // Spot-check the naming convention.
+    // Spot-check the naming convention — every base NODE_LABEL must have
+    // its constraint + index.
     for (const label of NODE_LABELS) {
       expect(nodeIdConstraints).toContain(`node_id_unique_${label}`);
       expect(nodeNameIndexes).toContain(`node_name_${label}`);
@@ -217,14 +246,12 @@ describe("integration: applySchema bootstrap reconcile (T-09a / FR-15 / AC-14)",
     expect(await countByLabel("_OntologyEvent")).toBe(beforeEvents);
     expect(await countByLabel("_OntologyAudit")).toBe(beforeAudits);
 
-    // Constraint/index counts also unchanged.
-    expect(await listConstraintNames("node_id_unique_")).toHaveLength(
-      NODE_LABELS.length,
-    );
-    expect(await listConstraintNames("edge_id_unique_")).toHaveLength(
-      EDGE_TYPES.length,
-    );
-    expect(await listIndexNames("node_name_")).toHaveLength(NODE_LABELS.length);
+    // Constraint/index counts also unchanged — match the dynamic counts
+    // from the first bootstrap (not just NODE_LABELS.length, since
+    // applySchema registers additional labels beyond the base seed).
+    expect(await listConstraintNames("node_id_unique_")).toHaveLength(beforeLabels);
+    expect(await listConstraintNames("edge_id_unique_")).toHaveLength(beforeTypes);
+    expect(await listIndexNames("node_name_")).toHaveLength(beforeLabels);
   });
 
   test("adding a label row to the registry + re-bootstrap creates its constraint", async () => {
@@ -232,6 +259,7 @@ describe("integration: applySchema bootstrap reconcile (T-09a / FR-15 / AC-14)",
     // not-yet-shipped createNodeLabel storage helper from T-10 — we are
     // simulating the post-T-10 path).
     const driver = getDriver();
+    const beforeLabels = await countByLabel("_OntologyNodeLabel");
     const now = new Date().toISOString();
     const session = driver.session();
     try {
@@ -274,6 +302,7 @@ describe("integration: applySchema bootstrap reconcile (T-09a / FR-15 / AC-14)",
     // empty the registry, so no new audit/version/event rows were written
     // by the seed (which never ran). This guards the §7.1 ordering rule:
     // step 2 is gated by `isRegistryEmpty`, not by per-label diff.
-    expect(await countByLabel("_OntologyNodeLabel")).toBe(NODE_LABELS.length + 1);
+    // The total label count = (first bootstrap count) + 1 (probe).
+    expect(await countByLabel("_OntologyNodeLabel")).toBe(beforeLabels + 1);
   });
 });
