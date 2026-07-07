@@ -30,4 +30,7 @@ while IFS= read -r f; do
   FILES+=("$f")
 done < <(find __tests__ src -name '*.test.ts' -o -name '*.integration.test.ts' | grep -v 'ontology-cache.integration.test.ts' | sort)
 
-exec bun test --test-name-pattern '^integration:' --max-concurrency 1 "${FILES[@]}"
+# auth-hardening T-10 (DEC-06): preload the loopback dev-fallback opt-in so
+# integration tests that ride the dev fallback keep passing under the hardened
+# default. Runs from api/ cwd, so the preload path resolves.
+exec bun test --preload ./__tests__/_setup/auth-dev-fallback.preload.ts --test-name-pattern '^integration:' --max-concurrency 1 "${FILES[@]}"

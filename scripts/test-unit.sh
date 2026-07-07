@@ -19,7 +19,11 @@ status=0
 (
   cd api
   files=$(find __tests__ src -name '*.test.ts' ! -name '*.integration.test.ts' 2>/dev/null)
-  [ -n "$files" ] && bun test --test-name-pattern '^(?!integration:)' $files
+  # auth-hardening T-10 (DEC-06, C-06): preload the loopback dev-fallback
+  # opt-in so router-importing unit tests keep passing under the hardened
+  # default. api/-block ONLY — the preload path is api/-relative and would
+  # not resolve from the shared/ cwd below.
+  [ -n "$files" ] && bun test --preload ./__tests__/_setup/auth-dev-fallback.preload.ts --test-name-pattern '^(?!integration:)' $files
 ) || status=1
 
 (

@@ -12,6 +12,9 @@ export interface Env {
   chatDbPath: string;
   // cto-analytics-reporting (FR-10, DD-06/NFR-R1) — isolated analytics cache DB
   analyticsDbPath: string;
+  // auth-hardening (FR-09 / DEC-01) — explicit, default-off opt-in that gates
+  // the DEV-ONLY full-permission auth fallback. Safe (closed) state is false.
+  authDevFallback: boolean;
 }
 
 export function loadEnv(): Env {
@@ -24,6 +27,11 @@ export function loadEnv(): Env {
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
   const chatDbPath = process.env.CHAT_DB_PATH ?? "../data/chat.db";
   const analyticsDbPath = process.env.ANALYTICS_DB_PATH ?? "./data/analytics.sqlite";
+  // auth-hardening (FR-09 / DEC-01) — truthy "1"/"true" opts into the
+  // DEV-ONLY fallback; anything else (incl. unset) is the safe closed state.
+  const authDevFallback =
+    process.env.AUTH_DEV_FALLBACK === "1" ||
+    process.env.AUTH_DEV_FALLBACK?.toLowerCase() === "true";
 
   if (!neo4jPassword) {
     throw new Error(
@@ -31,5 +39,5 @@ export function loadEnv(): Env {
     );
   }
 
-  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword, postgresUri, anthropicApiKey, chatDbPath, analyticsDbPath };
+  return { host, apiPort, neo4jUri, neo4jUser, neo4jPassword, postgresUri, anthropicApiKey, chatDbPath, analyticsDbPath, authDevFallback };
 }

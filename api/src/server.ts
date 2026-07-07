@@ -9,9 +9,19 @@ import { initAnalyticsDb, closeAnalyticsDb } from "./analytics/reporting/cache";
 import { initAnalyticsSettings, getSettingsRow } from "./analytics/reporting/settings";
 import { runPrecompute } from "./analytics/reporting/scheduler";
 import { startKafkaConsumerIfConfigured, stopKafkaConsumer } from "./ingest/kafka-consumer";
+import { assertAuthPosture } from "./auth/dev-fallback";
 
 async function main(): Promise<void> {
   const env = loadEnv();
+
+  // auth-hardening (FR-09 / DEC-02 / DEC-05) — SECURITY-CRITICAL boot gate.
+  // Runs synchronously right after loadEnv() and BEFORE both the schema/DB
+  // bootstrap try/catch blocks (which swallow errors) AND Bun.serve (which
+  // would bind the port). A bad posture — AUTH_DEV_FALLBACK set on a
+  // non-loopback host, or a non-loopback deploy on the in-memory session
+  // stub — throws here, unwinds to main().catch(process.exit(1)), and the
+  // process exits non-zero WITHOUT ever binding. (Placement is load-bearing.)
+  assertAuthPosture(env);
 
   // Apply schema before serving (idempotent — design-review B-01 N/A here).
   try {

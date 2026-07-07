@@ -137,3 +137,12 @@ export function getSessionStorage(): SessionStorage {
 export function setSessionStorage(storage: SessionStorage): void {
   defaultSessionStorage = storage;
 }
+
+// auth-hardening (FR-11 / DEC-05) — reports whether a REAL (non-in-memory)
+// session backing is wired. The Redis client TODO above is unimplemented, so
+// getSessionStorage() always returns the in-memory stub; this returns false
+// until that changes. assertSessionBacking() (dev-fallback.ts) reads it to
+// refuse a non-loopback deploy that would silently lose sessions.
+export function isRealBacking(): boolean {
+  return false;
+}

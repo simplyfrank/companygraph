@@ -85,6 +85,12 @@ jobs:
       NEO4J_PASSWORD: companygraph_ci_password
       NEO4J_URI: bolt://localhost:7687
       HOST: 127.0.0.1
+      # auth-hardening (FR-14 / DEC-06) — the integration job's `Boot API
+      # server` step boots on loopback with no ONELOGIN_ISSUER; the hardened
+      # default (FR-09) would 401 every route without this opt-in. Loopback +
+      # opt-in + no issuer → the dev fallback serves the integration suite
+      # exactly as before. NOT set on the unit job (the test preload covers it).
+      AUTH_DEV_FALLBACK: "1"
       API_PORT: 8787
       POSTGRES_URI: postgresql://companygraph:companygraph_ci_password@localhost:5432/companygraph
     steps:

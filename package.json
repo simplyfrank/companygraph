@@ -8,7 +8,7 @@
     "pwa"
   ],
   "scripts": {
-    "dev": "bash -c '. ./scripts/runtime-detect.sh && $COMPANYGRAPH_COMPOSE_CMD up -d neo4j postgres && ./scripts/wait-for-neo4j.sh && concurrently -k -n api,pwa \"cd api && bun run dev\" \"cd pwa && bun run dev\"'",
+    "dev": "bash -c '. ./scripts/runtime-detect.sh && $COMPANYGRAPH_COMPOSE_CMD up -d neo4j postgres && ./scripts/wait-for-neo4j.sh && concurrently -k -n api,pwa \"cd api && AUTH_DEV_FALLBACK=1 bun run dev\" \"cd pwa && bun run dev\"'",
     "stop": "bash -c '. ./scripts/runtime-detect.sh && $COMPANYGRAPH_COMPOSE_CMD down'",
     "seed": "bun --cwd api scripts/seed.ts ../shared/seed/commercial-domain.json",
     "seed:saas-operator": "bun --cwd api scripts/seed-saas-operator.ts",

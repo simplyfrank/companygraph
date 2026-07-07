@@ -137,6 +137,7 @@ import {
 } from "./routes/user-persona";
 import { getRoutePermission, isPublicRoute } from "./auth/rbac-permissions";
 import { getSession, hasPermissionByRbac } from "./auth/oauth";
+import { devFallbackEligible } from "./auth/dev-fallback";
 import {
   handleChangeRequestsList,
   handleChangeRequestGet,
@@ -344,16 +345,17 @@ export async function route(req: Request): Promise<Response> {
   return res;
 }
 
-// DEV-ONLY fallback (baseline FR-05): with no OneLogin issuer configured
-// there is no way to obtain a session locally, so the gate admits a
-// synthetic admin session. Never deploy beyond localhost without
-// ONELOGIN_ISSUER set.
-let warnedDevAuth = false;
+// ============================================================================
+// auth-hardening (FR-09, FR-10) — SECURITY-CRITICAL dev fallback.
+// ============================================================================
+// The DEV-ONLY full-permission fallback below MUST fail closed. It is
+// reachable ONLY when devFallbackEligible() holds — i.e. ALL of:
+//   (a) AUTH_DEV_FALLBACK opt-in set, AND (b) loopback bind host, AND
+//   (c) no ONELOGIN_ISSUER. Absent the opt-in, the gate returns 401 and NO
+// synthetic admin session is ever attached. An opt-in on a non-loopback host
+// never reaches here as a per-request degrade: assertAuthPosture()
+// (server.ts boot) has already refused to start (DEC-02). See dev-fallback.ts.
 function devSession() {
-  if (!warnedDevAuth) {
-    warnedDevAuth = true;
-    console.warn("[auth] ONELOGIN_ISSUER unset — DEV-ONLY fallback session with full permissions in effect");
-  }
   return {
     userId: "dev-user",
     email: "dev@localhost",
@@ -367,15 +369,41 @@ function devSession() {
   };
 }
 
+// FR-10 — loud, NON-latching signal: logs on EVERY request the fallback is
+// active (the old warnedDevAuth one-shot latch is retired), so a busy log can
+// never scroll the warning out within one request.
+function warnDevFallbackEveryRequest(): void {
+  console.warn(
+    "[auth] DEV-ONLY fallback ACTIVE — this instance is UNAUTHENTICATED " +
+      "with FULL admin permissions. AUTH_DEV_FALLBACK is set on a loopback host " +
+      "with no ONELOGIN_ISSUER. NEVER expose beyond 127.0.0.1. Set ONELOGIN_ISSUER to disable.",
+  );
+}
+
 async function dispatch(method: string, path: string, req: Request): Promise<Response> {
   // Check if route is public
   if (isPublicRoute(method, path)) {
     return dispatchInternal(method, path, req);
   }
 
-  if (!(globalThis as any).process?.env?.ONELOGIN_ISSUER) {
-    (req as any).user = devSession();
-    return dispatchInternal(method, path, req);
+  // C-08: normalized issuer read (Bun exposes `process` globally; the old
+  // `(globalThis as any).process?.` guard was defensive cruft).
+  if (!process.env.ONELOGIN_ISSUER) {
+    // N-01: this branch already establishes !issuer; devFallbackEligible()'s
+    // own !issuer clause is redundant here (harmless — kept single-source).
+    if (devFallbackEligible()) {
+      // FR-09/FR-10 — opt-in + loopback (+ no issuer, already true): the
+      // documented local-dev escape hatch. Loud on every request.
+      warnDevFallbackEveryRequest();
+      (req as any).user = devSession();
+      return dispatchInternal(method, path, req);
+    }
+    // FR-09 fail-closed default: no issuer AND not eligible → deny. No
+    // synthetic admin session is attached. This closes the silent-admin hole.
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
   }
 
   // Check authentication

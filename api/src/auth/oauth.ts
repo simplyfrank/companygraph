@@ -1,6 +1,7 @@
 // OAuth2/OIDC authentication for OneLogin SSO integration
 
 import { jwtVerify, createRemoteJWKSet } from "jose";
+import { devFallbackEligible } from "./dev-fallback";
 
 export interface OAuthConfig {
   clientId: string;
@@ -38,8 +39,15 @@ export interface UserSession {
   expiresAt: number;
 }
 
+// auth-hardening (FR-05 / §4.2) — a narrow, additive, TEST-ONLY JWKS seam.
+// A JwksResolver has the same shape createRemoteJWKSet returns, so a
+// locally-minted key set (createLocalJWKSet) can be injected to verify RS256
+// tokens WITHOUT hitting the network. Production callers construct with one
+// arg, so the seam is inert outside tests.
+type JwksResolver = ReturnType<typeof createRemoteJWKSet>;
+
 export class OAuthClient {
-  constructor(private config: OAuthConfig) {}
+  constructor(private config: OAuthConfig, private jwksOverride?: JwksResolver) {}
 
   getAuthorizationUrl(state: string): string {
     const params = new (globalThis as any).URLSearchParams({
@@ -94,9 +102,20 @@ export class OAuthClient {
   }
 
   async validateToken(idToken: string): Promise<UserInfo> {
-    // When no issuer is configured (dev mode), decode without verification.
+    // auth-hardening (FR-10) — SECURITY-CRITICAL. With no issuer, the only
+    // way to "validate" a token is an UNVERIFIED base64 decode (no signature
+    // check). That is fail-closed by default: it throws unless the operator
+    // has explicitly opted into the loopback dev escape hatch
+    // (devFallbackEligible — AUTH_DEV_FALLBACK + loopback + no issuer). So an
+    // attacker-supplied unsigned JWT is rejected in any non-opted-in context.
     if (!this.config.issuer) {
-      console.warn("[oauth] No issuer configured — token signature not verified");
+      if (!devFallbackEligible()) {
+        throw new Error(
+          "[auth] refusing to decode JWT without signature verification " +
+            "(no ONELOGIN_ISSUER and AUTH_DEV_FALLBACK not enabled on a loopback host)",
+        );
+      }
+      console.warn("[auth] DEV-ONLY fallback — JWT signature NOT verified (decodeToken)");
       return this.decodeToken(idToken);
     }
 
@@ -137,6 +156,7 @@ export class OAuthClient {
   private _jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
   private getJwks(): ReturnType<typeof createRemoteJWKSet> {
+    if (this.jwksOverride) return this.jwksOverride; // FR-05 test seam
     if (!this._jwks) {
       const jwksUrl = new URL(`${this.config.issuer}/.well-known/jwks.json`);
       this._jwks = createRemoteJWKSet(jwksUrl);
