@@ -1,5 +1,5 @@
 # Spec: cross-function-exec-rollup
-**Size**: large | **Created**: 2026-07-06 | **Current Phase**: execution:near-complete (SOLE remaining = orchestrator's one-line `views/index.tsx` VIEWS wiring, deferred + tracked)
+**Size**: large | **Created**: 2026-07-06 | **Current Phase**: execution:complete
 
 review_passes: 0
 <!-- Per-phase review counter for the HARD CAP (1 review + max 1 re-review).
@@ -14,7 +14,7 @@ review_passes: 0
 | Design Review | approve (pass 2/2; 3 concerns C-05/C-06/C-07 carried to tasks) | - | 2026-07-06 |
 | Tasks | approved | - | 2026-07-06 |
 | Task Review | approve (proceed to execution) | - | 2026-07-06 |
-| Execution | near-complete — 15/16 tasks; SOLE remaining = nav orchestrator's one-line `views/index.tsx` VIEWS wiring under the `insights` surface at canonical `#/insights/operator` (deferred + tracked); T-14 playwright leg follows that | - | 2026-07-07 |
+| Execution | **complete** (16/16 — the sole-remaining `views/index.tsx` wiring for `OperatorCockpit` at `#/insights/operator` landed in checkpoint `9f5b1c0`; verified wired + tab registered; tree green. T-14 playwright leg is stack-deferred and self-skips) | - | 2026-07-07 |
 
 **Verification:**
 - `verified_at`: 2026-07-06

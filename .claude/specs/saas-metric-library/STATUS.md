@@ -1,5 +1,5 @@
 # Spec: saas-metric-library
-**Size**: large | **Created**: 2026-07-06 | **Current Phase**: execution:blocked
+**Size**: large | **Created**: 2026-07-06 | **Current Phase**: execution:complete
 
 | Phase | Status | Approved By | Date |
 |-------|--------|-------------|------|
@@ -9,7 +9,7 @@
 | Design Review | approve (0 blockers; C-01/C-02/C-03 deferred to tasks) | - | 2026-07-06 |
 | Tasks | draft | - | 2026-07-06 |
 | Task Review | pending | - | - |
-| Execution | near-complete (13/14 tasks; SOLE remaining = orchestrator's one-line `views/index.tsx` VIEWS wiring under the `insights` surface, deferred + tracked) | - | 2026-07-07 |
+| Execution | **complete** (14/14 — the sole-remaining `views/index.tsx` insights-surface wiring for `MetricLibrary` landed in checkpoint `9f5b1c0`; verified wired in views/index.tsx + tab in route.ts; tree green) | - | 2026-07-07 |
 
 **review_passes**: 0
 **total_tasks**: 14

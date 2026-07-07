@@ -1,5 +1,5 @@
 # Spec: navigation-ia
-**Size**: large | **Created**: 2026-07-04 | **Current Phase**: tasks:approved (execution next)
+**Size**: large | **Created**: 2026-07-04 | **Current Phase**: execution:complete
 
 review_passes: 2 (design + tasks — cap 2/2 each)
 
@@ -11,11 +11,11 @@ review_passes: 2 (design + tasks — cap 2/2 each)
 | Design Review | approve (0 blockers, 0 concerns, 3 nits shipped open) | - | 2026-07-06 |
 | Tasks | **approved** (rev 2 — rev 1 had 1 blocker; rev 2 resolves it; 2 concerns shipped open) | review-tasks.md (pass 1, verdict approve on rev 2) | 2026-07-06 |
 | Task Review | approve (0 blockers, 0 concerns, 2 nits shipped open) | - | 2026-07-06 |
-| Execution | - | - | - |
+| Execution | **complete** — IA restructure landed in commit `fb43471` (task-oriented surfaces incl. `#/govern` + `#/insights`, aliases, breadcrumbs, search palette); studio + SaaS-operator views reconciled under the new IA; verified 2026-07-07 | - | 2026-07-07 |
 
 **Verification:**
-- `verified_at`: -
-- `verification_artifact`: -
+- `verified_at`: 2026-07-07
+- `verification_artifact`: pwa vitest **510/510 pass** (incl. `breadcrumbs.test.tsx`, `breadcrumb-stores.test.ts`, `route-parse.test.ts`, `business-placeholder.test.tsx`); `#/govern` + `#/insights` surfaces + tabs verified present in `pwa/src/route.ts`; restructure committed in `fb43471`. Reconciliation regression (a stale `#/exec/okr-management` assert in `performance-dashboard.test.tsx`) resolved to `#/govern/okr-management`.
 
 **Artifacts:**
 - 📄 Requirements: `.claude/specs/navigation-ia/requirements.md`
