@@ -1,0 +1,28 @@
+# Keep the Docker build context small — both api/Dockerfile and pwa/Dockerfile
+# build from the repo root (Bun workspace monorepo).
+**/node_modules
+**/dist
+.git
+.github
+.claude
+.devin
+.env
+.env.local
+data
+design
+terraform
+k8s
+monitoring
+helm
+airflow-dags
+tests
+docs
+*.md
+*.html
+*.png
+*.zip
+*.sqlite*
+**/*.test.ts
+**/*.spec.ts
+**/__tests__
+pwa/playwright

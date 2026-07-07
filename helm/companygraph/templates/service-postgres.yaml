@@ -1,0 +1,17 @@
+{{- if .Values.postgres.deploy }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "companygraph.postgres.fullname" . }}
+  labels:
+    {{- include "companygraph.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+  selector:
+    {{- include "companygraph.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+{{- end }}

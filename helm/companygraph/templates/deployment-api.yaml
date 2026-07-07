@@ -1,23 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "companygraph.fullname" . }}-api
+  name: {{ include "companygraph.api.fullname" . }}
   labels:
     {{- include "companygraph.labels" . | nindent 4 }}
-    component: api
+    app.kubernetes.io/component: api
 spec:
-  replicas: {{ .Values.replicaCount.api }}
+  # SQLite on a RWO PVC ⇒ single writer. Do not raise without migrating the
+  # chat + analytics stores off SQLite (see values.yaml api.replicaCount).
+  replicas: {{ .Values.api.replicaCount }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "companygraph.selectorLabels" . | nindent 6 }}
-      component: api
+      app.kubernetes.io/component: api
   template:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.api.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         {{- include "companygraph.selectorLabels" . | nindent 8 }}
-        component: api
+        app.kubernetes.io/component: api
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -25,78 +33,85 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "companygraph.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.api.podSecurityContext | nindent 8 }}
       containers:
-      - name: api
-        securityContext:
-          {{- toYaml .Values.securityContext | nindent 10 }}
-        image: "{{ .Values.image.api.repository }}:{{ .Values.image.api.tag }}"
-        imagePullPolicy: {{ .Values.image.api.pullPolicy }}
-        ports:
-        - name: http
-          containerPort: 8787
-          protocol: TCP
-        env:
-        - name: NEO4J_URI
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "companygraph.fullname . }}-secrets
-              key: neo4j-uri
-        - name: NEO4J_USER
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "companygraph.fullname . }}-secrets
-              key: neo4j-user
-        - name: NEO4J_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "companygraph.fullname . }}-secrets
-              key: neo4j-password
-        - name: HOST
-          value: "0.0.0.0"
-        - name: API_PORT
-          value: "8787"
-        - name: LOG_LEVEL
-          value: "INFO"
-        - name: ENABLE_METRICS
-          value: {{ .Values.features.metrics.enabled | quote }}
-        - name: ENABLE_TRACING
-          value: {{ .Values.features.tracing.enabled | quote }}
-        - name: ENABLE_RATE_LIMITING
-          value: {{ .Values.features.rateLimiting.enabled | quote }}
-        - name: RATE_LIMIT_WINDOW_MS
-          value: {{ .Values.rateLimit.windowMs | quote }}
-        - name: RATE_LIMIT_MAX_REQUESTS
-          value: {{ .Values.rateLimit.maxRequests | quote }}
-        resources:
-          {{- toYaml .Values.resources.api | nindent 10 }}
-        livenessProbe:
-          httpGet:
-            path: /api/v1/healthz
-            port: http
-          initialDelaySeconds: 30
-          periodSeconds: 5
-          timeoutSeconds: 2
-        readinessProbe:
-          httpGet:
-            path: /api/v1/ready
-            port: http
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-        lifecycle:
-          preStop:
-            exec:
-              command: ["/bin/sh", "-c", "sleep 30"]
-      {{- with .Values.nodeSelector }}
+        - name: api
+          image: {{ include "companygraph.api.image" . | quote }}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.api.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.service.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "companygraph.configMapName" . }}
+          env:
+            - name: NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "companygraph.secretName" . }}
+                  key: neo4j-password
+            - name: POSTGRES_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "companygraph.secretName" . }}
+                  key: postgres-uri
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "companygraph.secretName" . }}
+                  key: anthropic-api-key
+            - name: ONELOGIN_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "companygraph.secretName" . }}
+                  key: onelogin-client-secret
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.api.persistence.mountPath }}
+          # Liveness is a cheap TCP check so a transient Neo4j outage does not
+          # kill the pod. Readiness hits /api/v1/healthz (503 when Neo4j is down)
+          # so the pod is pulled from the Service until its graph is reachable.
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /api/v1/healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+      volumes:
+        - name: data
+          {{- if .Values.api.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "companygraph.api.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.api.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with .Values.api.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.api.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

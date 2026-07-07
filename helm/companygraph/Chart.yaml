@@ -1,13 +1,19 @@
 apiVersion: v2
 name: companygraph
-description: A Helm chart for CompanyGraph - retail operations platform
+description: >-
+  Self-hosted CompanyGraph — process-graph governance suite (Bun API + React
+  PWA) backed by Neo4j, Postgres, and per-pod SQLite. Bundles toggleable Neo4j
+  and Postgres StatefulSets; point at managed datastores by disabling them.
 type: application
-version: 0.1.0
-appVersion: "1.0.0"
+# Chart version — bump on any chart change.
+version: 0.2.0
+# Tracks the application release this chart deploys by default.
+appVersion: "0.1.0"
 keywords:
   - retail
   - graph
   - neo4j
-  - operations
+  - postgres
+  - governance
 maintainers:
   - name: CompanyGraph Team

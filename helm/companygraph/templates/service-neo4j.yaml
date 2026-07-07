@@ -1,0 +1,22 @@
+{{- if .Values.neo4j.deploy }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "companygraph.neo4j.fullname" . }}
+  labels:
+    {{- include "companygraph.labels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j
+spec:
+  # Headless — stable DNS for the single StatefulSet pod.
+  clusterIP: None
+  ports:
+    - name: bolt
+      port: 7687
+      targetPort: bolt
+    - name: http
+      port: 7474
+      targetPort: http
+  selector:
+    {{- include "companygraph.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j
+{{- end }}

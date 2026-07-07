@@ -1,0 +1,43 @@
+CompanyGraph {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Workloads:
+  API   : {{ include "companygraph.api.fullname" . }}  (:{{ .Values.api.service.port }}, /api/v1)
+  PWA   : {{ include "companygraph.pwa.fullname" . }}  (:{{ .Values.pwa.service.port }})
+{{- if .Values.neo4j.deploy }}
+  Neo4j : {{ include "companygraph.neo4j.fullname" . }}  (bundled, bolt :7687)
+{{- else }}
+  Neo4j : external — {{ include "companygraph.neo4jUri" . }}
+{{- end }}
+{{- if .Values.postgres.deploy }}
+  PG    : {{ include "companygraph.postgres.fullname" . }}  (bundled, :5432)
+{{- else }}
+  PG    : external — provide postgres-uri via secret.existingSecret
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+Reach the app at: https://{{ .Values.ingress.host }}/
+{{- else }}
+
+Ingress is disabled. Port-forward to try it locally:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "companygraph.pwa.fullname" . }} 8080:{{ .Values.pwa.service.port }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "companygraph.api.fullname" . }} 8787:{{ .Values.api.service.port }}
+{{- end }}
+
+{{- if not .Values.config.oneloginIssuer }}
+
+⚠  config.oneloginIssuer is EMPTY. The API's dev auth fallback is fail-closed on
+   a non-loopback bind, so every guarded /api/v1 route will return 401 until you
+   set config.oneloginIssuer (+ client id/secret/redirect). This chart never
+   sets AUTH_DEV_FALLBACK — it would make the server refuse to start here.
+{{- end }}
+{{- if and .Values.secret.create (eq .Values.neo4j.auth.password "companygraph_dev") }}
+
+⚠  Neo4j/Postgres are using the default dev password "companygraph_dev".
+   Override neo4j.auth.password / postgres.auth.password (or supply
+   secret.existingSecret) before exposing this beyond a sandbox.
+{{- end }}
+
+Post-install: after the API is Ready, load a seed dataset with, e.g.:
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "companygraph.api.fullname" . }} -- \
+    bun --cwd api run scripts/schema-apply.ts

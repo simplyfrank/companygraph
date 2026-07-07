@@ -5,35 +5,36 @@ metadata:
   name: {{ include "companygraph.fullname" . }}
   labels:
     {{- include "companygraph.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
-    {{- end }}
+  {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
-  {{- if .Values.ingress.tls }}
+  {{- if .Values.ingress.tls.enabled }}
   tls:
-    {{- range .Values.ingress.tls }}
     - hosts:
-        {{- range .hosts }}
-        - {{ .host | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          # API first — more specific prefix wins.
+          - path: /api/v1
+            pathType: Prefix
             backend:
               service:
-                name: {{ include "companygraph.fullname" $ }}-api
+                name: {{ include "companygraph.api.fullname" . }}
                 port:
-                  number: {{ $.Values.service.port }}
-          {{- end }}
-    {{- end }}
+                  number: {{ .Values.api.service.port }}
+          # Everything else → the PWA (SPA fallback lives in the pwa image).
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "companygraph.pwa.fullname" . }}
+                port:
+                  number: {{ .Values.pwa.service.port }}
 {{- end }}

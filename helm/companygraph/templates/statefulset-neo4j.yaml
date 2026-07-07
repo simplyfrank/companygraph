@@ -1,0 +1,76 @@
+{{- if .Values.neo4j.deploy }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "companygraph.neo4j.fullname" . }}
+  labels:
+    {{- include "companygraph.labels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j
+spec:
+  serviceName: {{ include "companygraph.neo4j.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "companygraph.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: neo4j
+  template:
+    metadata:
+      labels:
+        {{- include "companygraph.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: neo4j
+    spec:
+      securityContext:
+        fsGroup: 7474
+      containers:
+        - name: neo4j
+          image: "{{ .Values.neo4j.image.repository }}:{{ .Values.neo4j.image.tag }}"
+          imagePullPolicy: {{ .Values.neo4j.image.pullPolicy }}
+          ports:
+            - name: bolt
+              containerPort: 7687
+            - name: http
+              containerPort: 7474
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "companygraph.secretName" . }}
+                  key: neo4j-auth
+            - name: NEO4J_PLUGINS
+              value: {{ .Values.neo4j.plugins | quote }}
+            - name: NEO4J_dbms_security_procedures_unrestricted
+              value: "apoc.*"
+            - name: NEO4J_server_memory_pagecache_size
+              value: {{ .Values.neo4j.memory.pagecache | quote }}
+            - name: NEO4J_server_memory_heap_initial__size
+              value: {{ .Values.neo4j.memory.heapInitial | quote }}
+            - name: NEO4J_server_memory_heap_max__size
+              value: {{ .Values.neo4j.memory.heapMax | quote }}
+          resources:
+            {{- toYaml .Values.neo4j.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: bolt
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: bolt
+            initialDelaySeconds: 30
+            periodSeconds: 15
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.neo4j.persistence.storageClass }}
+        storageClassName: {{ .Values.neo4j.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.neo4j.persistence.size }}
+{{- end }}

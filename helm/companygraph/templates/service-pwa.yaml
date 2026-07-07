@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "companygraph.api.fullname" . }}
+  name: {{ include "companygraph.pwa.fullname" . }}
   labels:
     {{- include "companygraph.labels" . | nindent 4 }}
-    app.kubernetes.io/component: api
+    app.kubernetes.io/component: pwa
 spec:
-  type: {{ .Values.api.service.type }}
+  type: {{ .Values.pwa.service.type }}
   ports:
-    - port: {{ .Values.api.service.port }}
+    - port: {{ .Values.pwa.service.port }}
       targetPort: http
       protocol: TCP
       name: http
   selector:
     {{- include "companygraph.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: api
+    app.kubernetes.io/component: pwa

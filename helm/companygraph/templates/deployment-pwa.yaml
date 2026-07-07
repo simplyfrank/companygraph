@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "companygraph.pwa.fullname" . }}
+  labels:
+    {{- include "companygraph.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pwa
+spec:
+  replicas: {{ .Values.pwa.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "companygraph.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: pwa
+  template:
+    metadata:
+      {{- with .Values.pwa.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "companygraph.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: pwa
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "companygraph.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.pwa.podSecurityContext | nindent 8 }}
+      containers:
+        - name: pwa
+          image: {{ include "companygraph.pwa.image" . | quote }}
+          imagePullPolicy: {{ .Values.pwa.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.pwa.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.pwa.containerPort }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.pwa.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+      {{- with .Values.pwa.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pwa.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.pwa.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

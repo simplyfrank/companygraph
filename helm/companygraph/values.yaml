@@ -1,122 +1,209 @@
-# Default values for CompanyGraph
-# This is a YAML-formatted file.
+# Default values for the CompanyGraph chart.
+# ---------------------------------------------------------------------------
+# This chart deploys the real application surface:
+#   - api : Bun HTTP server on :8787 (mounted under /api/v1)
+#   - pwa : static React build served by nginx on :80
+#   - neo4j    : graph of record (StatefulSet, toggleable)
+#   - postgres : governance tables  (StatefulSet, toggleable)
+# The API also writes two SQLite files (chat + analytics) to a per-pod PVC,
+# which is why it runs as a SINGLE replica by default — see `api.replicaCount`.
+# ---------------------------------------------------------------------------
 
-replicaCount:
-  api: 6
-  pwa: 3
-  ingestWorkers: 4
-
-image:
-  api:
-    repository: companygraph/api
-    tag: latest
-    pullPolicy: IfNotPresent
-  pwa:
-    repository: companygraph/pwa
-    tag: latest
-    pullPolicy: IfNotPresent
-
-imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+
+imagePullSecrets: []
 
 serviceAccount:
   create: true
   annotations: {}
   name: ""
 
-podAnnotations: {}
-
-podSecurityContext: {}
-
-securityContext: {}
-
-service:
-  type: ClusterIP
-  port: 8787
-
-ingress:
-  enabled: true
-  className: "nginx"
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: companygraph.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: companygraph-tls
-      hosts:
-        - companygraph.example.com
-
-resources:
-  api:
+# ---------------------------------------------------------------------------
+# API — Bun server (api/src/server.ts), listens on :8787, health at
+# /api/v1/healthz (503 when Neo4j is unreachable → used for readiness).
+# ---------------------------------------------------------------------------
+api:
+  image:
+    repository: companygraph/api
+    tag: ""              # defaults to .Chart.AppVersion when empty
+    pullPolicy: IfNotPresent
+  # SQLite chat + analytics DBs live on a ReadWriteOnce PVC, so the API is
+  # effectively stateful. Keep this at 1 unless those stores are migrated to
+  # Postgres; scaling out on a shared RWO volume corrupts SQLite. See hpa.
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8787
+  # Persistent volume for /data (chat.db + analytics.sqlite).
+  persistence:
+    enabled: true
+    storageClass: ""     # "" = cluster default StorageClass
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    mountPath: /data
+  resources:
     requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: 2000m
-      memory: 4Gi
-  pwa:
-    requests:
-      cpu: 200m
+      cpu: 250m
       memory: 512Mi
     limits:
-      cpu: 1000m
+      cpu: "2"
       memory: 2Gi
-  ingestWorkers:
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: ["ALL"]
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# HorizontalPodAutoscaler for the API. DISABLED by default: the API persists
+# SQLite to a per-pod RWO volume, so horizontal scale-out is unsafe until the
+# chat + analytics stores move to Postgres. Enable only after that migration.
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# ---------------------------------------------------------------------------
+# PWA — static React build served by nginx (SPA fallback). Stateless.
+# ---------------------------------------------------------------------------
+pwa:
+  image:
+    repository: companygraph/pwa
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  # Port the nginx-unprivileged image listens on inside the pod.
+  containerPort: 8080
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101      # nginx unprivileged uid in nginxinc/nginx-unprivileged
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------------------------------------------------------------------------
+# Ingress — routes /api/v1 → API, everything else → PWA.
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: companygraph.example.com
+  tls:
+    enabled: true
+    secretName: companygraph-tls
+
+# ---------------------------------------------------------------------------
+# Application configuration (non-secret env → ConfigMap).
+# ---------------------------------------------------------------------------
+config:
+  logLevel: INFO
+  # OneLogin OAuth issuer. MUST be set for any non-loopback deployment — when
+  # empty the API's dev auth fallback is fail-closed (every guarded route 401s).
+  # NOTE: this chart NEVER sets AUTH_DEV_FALLBACK; on a non-loopback HOST that
+  # flag makes the server refuse to start (auth-hardening FR-09).
+  oneloginIssuer: ""
+  oneloginClientId: ""
+  oneloginRedirectUri: ""
+  # ontology-manager audit retention (env.example OPT_ONTOLOGY_*).
+  ontologyAuditRetentionDays: "365"
+  ontologyAuditCron: "0 3 * * *"
+
+# ---------------------------------------------------------------------------
+# Secrets. For real deploys, set `create: false` and provide a pre-existing
+# Secret (via existingSecret) managed by an external secrets operator / sealed
+# secrets. The in-chart Secret below is a convenience for dev/staging only.
+# Keys expected by the app: neo4j-password, neo4j-auth, postgres-password,
+# postgres-uri, anthropic-api-key, onelogin-client-secret.
+# ---------------------------------------------------------------------------
+secret:
+  create: true
+  existingSecret: ""     # when set, chart uses this Secret name and ignores create
+  anthropicApiKey: ""    # optional; empty → chat runs in degraded mock-LLM mode
+  oneloginClientSecret: ""
+
+# ---------------------------------------------------------------------------
+# Neo4j — graph of record. Bundled StatefulSet (single node; Community edition
+# cannot cluster). Set deploy:false and point neo4j.uri at a managed instance.
+# ---------------------------------------------------------------------------
+neo4j:
+  deploy: true
+  image:
+    repository: neo4j
+    tag: "5-community"
+    pullPolicy: IfNotPresent
+  auth:
+    user: neo4j
+    password: companygraph_dev     # CHANGE ME — Neo4j rejects the literal "neo4j"
+  # bolt URI the API connects to. Defaults to the in-chart service when deployed.
+  uri: ""                          # "" → bolt://<fullname>-neo4j:7687
+  plugins: '["apoc"]'
+  resources:
     requests:
       cpu: 500m
       memory: 1Gi
     limits:
-      cpu: 2000m
-      memory: 4Gi
-
-autoscaling:
-  api:
+      cpu: "2"
+      memory: 2Gi
+  persistence:
     enabled: true
-    minReplicas: 3
-    maxReplicas: 12
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  pwa:
+    storageClass: ""
+    size: 20Gi
+  # Heap/pagecache — keep in sync with resources.limits.memory.
+  memory:
+    pagecache: 512m
+    heapInitial: 512m
+    heapMax: 1g
+
+# ---------------------------------------------------------------------------
+# Postgres — governance tables (change-requests, risk-register, kpi, sla).
+# Bundled StatefulSet. Set deploy:false and provide secret.postgres-uri for a
+# managed instance (e.g. RDS).
+# ---------------------------------------------------------------------------
+postgres:
+  deploy: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  auth:
+    user: companygraph
+    password: companygraph_dev     # CHANGE ME
+    database: companygraph
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  persistence:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 6
-    targetCPUUtilizationPercentage: 60
-  ingestWorkers:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 8
-    targetCPUUtilizationPercentage: 70
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-# Neo4j configuration
-neo4j:
-  uri: "bolt://neo4j:7687"
-  user: "neo4j"
-  password: ""  # Set via secret
-
-# Feature flags
-features:
-  metrics:
-    enabled: true
-  tracing:
-    enabled: true
-  rateLimiting:
-    enabled: true
-  kafka:
-    enabled: false
-  airflow:
-    enabled: false
-
-# Rate limiting
-rateLimit:
-  windowMs: 60000
-  maxRequests: 1000
+    storageClass: ""
+    size: 20Gi
