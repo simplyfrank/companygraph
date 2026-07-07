@@ -1,41 +1,35 @@
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../ids';
 import { query, queryOne } from '../storage/postgres/client';
-import { ok, error, readJson } from './_helpers';
+import { ok, error, readJson, parseWith } from './_helpers';
+// Validation schemas moved to the shared module (design DD-05) so the
+// runtime routes and OpenAPI share one zod source. Identical schemas —
+// the `dependencyImpacts` `.default([])` runtime default is preserved
+// (N-01). Aliased to the local names to keep the call sites unchanged.
+import {
+  changeRequestCreateSchema as createChangeRequestSchema,
+  changeRequestPatchSchema as updateChangeRequestSchema,
+  reviewCreateSchema as createReviewSchema,
+  signOffCreateSchema as createSignOffSchema,
+} from '@companygraph/shared/schema/risk-change';
 
-// Validation schemas
-const createChangeRequestSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-  author: z.string().min(1),
-  draftSnapshot: z.object({}).passthrough(),
-  baseSnapshot: z.object({}).passthrough(),
-  diff: z.object({}).passthrough(),
-  dependencyImpacts: z.array(z.object({}).passthrough()).default([]),
-});
+// FR-11 / DEC-01 — minimal change-request status transition guard.
+// The status vocabulary is the verified as-built enum shared by
+// migration 001 (CHECK) and updateChangeRequestSchema below:
+// ('draft','pending_review','approved','rejected','released').
+// Only the allowed EDGES between those states are the DEC-01 decision;
+// reviews/sign-offs stay advisory (DEC-02 — they do NOT auto-transition).
+const ALLOWED_TRANSITIONS: Record<string, readonly string[]> = {
+  draft: ['pending_review'],
+  pending_review: ['approved', 'rejected', 'draft'],
+  approved: ['released'],
+  rejected: ['draft'],
+  released: [],
+};
 
-const updateChangeRequestSchema = z.object({
-  title: z.string().min(1).optional(),
-  description: z.string().min(1).optional(),
-  status: z.enum(['draft', 'pending_review', 'approved', 'rejected', 'released']).optional(),
-  draftSnapshot: z.object({}).passthrough().optional(),
-  diff: z.object({}).passthrough().optional(),
-  dependencyImpacts: z.array(z.object({}).passthrough()).optional(),
-});
-
-const createReviewSchema = z.object({
-  reviewer: z.string().min(1),
-  reviewerRole: z.enum(['entity_manager', 'domain_manager', 'technical_lead']),
-  status: z.enum(['approved', 'rejected', 'changes_requested']),
-  comment: z.string().min(1),
-});
-
-const createSignOffSchema = z.object({
-  signer: z.string().min(1),
-  signerRole: z.enum(['entity_manager', 'domain_manager']),
-  status: z.enum(['signed', 'declined']),
-  comment: z.string().optional(),
-});
+function isAllowedTransition(from: string, to: string): boolean {
+  if (from === to) return true; // identity no-op always allowed
+  return (ALLOWED_TRANSITIONS[from] ?? []).includes(to);
+}
 
 // GET /change-requests - List all change requests
 export async function handleChangeRequestsList(req: Request): Promise<Response> {
@@ -106,9 +100,9 @@ export async function handleChangeRequestGet(req: Request, id: string): Promise<
 // POST /change-requests - Create a new change request
 export async function handleChangeRequestCreate(req: Request): Promise<Response> {
   const body = await readJson(req);
-  const validated = createChangeRequestSchema.parse(body);
+  const validated = parseWith(createChangeRequestSchema, body);
 
-  const id = uuidv4();
+  const id = generateId();
   const now = new Date().toISOString();
 
   await query(
@@ -136,11 +130,26 @@ export async function handleChangeRequestCreate(req: Request): Promise<Response>
 // PATCH /change-requests/:id - Update a change request
 export async function handleChangeRequestPatch(req: Request, id: string): Promise<Response> {
   const body = await readJson(req);
-  const validated = updateChangeRequestSchema.parse(body);
+  const validated = parseWith(updateChangeRequestSchema, body);
 
   const existing = await queryOne('SELECT * FROM change_requests WHERE id = $1', [id]);
   if (!existing) {
     return error(404, 'not_found', 'Change request not found', { id });
+  }
+
+  // FR-11 / DEC-01 — reject out-of-lifecycle status jumps. Only checked
+  // when the patch carries a status; identity + non-status patches pass.
+  if (validated.status !== undefined) {
+    const from = existing.status as string;
+    const to = validated.status;
+    if (!isAllowedTransition(from, to)) {
+      return error(
+        400,
+        'invalid_transition',
+        `change request cannot move from '${from}' to '${to}'`,
+        { from, to }
+      );
+    }
   }
 
   const updates: string[] = [];
@@ -212,14 +221,14 @@ export async function handleChangeRequestDelete(req: Request, id: string): Promi
 // POST /change-requests/:id/reviews - Add a review to a change request
 export async function handleChangeRequestReviewCreate(req: Request, id: string): Promise<Response> {
   const body = await readJson(req);
-  const validated = createReviewSchema.parse(body);
+  const validated = parseWith(createReviewSchema, body);
 
   const existing = await queryOne('SELECT * FROM change_requests WHERE id = $1', [id]);
   if (!existing) {
     return error(404, 'not_found', 'Change request not found', { id });
   }
 
-  const reviewId = uuidv4();
+  const reviewId = generateId();
   const now = new Date().toISOString();
 
   await query(
@@ -235,14 +244,14 @@ export async function handleChangeRequestReviewCreate(req: Request, id: string):
 // POST /change-requests/:id/sign-offs - Add a sign-off to a change request
 export async function handleChangeRequestSignOffCreate(req: Request, id: string): Promise<Response> {
   const body = await readJson(req);
-  const validated = createSignOffSchema.parse(body);
+  const validated = parseWith(createSignOffSchema, body);
 
   const existing = await queryOne('SELECT * FROM change_requests WHERE id = $1', [id]);
   if (!existing) {
     return error(404, 'not_found', 'Change request not found', { id });
   }
 
-  const signOffId = uuidv4();
+  const signOffId = generateId();
   const now = new Date().toISOString();
   const signedAt = validated.status === 'signed' ? now : null;
 

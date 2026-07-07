@@ -295,6 +295,79 @@ describe("integration: AC-06 openapi covers the performance aggregates", () => {
   });
 });
 
+// risk-compliance-change T-10 / AC-13 — every FR-01…FR-07 endpoint that
+// was previously absent from the OpenAPI document (risk-register CRUD +
+// the five aggregations, change-requests CRUD + reviews/sign-offs, the
+// three risk-compliance reports) is now registered from the shared zod
+// schemas; compliance/rules stays present. Additive — the assertions
+// above stay green.
+describe("integration: AC-13 openapi covers the risk/compliance/change surface", () => {
+  test("paths cover every FR-01…FR-07 endpoint (design §4.6 enumeration)", async () => {
+    const doc = await getDoc();
+    const paths = Object.keys(doc.paths);
+
+    const required = [
+      // FR-01/02/03 — risk-register CRUD + five aggregations
+      "/api/v1/risk-register",
+      "/api/v1/risk-register/{id}",
+      "/api/v1/risk-register/aggregation/domain",
+      "/api/v1/risk-register/aggregation/owner",
+      "/api/v1/risk-register/aggregation/category",
+      "/api/v1/risk-register/aggregation/risk-type",
+      "/api/v1/risk-register/aggregation/summary",
+      // FR-04/05 — change-requests CRUD + reviews + sign-offs
+      "/api/v1/change-requests",
+      "/api/v1/change-requests/{id}",
+      "/api/v1/change-requests/{id}/reviews",
+      "/api/v1/change-requests/{id}/sign-offs",
+      // FR-07 — risk-compliance reports
+      "/api/v1/risk-compliance/regulated-activity-inventory",
+      "/api/v1/risk-compliance/sod-violations",
+      "/api/v1/risk-compliance/third-party-register",
+      // FR-06 — compliance/rules already-present set (stays)
+      "/api/v1/compliance/rules",
+      "/api/v1/compliance/rules/{id}",
+      "/api/v1/compliance/rules/evaluate",
+    ];
+
+    const missing = required.filter((p) => !paths.includes(p));
+    expect(missing).toEqual([]);
+  });
+
+  test("risk/change schemas ride the shared zod definitions (spot checks)", async () => {
+    const doc = await getDoc();
+    const schemas = getSchemas(doc);
+    const expected = [
+      "RiskCreate",
+      "Risk",
+      "ChangeRequestCreate",
+      "ChangeRequest",
+      "ReviewCreate",
+      "SignOffCreate",
+      "RegulatedActivityInventory",
+      "SodViolations",
+      "ThirdPartyRegister",
+    ];
+    const missing = expected.filter((n) => !Object.keys(schemas).includes(n));
+    expect(missing).toEqual([]);
+
+    // The risk-register create path declares a request body; 400s
+    // reference the single shared errorEnvelopeSchema.
+    const riskPost = getOperation(doc, "/api/v1/risk-register", "post");
+    expect(typeof riskPost.requestBody).toBe("object");
+    expect(riskPost.requestBody).not.toBeNull();
+    expect(Object.keys(riskPost.responses ?? {})).toContain("400");
+  });
+
+  test("ErrorEnvelope.code enum includes invalid_transition + bad_request (T-05)", async () => {
+    const doc = await getDoc();
+    const schemas = getSchemas(doc);
+    const codeEnum = resolveErrorCodeEnum(schemas.ErrorEnvelope, schemas);
+    expect(codeEnum).toContain("invalid_transition");
+    expect(codeEnum).toContain("bad_request");
+  });
+});
+
 // ---- helpers (typed, no `as any`) ----
 
 interface OpenApiDoc {

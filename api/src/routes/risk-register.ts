@@ -1,44 +1,9 @@
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../ids';
 import { query, queryOne } from '../storage/postgres/client';
-import { ok, error, readJson } from './_helpers';
-
-// Validation schemas
-const createRiskSchema = z.object({
-  name: z.string().min(1),
-  owner: z.string().min(1),
-  domain: z.string().min(1),
-  likelihood: z.number().int().min(1).max(5),
-  impact: z.number().int().min(1).max(5),
-  status: z.enum(['open', 'mitigating', 'accepted', 'resolved']),
-  trend: z.enum(['up', 'flat', 'down']),
-  description: z.string().optional(),
-  mitigation_plan: z.string().optional(),
-  category: z.string().optional(),
-  risk_type: z.enum(['strategic', 'operational', 'financial', 'compliance', 'security', 'technical']).optional(),
-  linked_entity_type: z.string().optional(),
-  linked_entity_id: z.string().optional(),
-  risk_owner_id: z.string().optional(),
-  escalation_level: z.number().int().min(1).max(5).optional(),
-});
-
-const updateRiskSchema = z.object({
-  name: z.string().min(1).optional(),
-  owner: z.string().min(1).optional(),
-  domain: z.string().min(1).optional(),
-  likelihood: z.number().int().min(1).max(5).optional(),
-  impact: z.number().int().min(1).max(5).optional(),
-  status: z.enum(['open', 'mitigating', 'accepted', 'resolved']).optional(),
-  trend: z.enum(['up', 'flat', 'down']).optional(),
-  description: z.string().optional(),
-  mitigation_plan: z.string().optional(),
-  category: z.string().optional(),
-  risk_type: z.enum(['strategic', 'operational', 'financial', 'compliance', 'security', 'technical']).optional(),
-  linked_entity_type: z.string().optional(),
-  linked_entity_id: z.string().optional(),
-  risk_owner_id: z.string().optional(),
-  escalation_level: z.number().int().min(1).max(5).optional(),
-});
+import { ok, error, readJson, parseWith } from './_helpers';
+// Validation schemas moved to the shared module (design DD-05) so the
+// runtime routes and OpenAPI share one zod source. Identical schemas.
+import { createRiskSchema, updateRiskSchema } from '@companygraph/shared/schema/risk-change';
 
 // GET /risk-register - List all risks
 export async function handleRiskRegisterList(req: Request): Promise<Response> {
@@ -124,9 +89,9 @@ export async function handleRiskRegisterGet(req: Request, id: string): Promise<R
 // POST /risk-register - Create a new risk
 export async function handleRiskRegisterCreate(req: Request): Promise<Response> {
   const body = await readJson(req);
-  const validated = createRiskSchema.parse(body);
+  const validated = parseWith(createRiskSchema, body);
 
-  const id = uuidv4();
+  const id = generateId();
   const now = new Date().toISOString();
 
   await query(
@@ -161,7 +126,7 @@ export async function handleRiskRegisterCreate(req: Request): Promise<Response> 
 // PATCH /risk-register/:id - Update a risk
 export async function handleRiskRegisterPatch(req: Request, id: string): Promise<Response> {
   const body = await readJson(req);
-  const validated = updateRiskSchema.parse(body);
+  const validated = parseWith(updateRiskSchema, body);
 
   const existing = await queryOne('SELECT * FROM risk_register WHERE id = $1', [id]);
   if (!existing) {

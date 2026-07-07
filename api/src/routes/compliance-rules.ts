@@ -61,14 +61,8 @@ export async function handleCreateComplianceRule(req: Request): Promise<Response
   return ok(rule);
 }
 
-export async function handleComplianceRule(req: Request): Promise<Response> {
+export async function handleComplianceRule(req: Request, id: string): Promise<Response> {
   const driver = getDriver();
-  const url = new URL(req.url);
-  const id = url.searchParams.get("id");
-
-  if (!id) {
-    return error(400, "invalid_payload", "Missing rule id");
-  }
 
   const rule = await getComplianceRule(driver, id);
   if (!rule) {
@@ -77,15 +71,9 @@ export async function handleComplianceRule(req: Request): Promise<Response> {
   return ok(rule);
 }
 
-export async function handlePatchComplianceRule(req: Request): Promise<Response> {
+export async function handlePatchComplianceRule(req: Request, id: string): Promise<Response> {
   const driver = getDriver();
-  const url = new URL(req.url);
-  const id = url.searchParams.get("id");
   const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
-
-  if (!id) {
-    return error(400, "invalid_payload", "Missing rule id");
-  }
 
   const body = await readJson(req);
   const parsed = complianceRulePatchSchema.safeParse(body);
@@ -105,15 +93,9 @@ export async function handlePatchComplianceRule(req: Request): Promise<Response>
   return ok(rule);
 }
 
-export async function handleDeleteComplianceRule(req: Request): Promise<Response> {
+export async function handleDeleteComplianceRule(req: Request, id: string): Promise<Response> {
   const driver = getDriver();
-  const url = new URL(req.url);
-  const id = url.searchParams.get("id");
   const actor = (req as any).user?.userId ?? req.headers.get("x-actor") ?? "system";
-
-  if (!id) {
-    return error(400, "invalid_payload", "Missing rule id");
-  }
 
   await deleteComplianceRule(driver, id, actor);
   ontologyEvents.emit("ontology.changed", {

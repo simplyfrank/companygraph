@@ -610,9 +610,9 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   const ruleOne = sub.match(/^compliance\/rules\/([^/]+)$/);
   if (ruleOne) {
     const id = decodeURIComponent(ruleOne[1]!);
-    if (method === "GET") return handleComplianceRule(req);
-    if (method === "PATCH") return handlePatchComplianceRule(req);
-    if (method === "DELETE") return handleDeleteComplianceRule(req);
+    if (method === "GET") return handleComplianceRule(req, id);
+    if (method === "PATCH") return handlePatchComplianceRule(req, id);
+    if (method === "DELETE") return handleDeleteComplianceRule(req, id);
   }
   if (sub === "compliance/rules/evaluate" && method === "POST") return handleEvaluateComplianceRule(req);
 

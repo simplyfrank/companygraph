@@ -83,6 +83,17 @@ export const ERROR_CODES = [
   // 404 — link DELETEs when :linkId matches no edge of that type
   // (incl. a mis-routed cross-type id, AC-03).
   "impact_link_not_found",
+  // risk-compliance-change T-05 (design §3.6, §4.4) — two additive codes,
+  // additive-only per NFR-03 (no reorder, no removal).
+  // `invalid_transition` (400): thrown from the change-request PATCH guard
+  //   (change-requests.ts handleChangeRequestPatch, FR-11 / DEC-01) when a
+  //   `status` patch requests an out-of-lifecycle transition.
+  // `bad_request` (400): the confirmed C-02 latent-type-gap fix — already
+  //   emitted at change-requests.ts (empty-patch guard) but absent from the
+  //   tuple; adding it makes that as-built call type-correct WITHOUT changing
+  //   the emitted code (AC-11 carve-out). Reused nowhere else.
+  "invalid_transition",
+  "bad_request",
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

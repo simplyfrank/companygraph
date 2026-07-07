@@ -103,6 +103,21 @@ import {
   kpiImpactMatrixSchema,
   kpiImpactRollupSchema,
 } from "@companygraph/shared/schema/kpi-impact";
+import {
+  createRiskSchema,
+  updateRiskSchema,
+  riskReadSchema,
+  changeRequestCreateSchema,
+  changeRequestPatchSchema,
+  changeRequestReadSchema,
+  reviewCreateSchema,
+  reviewReadSchema,
+  signOffCreateSchema,
+  signOffReadSchema,
+  regulatedActivityInventorySchema,
+  sodViolationsSchema,
+  thirdPartyRegisterSchema,
+} from "@companygraph/shared/schema/risk-change";
 import { ERROR_CODES } from "../errors";
 import { registerKpiOkrPaths } from "./openapi-kpi-okr";
 import { registerPerformancePaths } from "./openapi-performance";
@@ -1047,6 +1062,218 @@ export function getOpenApiDoc(): object {
   registerPerformancePaths(registry); // kpi-okr-performance-dashboards FR-09 (design §4.6)
   registerOperatorPaths(registry); // cross-function-exec-rollup FR-09 (design §6, C-07 anchor)
   registerBenchmarkPaths(registry); // function-benchmark-scoring FR-08 (design §4.6)
+
+  // risk-compliance-change T-10 (design §4.6, FR-08) — register the
+  // previously-absent risk-register + change-requests + risk-compliance
+  // surfaces from the SAME shared zod schemas the routes parse with.
+  // compliance/rules is already registered above and stays. Response
+  // envelopes mirror the as-built wrappers ({data:[…]} / bare /
+  // {data,limit,offset}); no {rows} rename (NFR-04).
+  registry.register("RiskCreate", createRiskSchema);
+  registry.register("RiskPatch", updateRiskSchema);
+  registry.register("Risk", riskReadSchema);
+  registry.register("ChangeRequestCreate", changeRequestCreateSchema);
+  registry.register("ChangeRequestPatch", changeRequestPatchSchema);
+  registry.register("ChangeRequest", changeRequestReadSchema);
+  registry.register("ReviewCreate", reviewCreateSchema);
+  registry.register("Review", reviewReadSchema);
+  registry.register("SignOffCreate", signOffCreateSchema);
+  registry.register("SignOff", signOffReadSchema);
+  registry.register("RegulatedActivityInventory", regulatedActivityInventorySchema);
+  registry.register("SodViolations", sodViolationsSchema);
+  registry.register("ThirdPartyRegister", thirdPartyRegisterSchema);
+
+  const rcErr = (code: string) => ({
+    description: code,
+    content: { "application/json": { schema: errorEnvelopeSchema } },
+  });
+
+  // risk-register CRUD
+  for (const method of ["get", "post"] as const) {
+    registry.registerPath({
+      method,
+      path: "/api/v1/risk-register",
+      description: `Risk register ${method.toUpperCase()}.`,
+      ...(method === "post"
+        ? { request: { body: { content: { "application/json": { schema: createRiskSchema } } } } }
+        : {}),
+      responses: {
+        200: {
+          description: "ok",
+          content: {
+            "application/json": {
+              schema:
+                method === "get"
+                  ? z.object({ data: z.array(riskReadSchema) })
+                  : riskReadSchema,
+            },
+          },
+        },
+        400: rcErr("validation error"),
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method,
+      path: "/api/v1/risk-register/{id}",
+      description: `Risk register item ${method.toUpperCase()}.`,
+      request: {
+        params: z.object({ id: z.string() }),
+        ...(method === "patch"
+          ? { body: { content: { "application/json": { schema: updateRiskSchema } } } }
+          : {}),
+      },
+      responses: {
+        200: {
+          description: "ok",
+          content: {
+            "application/json": {
+              schema:
+                method === "delete" ? z.object({ message: z.string() }) : riskReadSchema,
+            },
+          },
+        },
+        400: rcErr("validation error"),
+        404: rcErr("not found"),
+      },
+    });
+  }
+  for (const agg of ["domain", "owner", "category", "risk-type", "summary"] as const) {
+    registry.registerPath({
+      method: "get",
+      path: `/api/v1/risk-register/aggregation/${agg}`,
+      description: `Risk register aggregation by ${agg}.`,
+      responses: {
+        200: {
+          description: "ok",
+          content: { "application/json": { schema: z.object({ data: z.unknown() }) } },
+        },
+      },
+    });
+  }
+
+  // change-requests CRUD + nested reviews / sign-offs
+  for (const method of ["get", "post"] as const) {
+    registry.registerPath({
+      method,
+      path: "/api/v1/change-requests",
+      description: `Change requests ${method.toUpperCase()}.`,
+      ...(method === "post"
+        ? {
+            request: {
+              body: { content: { "application/json": { schema: changeRequestCreateSchema } } },
+            },
+          }
+        : {}),
+      responses: {
+        200: {
+          description: "ok",
+          content: {
+            "application/json": {
+              schema:
+                method === "get"
+                  ? z.object({
+                      data: z.array(changeRequestReadSchema),
+                      limit: z.number(),
+                      offset: z.number(),
+                    })
+                  : changeRequestReadSchema,
+            },
+          },
+        },
+        400: rcErr("validation error"),
+      },
+    });
+  }
+  for (const method of ["get", "patch", "delete"] as const) {
+    registry.registerPath({
+      method,
+      path: "/api/v1/change-requests/{id}",
+      description: `Change request ${method.toUpperCase()}.`,
+      request: {
+        params: z.object({ id: z.string() }),
+        ...(method === "patch"
+          ? { body: { content: { "application/json": { schema: changeRequestPatchSchema } } } }
+          : {}),
+      },
+      responses: {
+        200: {
+          description: "ok",
+          content: {
+            "application/json": {
+              schema:
+                method === "delete"
+                  ? z.object({ message: z.string() })
+                  : changeRequestReadSchema,
+            },
+          },
+        },
+        400: rcErr("validation error / invalid transition"),
+        404: rcErr("not found"),
+      },
+    });
+  }
+  registry.registerPath({
+    method: "post",
+    path: "/api/v1/change-requests/{id}/reviews",
+    description: "Add a review to a change request.",
+    request: {
+      params: z.object({ id: z.string() }),
+      body: { content: { "application/json": { schema: reviewCreateSchema } } },
+    },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: reviewReadSchema } } },
+      400: rcErr("validation error"),
+      404: rcErr("not found"),
+    },
+  });
+  registry.registerPath({
+    method: "post",
+    path: "/api/v1/change-requests/{id}/sign-offs",
+    description: "Add a sign-off to a change request.",
+    request: {
+      params: z.object({ id: z.string() }),
+      body: { content: { "application/json": { schema: signOffCreateSchema } } },
+    },
+    responses: {
+      201: { description: "created", content: { "application/json": { schema: signOffReadSchema } } },
+      400: rcErr("validation error"),
+      404: rcErr("not found"),
+    },
+  });
+
+  // risk-compliance read-only reports
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/risk-compliance/regulated-activity-inventory",
+    description: "Regulated-activity inventory (domain × regulation matrix).",
+    responses: {
+      200: {
+        description: "ok",
+        content: { "application/json": { schema: regulatedActivityInventorySchema } },
+      },
+    },
+  });
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/risk-compliance/sod-violations",
+    description: "Segregation-of-duties violation report.",
+    responses: {
+      200: { description: "ok", content: { "application/json": { schema: sodViolationsSchema } } },
+    },
+  });
+  registry.registerPath({
+    method: "get",
+    path: "/api/v1/risk-compliance/third-party-register",
+    description: "Third-party system register.",
+    responses: {
+      200: {
+        description: "ok",
+        content: { "application/json": { schema: thirdPartyRegisterSchema } },
+      },
+    },
+  });
 
   // business-model-authoring T-13 (FR-13, DD-06) — three route paths.
   registry.register("AuthoringApply", authoringApplySchema);
