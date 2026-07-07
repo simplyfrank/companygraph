@@ -5,6 +5,8 @@ import {
   handleNodeDelete,
 } from "./routes/nodes";
 import { handleEdgePost, handleEdgeDelete } from "./routes/edges";
+// funnel-pipeline-modeling T-06 (D-1) — funnel-owned CONVERTS_TO transition route.
+import { handleFunnelTransitionPost } from "./routes/funnels";
 import { handleImport } from "./routes/import";
 import {
   handleListDomains,
@@ -36,7 +38,18 @@ import {
   handlePerformanceOkr,
   handlePerformanceJourneys,
 } from "./routes/performance";
+// cross-function-exec-rollup (design §5, DD-15/1) — five read-only operator
+// aggregates under /api/v1/analytics/operator/*.
+import {
+  handleOperatorOverview,
+  handleOperatorKpis,
+  handleOperatorRisks,
+  handleOperatorFunnels,
+  handleOperatorSlas,
+} from "./routes/analytics-operator";
 import { handleAnalyticsReport, handleAnalyticsConfig } from "./analytics/routes";
+// function-benchmark-scoring (FR-07) — read-only per-function maturity report
+import { handleBenchmarkReport } from "./routes/analytics-benchmarks";
 // cto-analytics-reporting (FR-08 PDF, FR-11 settings, FR-11a snapshot)
 import {
   handleExecSummaryPdf,
@@ -486,6 +499,11 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   const edgeDelete = sub.match(/^edges\/([^/]+)$/);
   if (edgeDelete && method === "DELETE") return handleEdgeDelete(req, edgeDelete[1]!);
 
+  // funnel-pipeline-modeling T-06 (D-1) — funnel-owned CONVERTS_TO transition
+  // write route (range-validates conversionRate/dropOffRate, delegates to
+  // createEdge). Additive dispatch line; mapped to edge:write in rbac-permissions.
+  if (sub === "funnels/transitions" && method === "POST") return handleFunnelTransitionPost(req);
+
   const nodesPost = sub.match(/^nodes\/([^/]+)$/);
   if (nodesPost && method === "POST") return handleNodePost(req, nodesPost[1]!);
   const nodeOne = sub.match(/^nodes\/([^/]+)\/([^/]+)$/);
@@ -915,6 +933,21 @@ async function dispatchInternal(method: string, path: string, req: Request): Pro
   if (sub === "analytics/performance/kpis" && method === "GET") return handlePerformanceKpis(req);
   if (sub === "analytics/performance/okr" && method === "GET") return handlePerformanceOkr(req);
   if (sub === "analytics/performance/journeys" && method === "GET") return handlePerformanceJourneys(req);
+
+  // cross-function-exec-rollup (design §5, DD-15/1) — five read-only operator
+  // aggregates. Registered AFTER analytics/graph so the string matches never
+  // shadow it; paired in the SAME task with their ROUTE_PERMISSIONS entries
+  // (the gate SKIPS RBAC when getRoutePermission returns null).
+  if (sub === "analytics/operator/overview" && method === "GET") return handleOperatorOverview(req);
+  if (sub === "analytics/operator/kpis" && method === "GET") return handleOperatorKpis(req);
+  if (sub === "analytics/operator/risks" && method === "GET") return handleOperatorRisks(req);
+  if (sub === "analytics/operator/funnels" && method === "GET") return handleOperatorFunnels(req);
+  if (sub === "analytics/operator/slas" && method === "GET") return handleOperatorSlas(req);
+
+  // function-benchmark-scoring (FR-07, DD-09) — two-segment path registered
+  // BEFORE the analytics/([^/]+) catch-all below; a two-segment path does not
+  // match that single-segment regex, so ordering is for clarity.
+  if (sub === "analytics/benchmarks/report" && method === "GET") return handleBenchmarkReport(req);
 
   // cto-analytics FR-09 (T-14) — read-only config + the 7 BUILD-set report GETs
   // under /api/v1/analytics/. `analytics/graph` above is matched first, so the

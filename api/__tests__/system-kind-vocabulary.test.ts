@@ -34,6 +34,11 @@ const SOURCE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|json)$/;
 function isExcluded(relPath: string): boolean {
   if (relPath === "shared/src/schema/system-kind.ts") return true;
   if (relPath.startsWith("shared/seed/")) return true;
+  // Seed DATA also ships as typed catalogs under api/src/seed/ (the
+  // saas-operator model, e.g. saas-operator-catalog.ts / product-delivery
+  // rosters.ts, seeds systemKind-bearing systems there). These are seed data,
+  // not a second vocabulary definition — same class as shared/seed/*.json.
+  if (relPath.startsWith("api/src/seed/")) return true;
   if (relPath.includes("__tests__/")) return true;
   if (/\.(test|spec)\.(ts|tsx|js|jsx)$/.test(relPath)) return true;
   return false;

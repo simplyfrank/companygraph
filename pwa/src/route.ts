@@ -48,13 +48,6 @@ export const SURFACES: Surface[] = [
     ],
   },
   {
-    id: "chat", label: "Chat",
-    tabs: [
-      { id: "thread",         label: "Thread" },
-      { id: "conversations",  label: "Conversations" },
-    ],
-  },
-  {
     id: "insights", label: "Insights",
     tabs: [
       { id: "overview",          label: "Overview" },
@@ -71,11 +64,16 @@ export const SURFACES: Surface[] = [
       { id: "people",            label: "People" },
       { id: "transform",         label: "Transform" },
       { id: "performance",       label: "Performance" },
+      { id: "functions",         label: "Functions" },
+      { id: "metrics",           label: "Metrics" },
+      { id: "funnels",           label: "Funnels" },
+      { id: "benchmarks",        label: "Benchmarks" },
+      { id: "operator",          label: "Operator" },
     ],
     groups: [
       { id: "analysis", label: "", tabIds: ["overview","systems","matrix","complexity","context-alignment"] },
       { id: "reports",  label: "", tabIds: ["consolidation","single-system","critical-paths","ai","exec-summary"] },
-      { id: "business",  label: "", tabIds: ["finance","people","transform","performance"] },
+      { id: "business",  label: "", tabIds: ["finance","people","transform","performance","functions","metrics","funnels","benchmarks","operator"] },
     ],
   },
   {
@@ -203,6 +201,7 @@ export const ROUTE_ALIASES: readonly AliasRow[] = [
   { from: { surface: "exec", tab: "kpi-management" },  to: { surface: "govern", tab: "kpi-management" } },
   { from: { surface: "exec", tab: "okr-management" },  to: { surface: "govern", tab: "okr-management" } },
   { from: { surface: "exec", tab: "performance" },     to: { surface: "insights", tab: "performance" } },
+  { from: { surface: "exec", tab: "operator" },        to: { surface: "insights", tab: "operator" } },
 
   // Explorer journey merge (FR-03)
   {

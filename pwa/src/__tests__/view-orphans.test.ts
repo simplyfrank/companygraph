@@ -18,16 +18,18 @@ const ALLOWLIST = new Set<string>([
   // Inline comparison fragments
   "DomainComparisonInline.tsx",
   "JourneyComparisonInline.tsx",
-  // Chat sub-components
+  // Chat sub-components (chat surface removed)
   "AgentChat.tsx",
   "BookmarkMenu.tsx",
   "Citation.tsx",
+  "Conversations.tsx",
   "LatencyFooter.tsx",
   "MessageList.tsx",
   "ReasoningDisclosure.tsx",
   "RolePicker.tsx",
   "SidePanel.tsx",
   "SuggestedPrompts.tsx",
+  "Thread.tsx",
   "highlight-bus.ts",
   "sanitise.ts",
   "useProgressPolling.ts",
@@ -57,6 +59,11 @@ const ALLOWLIST = new Set<string>([
   // Business surface (removed from SURFACES but files still exist)
   "business/BusinessTabPlaceholder.tsx",
   "business/FunctionMap.tsx",
+  "business/MetricLibrary.tsx",
+  "business/BenchmarkReport.tsx",
+  // Exec surface (removed from SURFACES but files still exist)
+  "exec/OperatorCockpit.tsx",
+  "exec/OperatorCockpit.module.css",
   // Explorer utility
   "explorer/canvas-highlight.ts",
   // Ontology layout/graph utilities
@@ -136,13 +143,13 @@ describe("View orphan guard (AC-22)", () => {
     }
   });
 
-  test("SURFACES has exactly 8 surfaces", () => {
-    expect(SURFACES).toHaveLength(8);
+  test("SURFACES has exactly 7 surfaces", () => {
+    expect(SURFACES).toHaveLength(7);
   });
 
   test("no legacy surface ids remain in VIEWS", () => {
     // Legacy surfaces that should no longer have view entries.
-    const legacySurfaces = ["sme", "analytics", "api", "exec", "business"];
+    const legacySurfaces = ["sme", "analytics", "api", "exec", "business", "chat"];
     for (const surface of legacySurfaces) {
       const result = renderView({ surface, tab: "test", params: {} });
       // Legacy surfaces should now return NotFoundPanel.

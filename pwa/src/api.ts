@@ -29,6 +29,25 @@ export type {
   JourneyAxisResponse,
 };
 
+// cross-function-exec-rollup T-12 — operator cockpit aggregate response
+// types from the shared zod contract (shared/src/schema/operator.ts).
+import type {
+  OperatorFunction,
+  OperatorOverviewResponse,
+  OperatorKpisResponse,
+  OperatorRisksResponse,
+  OperatorFunnelsResponse,
+  OperatorSlasResponse,
+} from "@companygraph/shared/schema/operator";
+export type {
+  OperatorFunction,
+  OperatorOverviewResponse,
+  OperatorKpisResponse,
+  OperatorRisksResponse,
+  OperatorFunnelsResponse,
+  OperatorSlasResponse,
+};
+
 export type { KeyActivityScores, ActivityScoreRow };
 export type { KeyActivityMark } from "@companygraph/shared/schema/key-activity";
 // ddd-system-modeling T-12 — types inferred from the shared T-01 zod
@@ -162,6 +181,19 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ statement, params }),
     }),
+
+  // funnel-pipeline-modeling (FR-06/FR-14) — partial node update via the generic
+  // graph-core route PATCH /api/v1/nodes/:label/:id. `attributes` is the full
+  // replacement map (graph-core PATCH is replace-the-whole-attributes-map).
+  patchNode: (label: string, id: string, attributes: Record<string, unknown>) =>
+    json<Record<string, unknown>>(
+      `/api/v1/nodes/${encodeURIComponent(label)}/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ attributes }),
+      },
+    ),
 
   exportJson: (signal?: AbortSignal) => json<{ nodes: ExportNode[]; edges: ExportEdge[] }>("/api/v1/export", withSignal(signal)),
   openapi: (signal?: AbortSignal) => json<Record<string, unknown>>("/api/v1/openapi.json", withSignal(signal)),
@@ -317,6 +349,43 @@ export const api = {
         withSignal(signal),
       ),
   },
+
+  // cross-function-exec-rollup T-12 (DD-15/4, design §7.4) — typed client
+  // for the read-only operator aggregates. Each call serializes ?function=
+  // when a slice is passed; absent → all six. Mirrors the performance block.
+  operator: {
+    overview: (fn?: OperatorFunction, signal?: AbortSignal) =>
+      json<OperatorOverviewResponse>(
+        `/api/v1/analytics/operator/overview${fn ? `?function=${fn}` : ""}`,
+        withSignal(signal),
+      ),
+    kpis: (fn?: OperatorFunction, signal?: AbortSignal) =>
+      json<OperatorKpisResponse>(
+        `/api/v1/analytics/operator/kpis${fn ? `?function=${fn}` : ""}`,
+        withSignal(signal),
+      ),
+    risks: (fn?: OperatorFunction, signal?: AbortSignal) =>
+      json<OperatorRisksResponse>(
+        `/api/v1/analytics/operator/risks${fn ? `?function=${fn}` : ""}`,
+        withSignal(signal),
+      ),
+    funnels: (fn?: OperatorFunction, signal?: AbortSignal) =>
+      json<OperatorFunnelsResponse>(
+        `/api/v1/analytics/operator/funnels${fn ? `?function=${fn}` : ""}`,
+        withSignal(signal),
+      ),
+    slas: (fn?: OperatorFunction, signal?: AbortSignal) =>
+      json<OperatorSlasResponse>(
+        `/api/v1/analytics/operator/slas${fn ? `?function=${fn}` : ""}`,
+        withSignal(signal),
+      ),
+  },
+
+  // function-benchmark-scoring T-10 (FR-10) — read-only per-function
+  // maturity report (root-fixed server-side; no params). Type from the
+  // shared zod contract (shared/src/schema/function-benchmark.ts).
+  benchmarkReport: (signal?: AbortSignal) =>
+    json<BenchmarkReport>("/api/v1/analytics/benchmarks/report", withSignal(signal)),
 
   // KPI/SLA management (KPI-SLA-01 through KPI-SLA-12)
   kpi: {

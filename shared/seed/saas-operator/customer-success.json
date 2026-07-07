@@ -1,0 +1,129 @@
+{
+  "nodes": [
+    { "label": "UserJourney", "id": "018f0400-0000-7000-8000-000000000001", "name": "Onboarding", "description": "Kickoff to go-live for a new tenant: provisioning, data migration, training, and sign-off.", "attributes": { "seedKey": "customer-success-journey-onboarding" } },
+    { "label": "UserJourney", "id": "018f0400-0000-7000-8000-000000000002", "name": "Health Scoring", "description": "Ingest usage/adoption signals, compute account-health scores, flag at-risk accounts, and trigger playbooks.", "attributes": { "seedKey": "customer-success-journey-health-scoring" } },
+    { "label": "UserJourney", "id": "018f0400-0000-7000-8000-000000000003", "name": "Renewals", "description": "Forecast, outreach, negotiation, and close/expansion of contract renewals.", "attributes": { "seedKey": "customer-success-journey-renewals" } },
+    { "label": "UserJourney", "id": "018f0400-0000-7000-8000-000000000004", "name": "Churn-Save", "description": "Detect churn risk, execute save-plays, escalate, and make win-back offers.", "attributes": { "seedKey": "customer-success-journey-churn-save" } },
+    { "label": "UserJourney", "id": "018f0400-0000-7000-8000-000000000005", "name": "Support Ticketing", "description": "Ticket intake/triage, first-response, resolution, escalation, and CSAT survey.", "attributes": { "seedKey": "customer-success-journey-support-ticketing" } },
+
+    { "label": "Role", "id": "018f0400-0000-7000-8000-000000000201", "name": "Onboarding Specialist", "description": "Drives new-tenant onboarding from kickoff to go-live.", "attributes": { "seedKey": "customer-success-role-onboarding-specialist" } },
+    { "label": "Role", "id": "018f0400-0000-7000-8000-000000000202", "name": "Customer Success Manager", "description": "Owns ongoing account health, adoption, and expansion.", "attributes": { "seedKey": "customer-success-role-csm" } },
+    { "label": "Role", "id": "018f0400-0000-7000-8000-000000000203", "name": "Renewals Manager", "description": "Owns the renewal forecast, outreach, and close.", "attributes": { "seedKey": "customer-success-role-renewals-manager" } },
+    { "label": "Role", "id": "018f0400-0000-7000-8000-000000000204", "name": "Support Agent", "description": "Handles support tickets from intake through resolution and CSAT.", "attributes": { "seedKey": "customer-success-role-support-agent" } },
+
+    { "label": "System", "id": "018f0400-0000-7000-8000-000000000301", "name": "CS Platform", "description": "Customer-success / health-scoring platform for account management and playbooks.", "attributes": { "seedKey": "customer-success-system-cs-platform", "systemKind": "functional" } },
+    { "label": "System", "id": "018f0400-0000-7000-8000-000000000302", "name": "Support/Ticketing System", "description": "Support ticketing, triage, and CSAT surveying system.", "attributes": { "seedKey": "customer-success-system-support", "systemKind": "functional" } },
+
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010101", "name": "Kickoff call", "description": "Run the onboarding kickoff call with the new tenant.", "attributes": { "seedKey": "customer-success-act-ob-kickoff" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010102", "name": "Environment provisioning verification", "description": "Verify the tenant environment is provisioned correctly.", "attributes": { "seedKey": "customer-success-act-ob-provisioning" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010103", "name": "Data migration validation", "description": "Validate migrated tenant data for completeness and integrity.", "attributes": { "seedKey": "customer-success-act-ob-migration" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010104", "name": "Admin training", "description": "Train the tenant administrators on the product.", "attributes": { "seedKey": "customer-success-act-ob-training" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010105", "name": "Go-live sign-off", "description": "Record go-live sign-off and hand off to ongoing success.", "attributes": { "seedKey": "customer-success-act-ob-go-live" } },
+
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010201", "name": "Ingest usage/adoption signals", "description": "Ingest product usage and adoption signals for the account.", "attributes": { "seedKey": "customer-success-act-hs-ingest" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010202", "name": "Compute health score", "description": "Compute a composite account-health score from ingested signals.", "attributes": { "seedKey": "customer-success-act-hs-compute" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010203", "name": "Flag at-risk accounts", "description": "Flag accounts whose health score falls below the at-risk threshold.", "attributes": { "seedKey": "customer-success-act-hs-flag" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010204", "name": "Trigger playbook", "description": "Trigger the appropriate success playbook for a flagged account.", "attributes": { "seedKey": "customer-success-act-hs-playbook" } },
+
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010301", "name": "Renewal forecast", "description": "Forecast upcoming renewals and rank accounts for outreach.", "attributes": { "seedKey": "customer-success-act-rn-forecast" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010302", "name": "Renewal outreach", "description": "Reach out to accounts ahead of their renewal date.", "attributes": { "seedKey": "customer-success-act-rn-outreach" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010303", "name": "Contract negotiation", "description": "Negotiate renewal terms and expansion.", "attributes": { "seedKey": "customer-success-act-rn-negotiation" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010304", "name": "Renewal close/expansion", "description": "Close the renewal, including any expansion.", "attributes": { "seedKey": "customer-success-act-rn-close" } },
+
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010401", "name": "Churn-risk detection", "description": "Detect accounts at risk of churning.", "attributes": { "seedKey": "customer-success-act-cs-detect" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010402", "name": "Save-play execution", "description": "Execute a save-play against an at-risk account.", "attributes": { "seedKey": "customer-success-act-cs-save-play" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010403", "name": "Executive escalation", "description": "Escalate a high-value at-risk account to executives.", "attributes": { "seedKey": "customer-success-act-cs-escalate" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010404", "name": "Win-back offer", "description": "Make a win-back offer to a churning or churned account.", "attributes": { "seedKey": "customer-success-act-cs-win-back" } },
+
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010501", "name": "Ticket intake/triage", "description": "Intake and triage an incoming support ticket.", "attributes": { "seedKey": "customer-success-act-st-triage" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010502", "name": "First-response", "description": "Send the first response to the ticket within SLA.", "attributes": { "seedKey": "customer-success-act-st-first-response" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010503", "name": "Resolution", "description": "Resolve the support ticket.", "attributes": { "seedKey": "customer-success-act-st-resolution" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010504", "name": "Escalation to engineering", "description": "Escalate an unresolved ticket to engineering.", "attributes": { "seedKey": "customer-success-act-st-escalate" } },
+    { "label": "Activity", "id": "018f0400-0000-7000-8000-000000010505", "name": "CSAT survey", "description": "Send a CSAT survey after ticket resolution.", "attributes": { "seedKey": "customer-success-act-st-csat" } }
+  ],
+  "edges": [
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110101", "fromId": "018f0400-0000-7000-8000-000000010101", "toId": "018f0400-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110102", "fromId": "018f0400-0000-7000-8000-000000010102", "toId": "018f0400-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110103", "fromId": "018f0400-0000-7000-8000-000000010103", "toId": "018f0400-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110104", "fromId": "018f0400-0000-7000-8000-000000010104", "toId": "018f0400-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110105", "fromId": "018f0400-0000-7000-8000-000000010105", "toId": "018f0400-0000-7000-8000-000000000001" },
+
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110201", "fromId": "018f0400-0000-7000-8000-000000010201", "toId": "018f0400-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110202", "fromId": "018f0400-0000-7000-8000-000000010202", "toId": "018f0400-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110203", "fromId": "018f0400-0000-7000-8000-000000010203", "toId": "018f0400-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110204", "fromId": "018f0400-0000-7000-8000-000000010204", "toId": "018f0400-0000-7000-8000-000000000002" },
+
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110301", "fromId": "018f0400-0000-7000-8000-000000010301", "toId": "018f0400-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110302", "fromId": "018f0400-0000-7000-8000-000000010302", "toId": "018f0400-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110303", "fromId": "018f0400-0000-7000-8000-000000010303", "toId": "018f0400-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110304", "fromId": "018f0400-0000-7000-8000-000000010304", "toId": "018f0400-0000-7000-8000-000000000003" },
+
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110401", "fromId": "018f0400-0000-7000-8000-000000010401", "toId": "018f0400-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110402", "fromId": "018f0400-0000-7000-8000-000000010402", "toId": "018f0400-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110403", "fromId": "018f0400-0000-7000-8000-000000010403", "toId": "018f0400-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110404", "fromId": "018f0400-0000-7000-8000-000000010404", "toId": "018f0400-0000-7000-8000-000000000004" },
+
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110501", "fromId": "018f0400-0000-7000-8000-000000010501", "toId": "018f0400-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110502", "fromId": "018f0400-0000-7000-8000-000000010502", "toId": "018f0400-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110503", "fromId": "018f0400-0000-7000-8000-000000010503", "toId": "018f0400-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110504", "fromId": "018f0400-0000-7000-8000-000000010504", "toId": "018f0400-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0400-0000-7000-8000-000000110505", "fromId": "018f0400-0000-7000-8000-000000010505", "toId": "018f0400-0000-7000-8000-000000000005" },
+
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210101", "fromId": "018f0400-0000-7000-8000-000000010101", "toId": "018f0400-0000-7000-8000-000000010102" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210102", "fromId": "018f0400-0000-7000-8000-000000010102", "toId": "018f0400-0000-7000-8000-000000010103" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210103", "fromId": "018f0400-0000-7000-8000-000000010103", "toId": "018f0400-0000-7000-8000-000000010104" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210104", "fromId": "018f0400-0000-7000-8000-000000010104", "toId": "018f0400-0000-7000-8000-000000010105" },
+
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210201", "fromId": "018f0400-0000-7000-8000-000000010201", "toId": "018f0400-0000-7000-8000-000000010202" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210202", "fromId": "018f0400-0000-7000-8000-000000010202", "toId": "018f0400-0000-7000-8000-000000010203" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210203", "fromId": "018f0400-0000-7000-8000-000000010203", "toId": "018f0400-0000-7000-8000-000000010204" },
+
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210301", "fromId": "018f0400-0000-7000-8000-000000010301", "toId": "018f0400-0000-7000-8000-000000010302" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210302", "fromId": "018f0400-0000-7000-8000-000000010302", "toId": "018f0400-0000-7000-8000-000000010303" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210303", "fromId": "018f0400-0000-7000-8000-000000010303", "toId": "018f0400-0000-7000-8000-000000010304" },
+
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210401", "fromId": "018f0400-0000-7000-8000-000000010401", "toId": "018f0400-0000-7000-8000-000000010402" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210402", "fromId": "018f0400-0000-7000-8000-000000010402", "toId": "018f0400-0000-7000-8000-000000010403" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210403", "fromId": "018f0400-0000-7000-8000-000000010403", "toId": "018f0400-0000-7000-8000-000000010404" },
+
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210501", "fromId": "018f0400-0000-7000-8000-000000010501", "toId": "018f0400-0000-7000-8000-000000010502" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210502", "fromId": "018f0400-0000-7000-8000-000000010502", "toId": "018f0400-0000-7000-8000-000000010503" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210503", "fromId": "018f0400-0000-7000-8000-000000010503", "toId": "018f0400-0000-7000-8000-000000010504" },
+    { "type": "PRECEDES", "id": "018f0400-0000-7000-8000-000000210504", "fromId": "018f0400-0000-7000-8000-000000010504", "toId": "018f0400-0000-7000-8000-000000010505" },
+
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310101", "fromId": "018f0400-0000-7000-8000-000000000201", "toId": "018f0400-0000-7000-8000-000000010101" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310102", "fromId": "018f0400-0000-7000-8000-000000000201", "toId": "018f0400-0000-7000-8000-000000010102" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310103", "fromId": "018f0400-0000-7000-8000-000000000201", "toId": "018f0400-0000-7000-8000-000000010103" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310104", "fromId": "018f0400-0000-7000-8000-000000000201", "toId": "018f0400-0000-7000-8000-000000010104" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310105", "fromId": "018f0400-0000-7000-8000-000000000201", "toId": "018f0400-0000-7000-8000-000000010105" },
+
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310201", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010201" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310202", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010202" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310203", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010203" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310204", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010204" },
+
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310301", "fromId": "018f0400-0000-7000-8000-000000000203", "toId": "018f0400-0000-7000-8000-000000010301" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310302", "fromId": "018f0400-0000-7000-8000-000000000203", "toId": "018f0400-0000-7000-8000-000000010302" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310303", "fromId": "018f0400-0000-7000-8000-000000000203", "toId": "018f0400-0000-7000-8000-000000010303" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310304", "fromId": "018f0400-0000-7000-8000-000000000203", "toId": "018f0400-0000-7000-8000-000000010304" },
+
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310401", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010401" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310402", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010402" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310403", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010403" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310404", "fromId": "018f0400-0000-7000-8000-000000000202", "toId": "018f0400-0000-7000-8000-000000010404" },
+
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310501", "fromId": "018f0400-0000-7000-8000-000000000204", "toId": "018f0400-0000-7000-8000-000000010501" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310502", "fromId": "018f0400-0000-7000-8000-000000000204", "toId": "018f0400-0000-7000-8000-000000010502" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310503", "fromId": "018f0400-0000-7000-8000-000000000204", "toId": "018f0400-0000-7000-8000-000000010503" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310504", "fromId": "018f0400-0000-7000-8000-000000000204", "toId": "018f0400-0000-7000-8000-000000010504" },
+    { "type": "EXECUTES", "id": "018f0400-0000-7000-8000-000000310505", "fromId": "018f0400-0000-7000-8000-000000000204", "toId": "018f0400-0000-7000-8000-000000010505" },
+
+    { "type": "USES_SYSTEM", "id": "018f0400-0000-7000-8000-000000410102", "fromId": "018f0400-0000-7000-8000-000000010105", "toId": "018f0400-0000-7000-8000-000000000301" },
+    { "type": "USES_SYSTEM", "id": "018f0400-0000-7000-8000-000000410202", "fromId": "018f0400-0000-7000-8000-000000010202", "toId": "018f0400-0000-7000-8000-000000000301" },
+    { "type": "USES_SYSTEM", "id": "018f0400-0000-7000-8000-000000410203", "fromId": "018f0400-0000-7000-8000-000000010204", "toId": "018f0400-0000-7000-8000-000000000301" },
+    { "type": "USES_SYSTEM", "id": "018f0400-0000-7000-8000-000000410401", "fromId": "018f0400-0000-7000-8000-000000010401", "toId": "018f0400-0000-7000-8000-000000000301" },
+
+    { "type": "USES_SYSTEM", "id": "018f0400-0000-7000-8000-000000410501", "fromId": "018f0400-0000-7000-8000-000000010501", "toId": "018f0400-0000-7000-8000-000000000302" },
+    { "type": "USES_SYSTEM", "id": "018f0400-0000-7000-8000-000000410502", "fromId": "018f0400-0000-7000-8000-000000010502", "toId": "018f0400-0000-7000-8000-000000000302" }
+  ]
+}

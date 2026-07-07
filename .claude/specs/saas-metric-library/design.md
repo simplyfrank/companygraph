@@ -49,7 +49,7 @@ subsystems:
    (`/api/v1/nodes/MetricDefinition[/:id]`) + a catalog list read via the
    existing `POST /api/v1/query/cypher`. **Zero** new REST route family, **zero**
    new RBAC permission string.
-5. **The `MetricLibrary` PWA view** (`#/business/metrics`, verbatim from the
+5. **The `MetricLibrary` PWA view** (`#/insights/metrics`, verbatim from the
    blueprint View Tree) — read-only v1 (OQ-6), replacing the foundation's
    `BusinessTabPlaceholder` on **one line** of `views/index.tsx`. It edits
    neither `route.ts` nor `SURFACES` (sole-owned by `saas-operator-foundation`,
@@ -438,11 +438,13 @@ change owned elsewhere, not this feature). Auth via the central router gate only
 
 ### 6.1 View-tree placement (FR-10, FR-12, UX-06)
 
-Route `#/business/metrics` — **verbatim** from the blueprint View Tree,
-pre-registered by `saas-operator-foundation` (XD-05). This feature does **not**
-edit `route.ts` or `SURFACES`. The `#/business/metrics` route already resolves
-(to the foundation's `BusinessTabPlaceholder`); this feature makes it render the
-live view.
+Route `#/insights/metrics` — **canonical route per the nav-IA restructure**
+(2026-07-07; retargeted from the blueprint's original `#/business/metrics`, which
+no longer exists — the nav orchestrator now owns `route.ts`/`SURFACES`/`views/index.tsx`
+under a 7-surface IA with `insights` as the analytics surface; XD-05). This feature
+does **not** edit `route.ts` or `SURFACES`. The nav orchestrator wires the
+`#/insights/metrics` → `MetricLibrary` VIEWS entry; this feature contributes only
+the live view component.
 
 ### 6.2 View registration — the sole `views/index.tsx` edit (FR-12, XD-05, AC-11)
 
@@ -485,7 +487,7 @@ catalog components + a CSS module.
 
 ### 6.4 `MetricLibrary` behavior + states (FR-10, FR-11, UX-01)
 
-Route `#/business/metrics`. Consumes `useActiveModel()` for header context only
+Route `#/insights/metrics`. Consumes `useActiveModel()` for header context only
 (the catalog is model-independent, §4/FR-05 — the view lists **all**
 `MetricDefinition` nodes regardless of active model). It fetches the catalog via
 **one** `api.cypher(...)` call (§5.5 query), mirroring `FunctionMap`'s
@@ -518,7 +520,7 @@ list/grid.
 - Where a per-metric KPI list is shown (read-only, optional in v1), each linked
   KPI is a native anchor that deep-links into the existing Explorer for that KPI
   (via `toHash({surface:"explorer", …})`, the `FunctionMap` deep-link pattern).
-- The `#/business/metrics` deep link survives reload (the shell active-model
+- The `#/insights/metrics` deep link survives reload (the shell active-model
   context + hash router guarantee this — the same guarantee `FunctionMap` relies
   on; AC-18).
 
@@ -569,11 +571,11 @@ exactly — `App.tsx` is not edited.
 | AC-09 | integration (Neo4j) | `api/__tests__/metric-library-attribute-enforcement.integration.test.ts` — a `POST /api/v1/nodes/MetricDefinition` missing `unit`, or with an out-of-enum `category`, is rejected (`attribute_violation`); a valid write succeeds |
 | AC-10 | integration (Neo4j) + CLI | `api/__tests__/metric-library-crud.integration.test.ts` — create → read → PATCH (`benchmark`) → DELETE, each on `node:write`/`node:read`; `git diff api/src/auth/rbac-permissions.ts` shows no additions (manual) |
 | AC-11 | CLI | `bun run typecheck` exit 0; `git diff --stat` — no `pwa/src/route.ts` change, no `shared/src/schema/{nodes,edges}.ts` array additions, `views/index.tsx` limited to the `metrics:` line + its import (manual) |
-| AC-12 | unit (PWA) | `pwa/src/__tests__/metric-library.test.tsx` — `#/business/metrics` renders `MetricLibrary` (not `BusinessTabPlaceholder`) with name/category/unit/formula/benchmark, category-grouped, keyboard-reachable (mocked cypher response) |
+| AC-12 | unit (PWA) | `pwa/src/__tests__/metric-library.test.tsx` — `#/insights/metrics` renders `MetricLibrary` (not `BusinessTabPlaceholder`) with name/category/unit/formula/benchmark, category-grouped, keyboard-reachable (mocked cypher response) |
 | AC-13, AC-14, AC-15 | unit (PWA) | `pwa/src/__tests__/metric-library-states.test.tsx` — loading skeleton / empty (registered, zero nodes) / error + retry-refetch |
 | AC-16 | manual (CLI) | `bun run scripts/design-conformance.ts --view pwa/src/views/business/MetricLibrary.tsx` and the `.module.css` — both exit 0, zero token/component violations |
-| AC-17 | manual | with the stack up, load `#/business/metrics`, Tab through the view — expect focus lands on the `ViewRegion` section landmark then moves through the category filter and each metric row in DOM order; any linked KPI activates on Enter |
-| AC-18 | e2e (Playwright) | `pwa/playwright/business-metrics-reload.spec.ts` — navigate to `#/business/metrics`, reload, expect the live `MetricLibrary` re-renders |
+| AC-17 | manual | with the stack up, load `#/insights/metrics`, Tab through the view — expect focus lands on the `ViewRegion` section landmark then moves through the category filter and each metric row in DOM order; any linked KPI activates on Enter |
+| AC-18 | e2e (Playwright) | `pwa/playwright/business-metrics-reload.spec.ts` — navigate to `#/insights/metrics`, reload, expect the live `MetricLibrary` re-renders |
 
 **Preconditions.** AC-12 renders from a mocked cypher response; AC-17/AC-18
 against the live stack require `bun run seed:saas-metric-library` to have run

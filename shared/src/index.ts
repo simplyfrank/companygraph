@@ -3,5 +3,6 @@ export * from "./schema/edges";
 export * from "./schema/ontology";
 export * from "./schema/system-kind";
 export * from "./schema/performance";
+export * from "./schema/operator";
 export * from "./schema/persona";
 export * from "./types";

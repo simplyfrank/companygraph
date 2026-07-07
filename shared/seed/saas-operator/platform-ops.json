@@ -1,0 +1,142 @@
+{
+  "nodes": [
+    { "label": "UserJourney", "id": "018f0200-0000-7000-8000-000000000001", "name": "Fleet observability", "description": "Metrics/logs/traces collection, dashboards, and alerting thresholds across the tenant fleet.", "attributes": { "seedKey": "platform-ops-journey-observability" } },
+    { "label": "UserJourney", "id": "018f0200-0000-7000-8000-000000000002", "name": "Deploy / release", "description": "CI artifact to staging to canary to production rollout, with rollback.", "attributes": { "seedKey": "platform-ops-journey-deploy" } },
+    { "label": "UserJourney", "id": "018f0200-0000-7000-8000-000000000003", "name": "Incident / on-call", "description": "Paging, triage, mitigation, resolution, and postmortem.", "attributes": { "seedKey": "platform-ops-journey-incident" } },
+    { "label": "UserJourney", "id": "018f0200-0000-7000-8000-000000000004", "name": "SLA / status", "description": "SLO and error-budget tracking, public status-page updates, and customer SLA reporting.", "attributes": { "seedKey": "platform-ops-journey-sla" } },
+    { "label": "UserJourney", "id": "018f0200-0000-7000-8000-000000000005", "name": "Backups / DR", "description": "Scheduled backups, restore verification, and disaster-recovery drills.", "attributes": { "seedKey": "platform-ops-journey-backups" } },
+
+    { "label": "Role", "id": "018f0200-0000-7000-8000-000000000301", "name": "SRE", "description": "Site Reliability Engineer operating the Helm control-plane and the tenant fleet.", "attributes": { "seedKey": "platform-ops-role-sre" } },
+    { "label": "Role", "id": "018f0200-0000-7000-8000-000000000302", "name": "On-call Engineer", "description": "Engineer on the paging rotation for the current shift.", "attributes": { "seedKey": "platform-ops-role-oncall" } },
+    { "label": "Role", "id": "018f0200-0000-7000-8000-000000000303", "name": "Release Manager", "description": "Owns the deploy/release train and go/no-go decisions.", "attributes": { "seedKey": "platform-ops-role-release-manager" } },
+    { "label": "Role", "id": "018f0200-0000-7000-8000-000000000304", "name": "Platform Ops Lead", "description": "Accountable lead for the platform-operations function.", "attributes": { "seedKey": "platform-ops-role-lead" } },
+
+    { "label": "System", "id": "018f0200-0000-7000-8000-000000000401", "name": "Observability stack", "description": "Metrics/logs/traces plus anomaly detection and alerting across the tenant fleet.", "attributes": { "seedKey": "platform-ops-system-observability", "systemKind": "ai_predictive" } },
+    { "label": "System", "id": "018f0200-0000-7000-8000-000000000402", "name": "Status page", "description": "Public status-page publishing surface for customer-facing incident and SLA communication.", "attributes": { "seedKey": "platform-ops-system-status-page", "systemKind": "functional" } },
+    { "label": "System", "id": "018f0200-0000-7000-8000-000000000403", "name": "Backup/restore system", "description": "Scheduled backups plus restore verification and disaster-recovery drills.", "attributes": { "seedKey": "platform-ops-system-backup", "systemKind": "functional" } },
+
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010101", "name": "Instrument services", "description": "Add metrics, logs, and traces instrumentation across fleet services.", "attributes": { "seedKey": "platform-ops-act-obs-instrument" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010102", "name": "Collect telemetry", "description": "Ingest metrics/logs/traces into the observability stack.", "attributes": { "seedKey": "platform-ops-act-obs-collect" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010103", "name": "Build dashboards", "description": "Compose fleet-health and per-tenant dashboards.", "attributes": { "seedKey": "platform-ops-act-obs-dashboards" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010104", "name": "Define alert thresholds", "description": "Set SLO-based alert thresholds and routing.", "attributes": { "seedKey": "platform-ops-act-obs-thresholds" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010105", "name": "Review alert noise", "description": "Tune alerts to reduce false positives and page fatigue.", "attributes": { "seedKey": "platform-ops-act-obs-review" } },
+
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010201", "name": "Build artifact", "description": "Produce the release artifact from CI.", "attributes": { "seedKey": "platform-ops-act-dep-build" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010202", "name": "Promote to staging", "description": "Deploy the artifact to the staging environment via Helm.", "attributes": { "seedKey": "platform-ops-act-dep-staging" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010203", "name": "Canary rollout", "description": "Roll out to a canary slice of the fleet and watch signals.", "attributes": { "seedKey": "platform-ops-act-dep-canary" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010204", "name": "Promote to production", "description": "Promote the release to the full production fleet.", "attributes": { "seedKey": "platform-ops-act-dep-production" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010205", "name": "Verify & monitor", "description": "Verify the release and monitor post-deploy signals.", "attributes": { "seedKey": "platform-ops-act-dep-verify" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010206", "name": "Rollback", "description": "Roll back a bad release to the last known-good version.", "attributes": { "seedKey": "platform-ops-act-dep-rollback" } },
+
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010301", "name": "Receive page", "description": "On-call engineer receives an incident page from PagerDuty.", "attributes": { "seedKey": "platform-ops-act-inc-page" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010302", "name": "Triage incident", "description": "Assess severity, scope, and impacted tenants.", "attributes": { "seedKey": "platform-ops-act-inc-triage" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010303", "name": "Mitigate impact", "description": "Apply immediate mitigation to restore service.", "attributes": { "seedKey": "platform-ops-act-inc-mitigate" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010304", "name": "Resolve incident", "description": "Drive the incident to full resolution.", "attributes": { "seedKey": "platform-ops-act-inc-resolve" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010305", "name": "Write postmortem", "description": "Document root cause and follow-up actions.", "attributes": { "seedKey": "platform-ops-act-inc-postmortem" } },
+
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010401", "name": "Define SLOs", "description": "Define service-level objectives and error budgets per service.", "attributes": { "seedKey": "platform-ops-act-sla-slos" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010402", "name": "Track error budget", "description": "Measure error-budget burn against the SLO.", "attributes": { "seedKey": "platform-ops-act-sla-budget" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010403", "name": "Update status page", "description": "Publish incident and maintenance updates to customers.", "attributes": { "seedKey": "platform-ops-act-sla-status" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010404", "name": "Report SLA compliance", "description": "Produce the customer-facing SLA compliance report.", "attributes": { "seedKey": "platform-ops-act-sla-report" } },
+
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010501", "name": "Schedule backups", "description": "Configure and schedule fleet backups.", "attributes": { "seedKey": "platform-ops-act-bak-schedule" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010502", "name": "Run backup", "description": "Execute the scheduled backup job.", "attributes": { "seedKey": "platform-ops-act-bak-run" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010503", "name": "Verify restore", "description": "Restore from a backup and verify integrity.", "attributes": { "seedKey": "platform-ops-act-bak-verify" } },
+    { "label": "Activity", "id": "018f0200-0000-7000-8000-000000010504", "name": "Run DR drill", "description": "Execute a disaster-recovery drill against the fleet.", "attributes": { "seedKey": "platform-ops-act-bak-drill" } }
+  ],
+  "edges": [
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110101", "fromId": "018f0200-0000-7000-8000-000000010101", "toId": "018f0200-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110102", "fromId": "018f0200-0000-7000-8000-000000010102", "toId": "018f0200-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110103", "fromId": "018f0200-0000-7000-8000-000000010103", "toId": "018f0200-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110104", "fromId": "018f0200-0000-7000-8000-000000010104", "toId": "018f0200-0000-7000-8000-000000000001" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110105", "fromId": "018f0200-0000-7000-8000-000000010105", "toId": "018f0200-0000-7000-8000-000000000001" },
+
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110201", "fromId": "018f0200-0000-7000-8000-000000010201", "toId": "018f0200-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110202", "fromId": "018f0200-0000-7000-8000-000000010202", "toId": "018f0200-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110203", "fromId": "018f0200-0000-7000-8000-000000010203", "toId": "018f0200-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110204", "fromId": "018f0200-0000-7000-8000-000000010204", "toId": "018f0200-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110205", "fromId": "018f0200-0000-7000-8000-000000010205", "toId": "018f0200-0000-7000-8000-000000000002" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110206", "fromId": "018f0200-0000-7000-8000-000000010206", "toId": "018f0200-0000-7000-8000-000000000002" },
+
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110301", "fromId": "018f0200-0000-7000-8000-000000010301", "toId": "018f0200-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110302", "fromId": "018f0200-0000-7000-8000-000000010302", "toId": "018f0200-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110303", "fromId": "018f0200-0000-7000-8000-000000010303", "toId": "018f0200-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110304", "fromId": "018f0200-0000-7000-8000-000000010304", "toId": "018f0200-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110305", "fromId": "018f0200-0000-7000-8000-000000010305", "toId": "018f0200-0000-7000-8000-000000000003" },
+
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110401", "fromId": "018f0200-0000-7000-8000-000000010401", "toId": "018f0200-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110402", "fromId": "018f0200-0000-7000-8000-000000010402", "toId": "018f0200-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110403", "fromId": "018f0200-0000-7000-8000-000000010403", "toId": "018f0200-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110404", "fromId": "018f0200-0000-7000-8000-000000010404", "toId": "018f0200-0000-7000-8000-000000000004" },
+
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110501", "fromId": "018f0200-0000-7000-8000-000000010501", "toId": "018f0200-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110502", "fromId": "018f0200-0000-7000-8000-000000010502", "toId": "018f0200-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110503", "fromId": "018f0200-0000-7000-8000-000000010503", "toId": "018f0200-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0200-0000-7000-8000-000000110504", "fromId": "018f0200-0000-7000-8000-000000010504", "toId": "018f0200-0000-7000-8000-000000000005" },
+
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210101", "fromId": "018f0200-0000-7000-8000-000000010101", "toId": "018f0200-0000-7000-8000-000000010102" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210102", "fromId": "018f0200-0000-7000-8000-000000010102", "toId": "018f0200-0000-7000-8000-000000010103" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210103", "fromId": "018f0200-0000-7000-8000-000000010103", "toId": "018f0200-0000-7000-8000-000000010104" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210104", "fromId": "018f0200-0000-7000-8000-000000010104", "toId": "018f0200-0000-7000-8000-000000010105" },
+
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210201", "fromId": "018f0200-0000-7000-8000-000000010201", "toId": "018f0200-0000-7000-8000-000000010202" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210202", "fromId": "018f0200-0000-7000-8000-000000010202", "toId": "018f0200-0000-7000-8000-000000010203" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210203", "fromId": "018f0200-0000-7000-8000-000000010203", "toId": "018f0200-0000-7000-8000-000000010204" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210204", "fromId": "018f0200-0000-7000-8000-000000010204", "toId": "018f0200-0000-7000-8000-000000010205" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210205", "fromId": "018f0200-0000-7000-8000-000000010203", "toId": "018f0200-0000-7000-8000-000000010206" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210206", "fromId": "018f0200-0000-7000-8000-000000010204", "toId": "018f0200-0000-7000-8000-000000010206" },
+
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210301", "fromId": "018f0200-0000-7000-8000-000000010301", "toId": "018f0200-0000-7000-8000-000000010302" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210302", "fromId": "018f0200-0000-7000-8000-000000010302", "toId": "018f0200-0000-7000-8000-000000010303" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210303", "fromId": "018f0200-0000-7000-8000-000000010303", "toId": "018f0200-0000-7000-8000-000000010304" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210304", "fromId": "018f0200-0000-7000-8000-000000010304", "toId": "018f0200-0000-7000-8000-000000010305" },
+
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210401", "fromId": "018f0200-0000-7000-8000-000000010401", "toId": "018f0200-0000-7000-8000-000000010402" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210402", "fromId": "018f0200-0000-7000-8000-000000010402", "toId": "018f0200-0000-7000-8000-000000010403" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210403", "fromId": "018f0200-0000-7000-8000-000000010403", "toId": "018f0200-0000-7000-8000-000000010404" },
+
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210501", "fromId": "018f0200-0000-7000-8000-000000010501", "toId": "018f0200-0000-7000-8000-000000010502" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210502", "fromId": "018f0200-0000-7000-8000-000000010502", "toId": "018f0200-0000-7000-8000-000000010503" },
+    { "type": "PRECEDES", "id": "018f0200-0000-7000-8000-000000210503", "fromId": "018f0200-0000-7000-8000-000000010503", "toId": "018f0200-0000-7000-8000-000000010504" },
+
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310101", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010101" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310102", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010102" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310103", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010103" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310104", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010104" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310105", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010105" },
+
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310201", "fromId": "018f0200-0000-7000-8000-000000000303", "toId": "018f0200-0000-7000-8000-000000010201" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310202", "fromId": "018f0200-0000-7000-8000-000000000303", "toId": "018f0200-0000-7000-8000-000000010202" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310203", "fromId": "018f0200-0000-7000-8000-000000000303", "toId": "018f0200-0000-7000-8000-000000010203" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310204", "fromId": "018f0200-0000-7000-8000-000000000303", "toId": "018f0200-0000-7000-8000-000000010204" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310205", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010205" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310206", "fromId": "018f0200-0000-7000-8000-000000000303", "toId": "018f0200-0000-7000-8000-000000010206" },
+
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310301", "fromId": "018f0200-0000-7000-8000-000000000302", "toId": "018f0200-0000-7000-8000-000000010301" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310302", "fromId": "018f0200-0000-7000-8000-000000000302", "toId": "018f0200-0000-7000-8000-000000010302" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310303", "fromId": "018f0200-0000-7000-8000-000000000302", "toId": "018f0200-0000-7000-8000-000000010303" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310304", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010304" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310305", "fromId": "018f0200-0000-7000-8000-000000000304", "toId": "018f0200-0000-7000-8000-000000010305" },
+
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310401", "fromId": "018f0200-0000-7000-8000-000000000304", "toId": "018f0200-0000-7000-8000-000000010401" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310402", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010402" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310403", "fromId": "018f0200-0000-7000-8000-000000000302", "toId": "018f0200-0000-7000-8000-000000010403" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310404", "fromId": "018f0200-0000-7000-8000-000000000304", "toId": "018f0200-0000-7000-8000-000000010404" },
+
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310501", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010501" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310502", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010502" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310503", "fromId": "018f0200-0000-7000-8000-000000000301", "toId": "018f0200-0000-7000-8000-000000010503" },
+    { "type": "EXECUTES", "id": "018f0200-0000-7000-8000-000000310504", "fromId": "018f0200-0000-7000-8000-000000000304", "toId": "018f0200-0000-7000-8000-000000010504" },
+
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410101", "fromId": "018f0200-0000-7000-8000-000000010102", "toId": "018f0200-0000-7000-8000-000000000401" },
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410102", "fromId": "018f0200-0000-7000-8000-000000010103", "toId": "018f0200-0000-7000-8000-000000000401" },
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410103", "fromId": "018f0200-0000-7000-8000-000000010104", "toId": "018f0200-0000-7000-8000-000000000401" },
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410401", "fromId": "018f0200-0000-7000-8000-000000010403", "toId": "018f0200-0000-7000-8000-000000000402" },
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410402", "fromId": "018f0200-0000-7000-8000-000000010402", "toId": "018f0200-0000-7000-8000-000000000401" },
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410501", "fromId": "018f0200-0000-7000-8000-000000010502", "toId": "018f0200-0000-7000-8000-000000000403" },
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410502", "fromId": "018f0200-0000-7000-8000-000000010503", "toId": "018f0200-0000-7000-8000-000000000403" },
+    { "type": "USES_SYSTEM", "id": "018f0200-0000-7000-8000-000000410503", "fromId": "018f0200-0000-7000-8000-000000010504", "toId": "018f0200-0000-7000-8000-000000000403" },
+
+    { "type": "INTEGRATES_WITH", "id": "018f0200-0000-7000-8000-000000510001", "fromId": "018f0200-0000-7000-8000-000000000401", "toId": "018f0200-0000-7000-8000-000000000402" }
+  ]
+}

@@ -12,6 +12,7 @@
     "./schema/kpi-sla": "./src/schema/kpi-sla.ts",
     "./schema/system-kind": "./src/schema/system-kind.ts",
     "./schema/performance": "./src/schema/performance.ts",
+    "./schema/operator": "./src/schema/operator.ts",
     "./schema/model-workspace": "./src/schema/model-workspace.ts",
     "./schema/story-spec": "./src/schema/story-spec.ts",
     "./schema/key-activity": "./src/schema/key-activity.ts",
@@ -19,6 +20,7 @@
     "./schema/spec-export": "./src/schema/spec-export.ts",
     "./schema/authoring": "./src/schema/authoring.ts",
     "./schema/kpi-impact": "./src/schema/kpi-impact.ts",
+    "./schema/function-benchmark": "./src/schema/function-benchmark.ts",
     "./types": "./src/types.ts",
     "./seed/retail-mini.json": "./seed/retail-mini.json"
   },

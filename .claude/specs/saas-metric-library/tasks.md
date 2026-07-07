@@ -349,7 +349,7 @@ author to pin. All are landed below; none reopens the architecture.
 - **Complexity**: complex
 - **Blocked by**: T-10
 - **Blocks**: T-11, T-12
-- **Steps**: The live catalog view at `#/business/metrics` (route already
+- **Steps**: The live catalog view at `#/insights/metrics` (route already
   registered by foundation, XD-05 — this file is only wired in T-11):
   - **Imports** follow the `FunctionMap.tsx` precedent verbatim:
     `import { api } from "../../api"`,
@@ -414,37 +414,28 @@ author to pin. All are landed below; none reopens the architecture.
   — expect exit 0 with zero token/component violations (AC-16, css half; the
   `.tsx` half runs at T-11). `bun run typecheck` passes.
 
-### T-11 — Wire `MetricLibrary` into the `metrics:` VIEWS line (sole views/index.tsx edit)
+### T-11 — Wire `MetricLibrary` into the VIEWS map (DEFERRED to the nav orchestrator)
 
-- **Files** (1): `pwa/src/views/index.tsx` (modify)
+- **Files** (0 for this spec): the one `views/index.tsx` change is owned by the
+  **nav orchestrator**, not this spec (nav-IA restructure 2026-07-07). This spec
+  does **NOT** edit `pwa/src/route.ts`, `pwa/src/views/index.tsx`, or the nav
+  guard tests — all sole-owned by the concurrent nav session.
 - **Implements**: design §6.2 — closes AC-11, AC-16 (tsx half); supports FR-12, NFR-03
-- **Complexity**: simple
-- **Blocked by**: T-09, T-10
+- **Complexity**: simple (one line, cross-owner)
+- **Blocked by**: T-09, T-10 (both done)
 - **Blocks**: T-12
-- **Steps**: Make **exactly two** changes to `pwa/src/views/index.tsx` (the
-  proven `model-workspace-core`/foundation view seam — this is the whole PWA
-  route-registration diff for this feature, XD-05/NFR-03):
-  1. Add `import { MetricLibrary } from "./business/MetricLibrary";` to the
-     import block.
-  2. Replace the **`metrics:` key** in the `business` surface `VIEWS` map
-     (referenced by **key, not line number**, since foundation owns and may
-     re-touch the file — N-01'):
-     ```tsx
-     // before (foundation placeholder):
-     metrics: () => <BusinessTabPlaceholder tab="Metrics" spec="saas-metric-library" />,
-     // after (this feature):
-     metrics: () => <MetricLibrary />,
-     ```
-  Edit **no other** `VIEWS` entry, and **neither** `pwa/src/route.ts` **nor**
-  the `SURFACES` list (sole-owned by `saas-operator-foundation`, XD-05).
+- **Steps (for the nav orchestrator, tracked here):** the canonical route is
+  **`#/insights/metrics`** (the former `#/business/metrics` surface no longer
+  exists). Add, **under the `insights` surface** in `pwa/src/views/index.tsx`:
+  1. `import { MetricLibrary } from "./business/MetricLibrary";` in the import block.
+  2. the `VIEWS` entry `metrics: () => <MetricLibrary />,`.
 - **Verification**:
   - AC-16 (tsx half): manual:
     `bun run scripts/design-conformance.ts --view pwa/src/views/business/MetricLibrary.tsx`
-    — expect exit 0.
-  - AC-11: `bun run typecheck` exit 0; manual: `git diff --stat` — expect **no**
-    change to `pwa/src/route.ts`, **no** array additions to
-    `shared/src/schema/{nodes,edges}.ts`, and `pwa/src/views/index.tsx` limited
-    to the `metrics:` line + the `MetricLibrary` import (NFR-01, NFR-03, NFR-04).
+    — expect exit 0 (already passing).
+  - AC-11: `bun run typecheck` exit 0; manual: `git diff --stat` for this spec's diff
+    — expect **no** change to `pwa/src/route.ts` / `pwa/src/views/index.tsx`, and **no**
+    array additions to `shared/src/schema/{nodes,edges}.ts` (NFR-01, NFR-03, NFR-04).
 
 ### T-12 — Deep-link reload e2e + keyboard sweep + boundary check
 
@@ -457,11 +448,11 @@ author to pin. All are landed below; none reopens the architecture.
 - **Steps**:
   - **AC-18 e2e** — Playwright spec: with the full stack up and
     `bun run seed:saas-metric-library` run (the 20 seeded metrics are what the
-    view renders), navigate to `#/business/metrics`, reload; assert the same
+    view renders), navigate to `#/insights/metrics`, reload; assert the same
     route re-renders the live `MetricLibrary` (from the persisted shell context
     + hash router).
   - **AC-17 live keyboard sweep** (manual) — with the seeded stack up, load
-    `#/business/metrics` and Tab through the view: expect focus lands on the
+    `#/insights/metrics` and Tab through the view: expect focus lands on the
     `ViewRegion` section landmark, then the category filter, then each metric
     row in DOM order (C-01 — no KPI-Enter clause in v1).
   - **AC-11 boundary sweep** (CLI, no source edit): `git diff --stat` +
@@ -472,7 +463,7 @@ author to pin. All are landed below; none reopens the architecture.
     `api/src/storage/model-lifecycle-guard.ts` unchanged,
     `api/scripts/seed-saas-operator.ts` unchanged (NFR-01/NFR-03/NFR-06).
 - **Verification**: `pwa/playwright/business-metrics-reload.spec.ts` (AC-18);
-  manual: with the seeded stack up, load `#/business/metrics`, Tab through the
+  manual: with the seeded stack up, load `#/insights/metrics`, Tab through the
   view — expect focus lands on the `ViewRegion` landmark then the filter then
   each metric row in DOM order (AC-17); manual: `git diff --stat` + `git diff`
   of the named files — expect the boundary confined exactly as above (AC-11).

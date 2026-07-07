@@ -1,0 +1,122 @@
+/* saas-metric-library T-10 (design §6.6 — FR-10, NFR-05, AC-16 css half).
+   MetricLibrary catalog grid/card + category-filter styles. Tokens-only
+   (var(--…) from tokens.css); no raw colors/spacing/fonts. Desktop-first, no
+   new breakpoints (UX-04). Mirrors the FunctionMap.module.css precedent. */
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+}
+
+.filterLabel {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.filterSelect {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.filterSelect:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  font-family: var(--font-body);
+}
+
+.card:focus-within {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0;
+}
+
+.badges {
+  display: inline-flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--muted-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.fieldLabel {
+  color: var(--muted-2);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.formula {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--fg);
+  margin: 0;
+}
+
+.benchmark {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.description {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}

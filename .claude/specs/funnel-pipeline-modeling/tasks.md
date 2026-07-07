@@ -2,12 +2,12 @@
 feature: "funnel-pipeline-modeling"
 created: "2026-07-06"
 author: "spec-author"
-status: "draft"
-revision: 1
-reviewing_requirements_revision: 2
-reviewing_design_revision: 1
+status: "revised"
+revision: 3
+reviewing_requirements_revision: 3
+reviewing_design_revision: 2
 size: "large"
-total_tasks: 13
+total_tasks: 14
 ---
 
 # Tasks: funnel-pipeline-modeling
@@ -17,8 +17,9 @@ total_tasks: 13
 - **Order**: tasks execute top-to-bottom. Dependencies are explicit
   (`Blocked by` / `Blocks`); no out-of-order execution.
 - **Deferred-green rule**: the registry-ensure, node/edge CRUD, transition-route,
-  and read tasks (T-01…T-07) drive the loopback API on `127.0.0.1:8787`, so their
-  **integration** tests need a running API + Neo4j. At each such task's checkpoint
+  read, and generic-CRUD-round-trip tasks (T-01…T-07, T-14) drive the loopback API
+  on `127.0.0.1:8787`, so their **integration** tests need a running API + Neo4j.
+  At each such task's checkpoint
   run `bun run typecheck`; the full `*.integration.test.ts` files run green under
   `bun test:integration` once the stack is up (`bun run dev`). The PWA slice
   (T-08…T-11) runs under `bun test` (component/unit); AC-20 is a Playwright e2e
@@ -55,7 +56,7 @@ blockers). The binding decisions the implementer must not re-derive:
 | Design decision (rev 1) | Binding for execution | Locked in task |
 |-------------------------|-----------------------|----------------|
 | **Rule A / NFR-01 — registry, never compile-time schema** (§3, §11): `Funnel`/`Stage`/`HAS_STAGE`/`CONVERTS_TO` are runtime-registry constructs only; **zero** edit to `shared/src/schema/{nodes,edges}.ts`. | No compile-time `NODE_LABELS`/`EDGE_TYPES`/`EDGE_ENDPOINTS` entry. | T-01, T-02, T-12 |
-| **Rule B / B-03 — idempotency = POST-then-tolerate-`409 name_conflict`** (§2, §4.1): the public registry-create routes are strict-CREATE (`409 name_conflict` on a duplicate — verified `node-labels.ts:191-193`, `edge-types.ts:206,240`). `ensureFunnelOntology` POSTs each payload and treats `201` **and** `409 name_conflict` as success; any other non-2xx throws. AC-01 is "the routine run twice leaves exactly one `Funnel` label and errors nothing." | Idempotency is `409`-tolerance in the routine, not a bare-POST no-op. | T-01 |
+| **Rule B / B-03 — idempotency = get-then-create guard** (§2, §4.1; requirements rev-3 FR-06a): the public registry-create routes are strict-CREATE (`409 name_conflict` on a duplicate — verified `node-labels.ts:191-193`, `edge-types.ts:206,240`), and this spec adds nothing to the compile-time tuples the seed-loader MERGE covers. `ensureFunnelOntology` therefore **`GET`s each construct by name first and `POST`s only on `404`**; a `200` skips the create (verified no-op). A defensive `409 name_conflict` on the `POST` (get→post race) is also tolerated. Any other non-2xx throws. AC-01 is "the routine run twice leaves exactly one `Funnel` label and errors nothing" — asserting the **routine's** idempotency, not that the strict-CREATE route is itself a no-op. Mirrors `ensureOperatorRoot` (`ensure-operator-root.ts:48`). | Idempotency is the get-then-create guard in the routine, not a bare-POST no-op nor route-level. | T-01 |
 | **C-05 — `stageOrder` is a required integer** (§3.2): the `Stage` `json_schema_doc` is `{type:"object", required:["stageOrder"], properties:{stageOrder:{type:"integer"}}, additionalProperties:true}`. Verified: `jsonSchemaDocSchema` accepts `required` (`ontology.ts:71`) and `attribute-zod.ts` compiles it, so a missing/non-integer `stageOrder` fails `400 attribute_violation` at the generic node route. | `required:["stageOrder"]` + integer type in the registered doc. | T-01, T-03 |
 | **C-06 — listing scope via a `Funnel.attributes.modelId` marker** (§3.1, §4.5): a `Funnel` carries an optional top-level `modelId` string (the operator root id) set at create time; the listing filters on it. **No** graph attachment edge, **no** new `PART_OF Funnel→Domain` endpoint pair. The `CONTAINS $rootIdNeedle` Cypher is a coarse prefilter; the **authoritative** exclusion is the client-side parse of each row's `attributes_json` (review C-01). | Listing scope = `modelId` marker + client-parse authority. | T-05, T-08, T-10 |
 | **Rule C — range check on a funnel-owned seam, delegate to `createEdge`** (§3.4, §4.4): the `[0,1]` range validation lives in a **new** `api/src/routes/funnels.ts`; it never edits `api/src/routes/edges.ts` / `api/src/storage/edges.ts` / `shared/src/schema/edges.ts`. It reads-imports `createEdge` and folds the two rates into the edge `attributes` before delegating. | Range check in the funnel route; delegate to graph-core `createEdge`. | T-04 |
@@ -81,6 +82,20 @@ author to pin. All are landed below; none reopens the architecture.
 | **N-01** (nit) — the client derivation must *detect* a branch (a stage with >1 outgoing `CONVERTS_TO`) to emit `"n/a"` rather than silently multiplying one arbitrary path | AC-11's PWA test `funnel-board-analytics.test.tsx` includes a **branch case** (a stage with two outgoing `CONVERTS_TO`) asserting overall conversion renders the literal `"n/a"`, alongside the linear `0.5×0.4=0.20` and single-stage `"n/a"` cases. | Makes the branch degradation observable, not implicit. | T-07, T-09 |
 | **N-02** (nit) — `invalid_payload` is listed as a route error member but the flow only throws `attribute_violation`/`edge_endpoint_label_mismatch`/`id_conflict` | No action beyond awareness: `readJson` may surface `invalid_payload` generically for a malformed body; it is an existing closed `ERROR_CODES` member, not a new one. `api/src/errors.ts` is untouched. | Harmless; documented so a reader doesn't add an error code. | T-04 |
 | **N-03** (nit) — the `uuidv7` import citation (`nodes.ts:26`) checks out | No action; noted correct in review. | — | T-04 |
+
+## Review resolutions (review-tasks.md pass 1)
+
+Revision 2 addresses every Blocker and Concern in `review-tasks.md` pass 1
+(verdict **revise**, one Blocker):
+
+| Finding | Resolution | Where |
+|---------|------------|-------|
+| **B-01** — AC-07 and AC-08 had no closing task; the design's `api/__tests__/funnel-crud.integration.test.ts` file was dropped, and the "every AC has a closing task" claim was false. | New task **T-14** creates `api/__tests__/funnel-crud.integration.test.ts` covering AC-07 (Funnel+Stage POST/GET/PATCH/DELETE round-trip through the generic `/api/v1/nodes/:label` path) and AC-08 (`HAS_STAGE` `Funnel→Stage` via `POST /api/v1/edges`, composition read returns it). Traceability table, per-FR rollup, validation-checkpoints table, and the closing "every AC has a closing task" line corrected. `total_tasks` 13 → 14 (N-01). | T-14; Traceability; Validation checkpoints |
+| **C-01** — the final sweep (T-13 step 7) omitted AC-07's `nodes.ts` and AC-08's `edges.ts` diff guards as their own verification. | T-14's verification carries both `git diff --stat` guards explicitly as AC-07/AC-08 word them (`api/src/routes/nodes.ts` → no change; `api/src/routes/edges.ts` → no change), not relying on T-13's aggregate sweep. | T-14 |
+| **C-02** — T-08's C-04 foundation-placeholder guard used a bare substring grep, not a shape check. | T-08 step 1 strengthened to assert the specific key shape: the `business`-surface block and a `funnels:` entry returning a `BusinessTabPlaceholder` within it (a shape-not-substring grep), failing loudly on a mismatch. Mirrored in T-08's verification. | T-08 |
+| **C-03** — the branch-*detection* computation was implicit; T-09's test could pass on a pre-set flag without exercising detection. | T-09's `funnel-board-analytics.test.tsx` branch case now asserts the *detection*: a composition payload with a fan-out stage (>1 outgoing `CONVERTS_TO`) yields the branch signal → `"n/a"`, so a detection bug (e.g. counting `HAS_STAGE` out-edges instead of `CONVERTS_TO`) fails the test. | T-09 |
+| **N-01** (nit) — `total_tasks: 13` had to become 14. | Frontmatter `total_tasks: 14`; task list, Traceability, and checkpoint tables updated. | frontmatter; tables |
+| **N-02**, **N-03** (nits) — optional dependency-edge cleanup / seed-dir naming. | No change required (both match the approved design); noted acknowledged. | — |
 
 ## Task list
 
@@ -109,20 +124,28 @@ author to pin. All are landed below; none reopens the architecture.
        `endpoints:[{ fromLabel:"Funnel", toLabel:"Stage" }]`.
      - **`CONVERTS_TO` edge type** (§3.3) — `name:"CONVERTS_TO"`, `description`,
        `usage_example`, `endpoints:[{ fromLabel:"Stage", toLabel:"Stage" }]`.
-  2. POST them **in dependency order** (`assertEndpointLabelsExist` requires the
-     labels first, §3.3): `Funnel` → `Stage` → `HAS_STAGE` → `CONVERTS_TO`.
-     - `Funnel`/`Stage` → `POST /api/v1/ontology/node-labels` (`ontology:write`).
-     - `HAS_STAGE`/`CONVERTS_TO` → `POST /api/v1/ontology/edge-types` (`ontology:write`).
-  3. **Idempotency (Rule B / B-03)** — for each POST: `201` → registered;
-     **`409 name_conflict` → already registered, treat as success**; any other
-     non-2xx → throw (surface the failure). A second run leaves exactly one of each
-     construct and errors nothing (AC-01/AC-03/AC-04). Edit **no** `NODE_LABELS`/
+  2. Ensure them **in dependency order** (`assertEndpointLabelsExist` requires the
+     labels first, §3.3): `Funnel` → `Stage` → `HAS_STAGE` → `CONVERTS_TO`, each
+     via a `getThenCreate(getPath, postPath, payload)` helper.
+     - `Funnel`/`Stage` → `GET /api/v1/ontology/node-labels/<name>`, then
+       `POST /api/v1/ontology/node-labels` only on `404` (`ontology:write`).
+     - `HAS_STAGE`/`CONVERTS_TO` → `GET /api/v1/ontology/edge-types/<name>`, then
+       `POST /api/v1/ontology/edge-types` only on `404` (`ontology:write`).
+  3. **Idempotency (Rule B / B-03 — get-then-create guard, requirements rev-3
+     FR-06a)** — for each construct: `GET` by name; a `200` → already registered →
+     **skip the POST** (verified no-op); a `404` → `POST` the payload and treat
+     `201` as success; a defensive `409 name_conflict` on the `POST` (get→post
+     race) → also treat as success; any other non-2xx → throw (surface the
+     failure). A second run finds all four via the `GET` and creates nothing —
+     exactly one of each construct, erroring nothing (AC-01/AC-03/AC-04). Mirrors
+     `ensureOperatorRoot`'s lookup-before-create posture. Edit **no** `NODE_LABELS`/
      `EDGE_TYPES`/`EDGE_ENDPOINTS` entry in `shared/src/schema/{nodes,edges}.ts`
      (NFR-01). `zod` only, en-US identifiers.
 - **Verification**: `api/__tests__/funnel-registry.integration.test.ts` (jointly with
   T-03) — after `ensureFunnelOntology`, `GET /api/v1/ontology/node-labels/Funnel`
   and `.../Stage` return them with their `json_schema_doc`; running the routine a
-  **second** time leaves exactly one `Funnel` label and throws nothing (409-tolerance,
+  **second** time leaves exactly one `Funnel` label and throws nothing (the second
+  run `GET`s `Funnel` → 200 → skips the create; get-then-create guard,
   B-03); manual: `git diff shared/src/schema/nodes.ts` and `... edges.ts` show no
   additions (NFR-01, AC-01). `bun run typecheck` passes at checkpoint.
   Deferred-green: `bun test:integration`.
@@ -138,8 +161,9 @@ author to pin. All are landed below; none reopens the architecture.
 - **Steps**: Prove the label registration + the `Stage` attribute enforcement:
   - **AC-01** — call `ensureFunnelOntology` (T-01); assert
     `GET /api/v1/ontology/node-labels/Funnel` returns the label; a **second**
-    `ensureFunnelOntology` run is a no-op (the duplicate `409 name_conflict` is
-    tolerated, not surfaced as a failure — B-03); manual: `git diff
+    `ensureFunnelOntology` run is a verified no-op (the second run `GET`s `Funnel`
+    → 200 → skips the create, so the strict-CREATE route is never re-hit and no
+    `409` surfaces — get-then-create guard, B-03); manual: `git diff
     shared/src/schema/nodes.ts` shows no additions.
   - **AC-02 (C-05)** — after registration, `POST /api/v1/nodes/Stage` (generic
     graph-core node route, `parseRegistryLabel` resolves `Stage`) with a
@@ -311,12 +335,21 @@ author to pin. All are landed below; none reopens the architecture.
 - **Blocked by**: —
 - **Blocks**: T-09
 - **Steps**:
-  1. **C-04 build precondition (guard, no source edit)**: confirm
-     `saas-operator-foundation` has landed and `pwa/src/views/index.tsx` carries a
-     `business`-surface `funnels:` `BusinessTabPlaceholder` entry in the shape the
-     T-10 diff assumes. If the placeholder is absent or shaped differently,
-     **stop and flag** — the view-seam diff (T-10) is only valid once the
-     placeholder exists (dependency-ordering guard).
+  1. **C-04 build precondition (guard, no source edit) — shape check, not
+     substring (review-tasks C-02)**: confirm `saas-operator-foundation` has landed
+     and `pwa/src/views/index.tsx` carries a `business`-surface `funnels:`
+     `BusinessTabPlaceholder` entry **in the exact shape the T-10 diff replaces**.
+     Assert the *shape*, not a bare `funnels` substring: verify (a) the `business`
+     surface block exists in the `VIEWS` map, and (b) within it a `funnels:` key
+     returns a `BusinessTabPlaceholder` (e.g.
+     `grep -nE "funnels:\s*\([^)]*\)\s*=>\s*<BusinessTabPlaceholder" pwa/src/views/index.tsx`
+     resolving inside the `business` surface, or a one-line node check that the
+     `VIEWS` map exposes a `funnels` key under `business` returning a
+     `BusinessTabPlaceholder`). If the placeholder is absent, outside the `business`
+     surface, or shaped differently (XD-09 single-shot: foundation lands in the same
+     run, so a shape mismatch is a live risk), **stop and flag** — the view-seam diff
+     (T-10) is only valid once the placeholder exists in this shape
+     (dependency-ordering guard). A bare substring match must **not** pass this gate.
   2. Author `FunnelBoard.module.css` using **only** `var(--…)` tokens from
      `pwa/src/styles/companygraph/tokens.css` (the `FunctionMap.module.css`
      precedent) — no raw colors/spacing/fonts. Classes: `.grid`/`.card`/`.handle`/
@@ -328,9 +361,11 @@ author to pin. All are landed below; none reopens the architecture.
 - **Verification**: manual: `bun run scripts/design-conformance.ts --view
   pwa/src/views/business/FunnelBoard.module.css` — expect exit 0 with zero
   token/component violations (AC-16, css half; the `.tsx` half runs at T-11);
-  manual: `grep -n "funnels" pwa/src/views/index.tsx` — expect the
-  `BusinessTabPlaceholder` `funnels:` entry present (C-04 precondition).
-  `bun run typecheck` passes.
+  manual (C-04 precondition, **shape check** per review-tasks C-02):
+  `grep -nE "funnels:\s*\([^)]*\)\s*=>\s*<BusinessTabPlaceholder" pwa/src/views/index.tsx`
+  — expect a match resolving **inside the `business` surface block** (assert the
+  key shape, not a bare `funnels` substring); if it does not match this shape,
+  **stop and flag** the dependency-ordering guard. `bun run typecheck` passes.
 
 ### T-09 — `FunnelBoard` view (four states, picker, stage board, reorder, analytics)
 
@@ -366,11 +401,16 @@ author to pin. All are landed below; none reopens the architecture.
        `id` → ordered stages + transitions; parse `attributes_json` for `stageOrder`
        and each `CONVERTS_TO` edge's `conversionRate`/`dropOffRate` (mirrors
        `deserializeModel`).
-  - **Analytics (AC-11, N-01)** — per-transition conversion/drop-off from the parsed
-    rates; overall funnel conversion via the T-07 derivation. Detect a **branch** (a
-    stage with >1 outgoing `CONVERTS_TO`) from the composition payload and render
-    the literal `"n/a"` for overall conversion (N-01 — never silently multiply one
-    path); one-stage funnel → `"n/a"`; zero-stage → empty state.
+  - **Analytics (AC-11, N-01, review-tasks C-03)** — per-transition
+    conversion/drop-off from the parsed rates; overall funnel conversion via the
+    T-07 derivation. **Branch detection lives here (C-03)**: count each stage's
+    **outgoing `CONVERTS_TO`** edges from the composition payload (not `HAS_STAGE`,
+    not incoming edges); a stage with >1 outgoing `CONVERTS_TO` marks the funnel as
+    branched, and the view passes that computed branch signal into the T-07 helper
+    so overall conversion renders the literal `"n/a"` (N-01 — never silently
+    multiply one arbitrary path). one-stage funnel → `"n/a"`; zero-stage → empty
+    state. The branch signal is *derived* here, not received pre-set, so the T-09
+    branch-case test (below) exercises the detection itself.
   - **States (UX-01, catalog-first)**:
     - **loading** (AC-13) → `<Loading …/>` while the listing or composition fetch is
       in flight.
@@ -404,9 +444,14 @@ author to pin. All are landed below; none reopens the architecture.
     picker, ordered stages, per-transition + overall conversion (mocked
     `api.cypher`); view root is a `ViewRegion` landmark; DOM-order Tab reachability
     (AC-19 tsx half).
-  - `pwa/src/__tests__/funnel-board-analytics.test.tsx` (AC-11, N-01) — the same
-    derivation DOM-independently: `0.5×0.4=0.20`, single-stage → `"n/a"`, and a
-    **branch** case → `"n/a"`.
+  - `pwa/src/__tests__/funnel-board-analytics.test.tsx` (AC-11, N-01, **C-03**) —
+    the same derivation DOM-independently: `0.5×0.4=0.20`, single-stage → `"n/a"`,
+    and a **branch** case → `"n/a"`. **The branch case asserts the *detection*, not a
+    pre-set flag (review-tasks C-03)**: feed a composition payload where a stage has
+    **two outgoing `CONVERTS_TO`** edges and assert the view derives the branch
+    signal → overall conversion renders `"n/a"`; this fails if detection counts
+    `HAS_STAGE` (or incoming) out-edges instead of outgoing `CONVERTS_TO`. A test
+    that only sets a pre-computed flag is insufficient.
   - `pwa/src/__tests__/funnel-board-states.test.tsx` (AC-13, AC-14, AC-15, and the
     **C-01** client-filter half of AC-10) — loading/empty/error(+retry), and a
     listing payload containing a retail-`modelId` funnel is filtered out by the
@@ -501,10 +546,63 @@ author to pin. All are landed below; none reopens the architecture.
      `"seed:saas-operator": "bun --cwd api scripts/seed-saas-operator.ts"` form).
      This is the sole `package.json` edit.
 - **Verification**: manual: `bun run seed:funnel-pipeline` with the stack up — expect
-  the four constructs registered (idempotent; a re-run tolerates `409 name_conflict`
-  and reports success), verified by `GET /api/v1/ontology/node-labels/Funnel` /
+  the four constructs registered (idempotent; a re-run `GET`s each construct → 200
+  → skips the create and reports success), verified by `GET /api/v1/ontology/node-labels/Funnel` /
   `.../edge-types/CONVERTS_TO` returning them; manual: `grep seed:funnel-pipeline
   package.json` shows the entry. `bun run typecheck` passes.
+
+### T-14 — Funnel/Stage node CRUD + `HAS_STAGE` generic-edge round-trip integration test (AC-07, AC-08)
+
+- **Files** (1): `api/__tests__/funnel-crud.integration.test.ts` (new)
+- **Implements**: design §4.2 (AC-07), §4.3 (AC-08), §9 — closes AC-07, AC-08;
+  supports FR-06, FR-07, NFR-02
+- **Complexity**: moderate
+- **Blocked by**: T-01
+- **Blocks**: T-13
+- **Resolves**: **B-01** (the two dropped ACs / dropped design file) and **C-01**
+  (the AC-07/AC-08 `nodes.ts`/`edges.ts` diff guards carried on their own task).
+- **Steps**: The design (§4.2, §4.3, §9) assigns AC-07 and AC-08 their own file
+  `api/__tests__/funnel-crud.integration.test.ts` — proving that `Funnel`/`Stage`
+  node CRUD **and** `HAS_STAGE` edge writes ride the **existing generic** graph-core
+  routes with **zero** new/edited node- or edge-route code (NFR-02). After
+  `ensureFunnelOntology` (T-01):
+  - **AC-07 — Funnel/Stage node CRUD round-trip through the generic path**: exercise
+    the full lifecycle on **both** labels via `parseRegistryLabel`
+    (`api/src/routes/nodes.ts`) — no funnel-owned node route exists:
+    - `POST /api/v1/nodes/Funnel` (with a `modelId` marker, C-06) → `201`, returns a
+      server-generated `id`; `POST /api/v1/nodes/Stage` (with a valid integer
+      `stageOrder`) → `201`.
+    - `GET /api/v1/nodes/Funnel/:id` and `.../Stage/:id` → return the created nodes
+      with their `attributes` parsed at the REST boundary (`modelId`, `stageOrder`
+      intact).
+    - `PATCH /api/v1/nodes/Stage/:id` bumping `stageOrder` → `200`, the partial SET
+      leaves other fields intact (mirrors the FR-14 reorder PATCH path); a re-`GET`
+      confirms the new `stageOrder`.
+    - `DELETE /api/v1/nodes/Funnel/:id` (and `Stage`) → `204`/`200` per graph-core
+      contract; a subsequent `GET` → `404`.
+    - **Boundary (AC-07):** manual `git diff --stat api/src/routes/nodes.ts` → **no
+      change** — the CRUD round-trip added no node-route code (NFR-02).
+  - **AC-08 — `HAS_STAGE` `Funnel→Stage` via the generic edge route + composition
+    read returns it**: with a `Funnel` and a `Stage` node fixture,
+    `POST /api/v1/edges` with `{ type:"HAS_STAGE", fromId:<funnel>, toId:<stage> }`
+    → `201` (the graph-core validator applies the FR-03 `Funnel→Stage` endpoint
+    whitelist — a wrong pair is AC-03's job in T-03; here assert the **happy-path
+    generic-route link**). Then read it back: the §4.5 composition read (reuse the
+    T-11 read helper) for that funnel `id` returns the linked stage under the funnel
+    (the `HAS_STAGE` edge round-trips through the generic path).
+    - **Boundary (AC-08):** manual `git diff --stat api/src/routes/edges.ts` → **no
+      change** — the `HAS_STAGE` link used the existing generic edge route, added no
+      edge-route code (NFR-02).
+  - **Distinct from siblings**: T-02 asserts `Stage` attribute *rejection* (AC-02),
+    T-03 asserts the edge-endpoint *whitelist* (AC-03/AC-04), T-11 asserts the
+    *ordered composition* read (AC-09). T-14 is the requirements-level CRUD
+    round-trip + `HAS_STAGE` generic-write proof with its own `nodes.ts`/`edges.ts`
+    ownership guards (AC-07/AC-08), which the design gave a dedicated file.
+- **Verification**: `api/__tests__/funnel-crud.integration.test.ts` (AC-07, AC-08) —
+  under `bun test:integration` (needs `bun run dev` — Neo4j); manual:
+  `git diff --stat api/src/routes/nodes.ts` → **no change** (AC-07) and
+  `git diff --stat api/src/routes/edges.ts` → **no change** (AC-08).
+  `bun run typecheck` passes at checkpoint.
 
 ### T-13 — Final validation + boundary sweep (widened AC-21 allow-list)
 
@@ -512,14 +610,18 @@ author to pin. All are landed below; none reopens the architecture.
 - **Implements**: design §8, §9, §10, §2.1 (D-1) + `review-design.md` C-03 — closes
   AC-21, the AC-01…AC-20 sweep; supports all FR/NFR
 - **Complexity**: simple
-- **Blocked by**: T-01…T-12
+- **Blocked by**: T-01…T-12, T-14
 - **Blocks**: —
 - **Steps**: With the full stack up (`bun run dev`) and `bun run seed:funnel-pipeline`
   run:
   1. `bun run typecheck` exits 0 (AC-21).
   2. `bun test` (PWA unit/component: `funnel-board*.test.tsx`, `funnel-analytics.test.ts`)
      green.
-  3. `bun test:integration` (all `api/__tests__/funnel-*.integration.test.ts`) green.
+  3. `bun test:integration` (all `api/__tests__/funnel-*.integration.test.ts`,
+     including `funnel-crud.integration.test.ts` from T-14) green. Note AC-07/AC-08
+     carry their **own** `git diff --stat api/src/routes/nodes.ts` /
+     `... edges.ts` → no-change guards in T-14 (review-tasks C-01); the aggregate
+     boundary sweep (step 7) reconfirms them.
   4. `bun run scripts/design-conformance.ts --view pwa/src/views/business/FunnelBoard.tsx`
      and `--view pwa/src/views/business/FunnelBoard.module.css` both exit 0 (AC-16).
   5. `pwa/playwright/business-funnels-reload.spec.ts` passes (AC-20).
@@ -569,22 +671,29 @@ author to pin. All are landed below; none reopens the architecture.
 | T-10 | §6.1, §6.2, C-04 | AC-16 (tsx) | FR-12, NFR-02 |
 | T-11 | §4.5, §6.1, C-01, C-02 | AC-09, AC-09a, AC-10 (Cypher), AC-20 | FR-08, FR-09, FR-12, NFR-06 |
 | T-12 | §4.1, §7 | (register-before-use) | FR-01, FR-02, FR-03, FR-04, NFR-03 |
+| T-14 | §4.2, §4.3, §9 | AC-07, AC-08 | FR-06, FR-07, NFR-02 |
 | T-13 | §8, §9, §10, §2.1 (D-1), C-03 | AC-17, AC-18, AC-19 (live), AC-21, AC-01…AC-20 sweep | all FR/NFR |
 
 Every FR/NFR from the design is covered: FR-01→T-01/T-02/T-12, FR-02→T-01/T-02/T-12,
-FR-03→T-01/T-03/T-12, FR-04→T-01/T-03/T-12, FR-05→T-04/T-05, FR-06→T-02/T-09,
-FR-07→T-04/T-05/T-06, FR-08→T-11, FR-09→T-11, FR-10→T-06, FR-11→T-07/T-09,
+FR-03→T-01/T-03/T-12, FR-04→T-01/T-03/T-12, FR-05→T-04/T-05, FR-06→T-02/T-09/T-14,
+FR-07→T-04/T-05/T-06/T-14, FR-08→T-11, FR-09→T-11, FR-10→T-06, FR-11→T-07/T-09,
 FR-12→T-10/T-11, FR-13→T-08/T-09, FR-14→T-08/T-09, FR-15→T-09 (`should`, no AC);
-NFR-01→T-01/T-02/T-03/T-13, NFR-02→T-04/T-05/T-10/T-13, NFR-03→T-01/T-12,
-NFR-04→T-04/T-06/T-13, NFR-05→T-08, NFR-06→T-11. Every AC (AC-01…AC-21, incl. AC-09a)
-has a closing task.
+NFR-01→T-01/T-02/T-03/T-13, NFR-02→T-04/T-05/T-10/T-13/T-14, NFR-03→T-01/T-12,
+NFR-04→T-04/T-06/T-13, NFR-05→T-08, NFR-06→T-11.
+
+**Every AC (AC-01…AC-21, incl. AC-09a) now has a closing task** — this claim was
+false in revision 1 (AC-07 and AC-08 were unclosed; review-tasks **B-01**). The
+per-AC map: AC-01→T-01/T-02, AC-02→T-02, AC-03→T-01/T-03, AC-04→T-01/T-03,
+AC-05→T-04/T-05, AC-06→T-04/T-05/T-06, **AC-07→T-14**, **AC-08→T-14**, AC-09→T-11,
+AC-09a→T-11, AC-10→T-09/T-11, AC-11→T-07/T-09, AC-12→T-09, AC-13/14/15→T-09,
+AC-16→T-08/T-10, AC-17/18/19→T-09/T-13, AC-20→T-11, AC-21→T-13.
 
 ## Validation checkpoints
 
 | After | Run |
 |-------|-----|
 | every task | `bun run typecheck` |
-| tasks with server behaviour (T-02, T-03, T-05, T-06, T-11) | the task's listed `*.integration.test.ts` under `bun test:integration` (needs `bun run dev` — Neo4j) |
+| tasks with server behaviour (T-02, T-03, T-05, T-06, T-11, T-14) | the task's listed `*.integration.test.ts` under `bun test:integration` (needs `bun run dev` — Neo4j) |
 | tasks with pure/PWA behaviour (T-07, T-09) | the task's listed test under `bun test` |
 | tasks touching `pwa/src/views/` (T-08, T-09, T-10) | `bun run scripts/design-conformance.ts --view <file>` for **every** touched `.tsx` and `.module.css` |
 | T-11 e2e | `pwa/playwright/business-funnels-reload.spec.ts` (full stack up + seeded funnel) |

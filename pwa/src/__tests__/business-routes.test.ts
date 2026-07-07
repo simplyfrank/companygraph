@@ -12,11 +12,10 @@ describe("navigation-IA: business surface removed from SURFACES", () => {
     expect(SURFACES.some((s) => s.id === "business")).toBe(false);
   });
 
-  test("SURFACES contains exactly the 8 navigation-IA surfaces in order", () => {
+  test("SURFACES contains exactly the 7 navigation-IA surfaces in order", () => {
     expect(SURFACES.map((s) => s.id)).toEqual([
       "explorer",
       "model",
-      "chat",
       "insights",
       "govern",
       "ontology",

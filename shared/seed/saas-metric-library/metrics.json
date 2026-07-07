@@ -1,0 +1,265 @@
+{
+  "nodes": [
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000001",
+      "name": "CAC",
+      "description": "Customer Acquisition Cost.",
+      "attributes": {
+        "seedKey": "metric-cac",
+        "formula": "Total sales & marketing spend ÷ new customers acquired (period)",
+        "unit": "currency",
+        "category": "acquisition",
+        "benchmark": "Lower is better; varies by ACV — track CAC-payback alongside"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000002",
+      "name": "LTV",
+      "description": "Customer Lifetime Value.",
+      "attributes": {
+        "seedKey": "metric-ltv",
+        "formula": "ARPA × gross margin % ÷ customer churn rate",
+        "unit": "currency",
+        "category": "revenue",
+        "benchmark": "LTV:CAC ≥ 3 healthy"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000003",
+      "name": "LTV:CAC Ratio",
+      "description": "Ratio of lifetime value to acquisition cost.",
+      "attributes": {
+        "seedKey": "metric-ltv-cac-ratio",
+        "formula": "LTV ÷ CAC",
+        "unit": "ratio",
+        "category": "efficiency",
+        "benchmark": "≥ 3 healthy; < 1 unsustainable"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000004",
+      "name": "MRR",
+      "description": "Monthly Recurring Revenue.",
+      "attributes": {
+        "seedKey": "metric-mrr",
+        "formula": "Σ monthly recurring revenue across active subscriptions",
+        "unit": "currency",
+        "category": "revenue",
+        "benchmark": "Growth trend > level; track net-new MRR"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000005",
+      "name": "ARR",
+      "description": "Annual Recurring Revenue.",
+      "attributes": {
+        "seedKey": "metric-arr",
+        "formula": "MRR × 12",
+        "unit": "currency",
+        "category": "revenue",
+        "benchmark": "Growth rate the headline; > 100% YoY early-stage"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000006",
+      "name": "NRR",
+      "description": "Net Revenue Retention.",
+      "attributes": {
+        "seedKey": "metric-nrr",
+        "formula": "(Starting MRR + expansion − contraction − churn) ÷ starting MRR",
+        "unit": "percent",
+        "category": "retention",
+        "benchmark": "> 100% healthy; > 120% best-in-class"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000007",
+      "name": "GRR",
+      "description": "Gross Revenue Retention.",
+      "attributes": {
+        "seedKey": "metric-grr",
+        "formula": "(Starting MRR − contraction − churn) ÷ starting MRR",
+        "unit": "percent",
+        "category": "retention",
+        "benchmark": "> 90% healthy (SMB), > 95% (enterprise)"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000008",
+      "name": "Logo Churn",
+      "description": "Customer (logo) churn rate.",
+      "attributes": {
+        "seedKey": "metric-logo-churn",
+        "formula": "Customers lost in period ÷ customers at period start",
+        "unit": "percent",
+        "category": "retention",
+        "benchmark": "< 1%/mo SMB; lower enterprise"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000009",
+      "name": "Revenue Churn",
+      "description": "Revenue churn rate.",
+      "attributes": {
+        "seedKey": "metric-revenue-churn",
+        "formula": "MRR lost to churn+contraction ÷ starting MRR",
+        "unit": "percent",
+        "category": "retention",
+        "benchmark": "< 1%/mo; negative net-churn ideal"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000010",
+      "name": "CAC Payback",
+      "description": "Months to recover customer acquisition cost.",
+      "attributes": {
+        "seedKey": "metric-cac-payback",
+        "formula": "CAC ÷ (new MRR × gross margin %)",
+        "unit": "months",
+        "category": "efficiency",
+        "benchmark": "< 12 mo healthy; < 18 mo acceptable"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000011",
+      "name": "DSO",
+      "description": "Days Sales Outstanding.",
+      "attributes": {
+        "seedKey": "metric-dso",
+        "formula": "(Accounts receivable ÷ revenue) × days in period",
+        "unit": "days",
+        "category": "financial",
+        "benchmark": "< 45 days healthy for SaaS billing"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000012",
+      "name": "Gross Margin",
+      "description": "Gross margin percentage.",
+      "attributes": {
+        "seedKey": "metric-gross-margin",
+        "formula": "(Revenue − COGS) ÷ revenue",
+        "unit": "percent",
+        "category": "financial",
+        "benchmark": "> 75% for SaaS; > 80% best-in-class"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000013",
+      "name": "Burn",
+      "description": "Cash burn per month.",
+      "attributes": {
+        "seedKey": "metric-burn",
+        "formula": "Net cash outflow per month (gross or net burn)",
+        "unit": "currency",
+        "category": "financial",
+        "benchmark": "Trend vs. plan; net burn < gross burn"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000014",
+      "name": "Runway",
+      "description": "Months of cash remaining.",
+      "attributes": {
+        "seedKey": "metric-runway",
+        "formula": "Cash on hand ÷ net monthly burn",
+        "unit": "months",
+        "category": "financial",
+        "benchmark": "> 18 mo healthy; < 6 mo critical"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000015",
+      "name": "Rule of 40",
+      "description": "Growth-plus-profitability health check.",
+      "attributes": {
+        "seedKey": "metric-rule-of-40",
+        "formula": "Revenue growth rate % + profit (or FCF) margin %",
+        "unit": "percent",
+        "category": "financial",
+        "benchmark": "≥ 40% healthy"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000016",
+      "name": "Pipeline Conversion",
+      "description": "Qualified-pipeline conversion rate.",
+      "attributes": {
+        "seedKey": "metric-pipeline-conversion",
+        "formula": "Deals won ÷ qualified opportunities entering pipeline",
+        "unit": "percent",
+        "category": "acquisition",
+        "benchmark": "Varies by motion; track per-stage drop-off"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000017",
+      "name": "Win Rate",
+      "description": "Deal win rate.",
+      "attributes": {
+        "seedKey": "metric-win-rate",
+        "formula": "Deals won ÷ (deals won + deals lost)",
+        "unit": "percent",
+        "category": "acquisition",
+        "benchmark": "20–30% typical mid-market"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000018",
+      "name": "MTTR",
+      "description": "Mean Time To Resolution.",
+      "attributes": {
+        "seedKey": "metric-mttr",
+        "formula": "Σ incident resolution time ÷ incidents (period)",
+        "unit": "days",
+        "category": "reliability",
+        "benchmark": "Lower is better; hours not days for SEV1"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000019",
+      "name": "Uptime",
+      "description": "Service availability.",
+      "attributes": {
+        "seedKey": "metric-uptime",
+        "formula": "Available minutes ÷ total minutes (period)",
+        "unit": "percent",
+        "category": "reliability",
+        "benchmark": "≥ 99.9% (three nines) SLA-typical"
+      }
+    },
+    {
+      "label": "MetricDefinition",
+      "id": "018f0100-0000-7000-8000-000000000020",
+      "name": "Deploy Frequency",
+      "description": "Production deployment cadence.",
+      "attributes": {
+        "seedKey": "metric-deploy-frequency",
+        "formula": "Production deployments per period",
+        "unit": "count",
+        "category": "efficiency",
+        "benchmark": "Elite: on-demand / multiple per day"
+      }
+    }
+  ],
+  "edges": []
+}

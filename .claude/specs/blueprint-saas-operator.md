@@ -1,6 +1,6 @@
 # Blueprint: SaaS-Operator Business-Process Model (docorg operator)
 
-## Status: draft — awaiting Phase A decomposition approval (single-shot authorized on approval)
+## Status: BUILD COMPLETE (Phase C, 2026-07-07) — all 11 features execution:complete; nav reconciled under #/insights
 ## Author: spec-app (decompose pass)
 ## Created: 2026-07-06
 
@@ -90,34 +90,46 @@ bounded contexts, risk/compliance/change routes (governed by the in-flight
 
 ---
 
-## View Tree (frozen at blueprint approval)
+## View Tree (RECONCILED at Phase C — see note)
 
-New top-level **Business Operations** surface `#/business`, following the
-existing `#/<surface>/<tab>` convention. **`saas-operator-foundation` owns ALL
-new route registration** (`route.ts`, `SURFACES`, `views/index.tsx`) — every
-other feature contributes only its view component file (the proven
-`model-workspace-core` pattern). The six content specs add **no new views**;
-they surface through existing Explorer / #/business/functions / #/exec.
+> **Phase C reconciliation (2026-07-07):** the blueprint originally froze a NEW
+> top-level `#/business` surface. During the single-shot build a concurrent
+> `navigation-ia` restructure (commit `fb43471`) landed a **7-surface IA**
+> (explorer, model, insights, govern, ontology, data, admin — chat became a
+> floating widget) and added guard tests forbidding a `#/business`/`#/exec`
+> surface. Per the user's Phase C decision, the operator views were reconciled
+> **under the existing `insights` surface** (their tabs live in the insights
+> `business` group). `saas-operator-foundation` no longer owns a new surface;
+> route registration is a set of **additive tabs on `insights` + one VIEWS-map
+> line per feature**. All nav guard tests pass. The routes below are the
+> as-built truth; the old `#/business/*` paths are unregistered (no alias, per
+> the nav-ia guards), and `#/exec/operator` is aliased to `#/insights/operator`.
 
 ```
-#/business                    → BusinessOperations shell  [owner: saas-operator-foundation]
-├── #/business/functions      → FunctionMap               [owner: saas-operator-foundation]
-├── #/business/metrics        → MetricLibrary             [owner: saas-metric-library]
-├── #/business/funnels        → FunnelBoard               [owner: funnel-pipeline-modeling]
-└── #/business/benchmarks     → BenchmarkReport           [owner: function-benchmark-scoring]
-#/exec/operator               → OperatorCockpit           [owner: cross-function-exec-rollup]
+#/insights                    → Insights surface          [nav-ia owned]
+├── #/insights/functions      → FunctionMap               [owner: saas-operator-foundation]
+├── #/insights/metrics        → MetricLibrary             [owner: saas-metric-library]
+├── #/insights/funnels        → FunnelBoard               [owner: funnel-pipeline-modeling]
+├── #/insights/benchmarks     → BenchmarkReport           [owner: function-benchmark-scoring]
+└── #/insights/operator       → OperatorCockpit           [owner: cross-function-exec-rollup]
+                                 (legacy alias: #/exec/operator → #/insights/operator)
 ```
 
 | Route | View component | Owner (slug) | Nav surface | States specced |
 |-------|----------------|--------------|-------------|----------------|
-| `#/business/functions` | `FunctionMap` | `saas-operator-foundation` | Business tab | loading·empty·error·ready |
-| `#/business/metrics` | `MetricLibrary` | `saas-metric-library` | Business tab | loading·empty·error·ready |
-| `#/business/funnels` | `FunnelBoard` | `funnel-pipeline-modeling` | Business tab | loading·empty·error·ready |
-| `#/business/benchmarks` | `BenchmarkReport` | `function-benchmark-scoring` | Business tab | loading·empty·error·ready |
-| `#/exec/operator` | `OperatorCockpit` | `cross-function-exec-rollup` | Exec tab | loading·empty·error·ready |
+| `#/insights/functions` | `FunctionMap` | `saas-operator-foundation` | Insights tab (business group) | loading·empty·error·ready |
+| `#/insights/metrics` | `MetricLibrary` | `saas-metric-library` | Insights tab (business group) | loading·empty·error·ready |
+| `#/insights/funnels` | `FunnelBoard` | `funnel-pipeline-modeling` | Insights tab (business group) | loading·empty·error·ready |
+| `#/insights/benchmarks` | `BenchmarkReport` | `function-benchmark-scoring` | Insights tab (business group) | loading·empty·error·ready |
+| `#/insights/operator` | `OperatorCockpit` | `cross-function-exec-rollup` | Insights tab (business group) | loading·empty·error·ready |
+
+Route registration (`route.ts` tabs + `views/index.tsx` VIEWS lines) was done
+by the orchestrator at Phase C to avoid racing the concurrent nav-ia session;
+each feature owns its view component file. The six content specs add **no new
+views**; they surface through Explorer / `#/insights/functions` / `#/insights/operator`.
 
 Active-model context (which `BusinessModel` the user is in) is the shell-level
-concern already owned by `model-workspace-core`; every `#/business` view
+concern already owned by `model-workspace-core`; every operator view
 **consumes** it and defaults to the SaaS-Operator root — it is never
 reimplemented here.
 

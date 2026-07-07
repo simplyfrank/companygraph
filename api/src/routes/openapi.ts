@@ -106,6 +106,8 @@ import {
 import { ERROR_CODES } from "../errors";
 import { registerKpiOkrPaths } from "./openapi-kpi-okr";
 import { registerPerformancePaths } from "./openapi-performance";
+import { registerOperatorPaths } from "./openapi-operator";
+import { registerBenchmarkPaths } from "./openapi-benchmarks";
 
 // Static Route[] declared right here (design-review B-02 — OpenAPI
 // generator owns its own route table, no inter-task module dependency).
@@ -1043,6 +1045,8 @@ export function getOpenApiDoc(): object {
 
   registerKpiOkrPaths(registry); // kpi-okr-governance FR-12 (design §4.7)
   registerPerformancePaths(registry); // kpi-okr-performance-dashboards FR-09 (design §4.6)
+  registerOperatorPaths(registry); // cross-function-exec-rollup FR-09 (design §6, C-07 anchor)
+  registerBenchmarkPaths(registry); // function-benchmark-scoring FR-08 (design §4.6)
 
   // business-model-authoring T-13 (FR-13, DD-06) — three route paths.
   registry.register("AuthoringApply", authoringApplySchema);

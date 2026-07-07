@@ -235,6 +235,24 @@ export const METRIC_CATALOG: MetricRow[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Stable node ids (§4, FR-05). The import route validates every node row's
+// `id` against nodeCreateSchema, whose `id` is a UUIDv7 string
+// (shared/src/schema/nodes.ts). The design's human "stable seed id" (e.g.
+// `metric-cac`) is therefore carried as the row `name`/`seedKey`, while the
+// persisted node `id` is a stable UUIDv7-form value in a fixed block. Same slug
+// → same UUID on every re-seed, so MERGE-on-id makes a re-seed net-zero (AC-07).
+// The slug lives in attributes.seedKey so content specs can resolve a metric by
+// its canonical slug without depending on the opaque UUID.
+// ---------------------------------------------------------------------------
+export const METRIC_NODE_ID_PREFIX = "018f0100-0000-7000-8000-";
+
+export function metricNodeId(seedKey: string): string {
+  const idx = METRIC_CATALOG.findIndex((m) => m.id === seedKey);
+  if (idx < 0) throw new Error(`metricNodeId: unknown metric seedKey ${seedKey}`);
+  return `${METRIC_NODE_ID_PREFIX}${String(idx + 1).padStart(12, "0")}`;
+}
+
+// ---------------------------------------------------------------------------
 // MetricDefinition registration payload (§3.1) — the single source of the
 // json_schema_doc consumed by the ensure-label step (T-02) and the T-08
 // attribute-enforcement test. Conforms to nodeLabelCreateSchema.

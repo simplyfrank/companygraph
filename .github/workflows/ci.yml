@@ -36,7 +36,9 @@ jobs:
       # files (AC-10..14, AC-20 component half).
       # business-model-authoring T-14 — append the owned ModelCanvas
       # test file (AC-10 component half: view registration + states).
-      - run: bunx vitest run src/__tests__/exec-kpi-management.test.tsx src/__tests__/exec-okr-management.test.tsx src/__tests__/story-catalog.test.tsx src/__tests__/story-detail.test.tsx src/__tests__/story-catalog-states.test.tsx src/__tests__/performance-dashboard.test.tsx src/__tests__/performance-dashboard-a11y.test.tsx src/__tests__/system-modeler-states.test.tsx src/__tests__/system-modeler-kind.test.tsx src/__tests__/system-modeler.test.tsx src/__tests__/system-modeler-gaps.test.tsx src/__tests__/system-modeler-context-map.test.tsx src/__tests__/system-modeler-detail.test.tsx src/__tests__/model-canvas.test.tsx
+      # cross-function-exec-rollup T-15 — append (never remove/reorder) the
+      # two owned OperatorCockpit test files (AC-12/13/14/15 auto legs).
+      - run: bunx vitest run src/__tests__/exec-kpi-management.test.tsx src/__tests__/exec-okr-management.test.tsx src/__tests__/story-catalog.test.tsx src/__tests__/story-detail.test.tsx src/__tests__/story-catalog-states.test.tsx src/__tests__/performance-dashboard.test.tsx src/__tests__/performance-dashboard-a11y.test.tsx src/__tests__/system-modeler-states.test.tsx src/__tests__/system-modeler-kind.test.tsx src/__tests__/system-modeler.test.tsx src/__tests__/system-modeler-gaps.test.tsx src/__tests__/system-modeler-context-map.test.tsx src/__tests__/system-modeler-detail.test.tsx src/__tests__/model-canvas.test.tsx src/__tests__/operator-cockpit.test.tsx src/__tests__/operator-cockpit-states.test.tsx
         working-directory: pwa
 
   integration:

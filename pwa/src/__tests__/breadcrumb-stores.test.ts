@@ -45,8 +45,8 @@ describe("prefStore lastTabs (T-16 / T-17)", () => {
   });
 
   test("setLastTab overwrites previous entry", () => {
-    usePrefStore.getState().setLastTab("chat", "thread");
-    usePrefStore.getState().setLastTab("chat", "conversations");
-    expect(usePrefStore.getState().getLastTab("chat")?.tab).toBe("conversations");
+    usePrefStore.getState().setLastTab("insights", "overview");
+    usePrefStore.getState().setLastTab("insights", "systems");
+    expect(usePrefStore.getState().getLastTab("insights")?.tab).toBe("systems");
   });
 });

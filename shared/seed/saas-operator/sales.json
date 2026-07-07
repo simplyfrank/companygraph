@@ -1,0 +1,75 @@
+{
+  "nodes": [
+    { "label": "UserJourney", "id": "018f0220-0000-7000-8000-000000000001", "name": "Prospect & Qualify", "description": "Inbound/outbound qualification of sales opportunities (BANT).", "attributes": { "seedKey": "prospect-qualify" } },
+    { "label": "UserJourney", "id": "018f0220-0000-7000-8000-000000000002", "name": "Demo", "description": "Product demonstration for qualified opportunities.", "attributes": { "seedKey": "demo" } },
+    { "label": "UserJourney", "id": "018f0220-0000-7000-8000-000000000003", "name": "Quote & Propose", "description": "Pricing and proposal generation via the CPQ tool.", "attributes": { "seedKey": "quote-propose" } },
+    { "label": "UserJourney", "id": "018f0220-0000-7000-8000-000000000004", "name": "Negotiate & Close", "description": "Objection handling, contract preparation, signature, and close-won.", "attributes": { "seedKey": "negotiate-close" } },
+    { "label": "UserJourney", "id": "018f0220-0000-7000-8000-000000000005", "name": "Tenant Provisioning / Handoff", "description": "Provision the won account on MOMS and hand off to Customer Success.", "attributes": { "seedKey": "tenant-provisioning" } },
+
+    { "label": "Role", "id": "018f0220-0000-7000-8000-000000000301", "name": "Account Executive", "description": "Owns the deal from qualified opportunity to close-won.", "attributes": { "seedKey": "account-executive" } },
+    { "label": "Role", "id": "018f0220-0000-7000-8000-000000000302", "name": "Sales Development Rep", "description": "Qualifies inbound/outbound leads and books opportunities.", "attributes": { "seedKey": "sales-development-rep" } },
+    { "label": "Role", "id": "018f0220-0000-7000-8000-000000000303", "name": "Sales Engineer", "description": "Runs technical product demonstrations and scopes fit.", "attributes": { "seedKey": "sales-engineer" } },
+    { "label": "Role", "id": "018f0220-0000-7000-8000-000000000304", "name": "Deal Desk", "description": "Owns contract preparation, discount approval, and margin governance.", "attributes": { "seedKey": "deal-desk" } },
+
+    { "label": "System", "id": "018f0220-0000-7000-8000-000000000401", "name": "CPQ / Quoting Tool", "description": "Configure-price-quote tooling for pricing and proposal generation.", "attributes": { "seedKey": "cpq", "systemKind": "functional" } },
+    { "label": "System", "id": "018f0220-0000-7000-8000-000000000402", "name": "E-Signature Service", "description": "Electronic-signature service for contract execution.", "attributes": { "seedKey": "e-signature", "systemKind": "functional" } },
+
+    { "label": "KPI", "id": "018f0220-0000-7000-8000-000000000601", "name": "Win Rate", "description": "Share of qualified opportunities won.", "attributes": { "seedKey": "win-rate", "category": "efficiency", "unit": "%", "target_value": 25, "target_direction": "higher_is_better", "measurement_frequency": "monthly" } },
+    { "label": "KPI", "id": "018f0220-0000-7000-8000-000000000602", "name": "Pipeline Conversion", "description": "Rate at which pipeline opportunities convert through the sales stages.", "attributes": { "seedKey": "pipeline-conversion", "category": "efficiency", "unit": "%", "target_value": 20, "target_direction": "higher_is_better", "measurement_frequency": "monthly" } },
+
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010101", "name": "Qualify lead (BANT)", "description": "Qualify an inbound/outbound lead against Budget, Authority, Need, Timeline.", "attributes": { "seedKey": "qualify-lead" } },
+
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010201", "name": "Run product demo", "description": "Run a product demonstration for the qualified opportunity.", "attributes": { "seedKey": "run-product-demo" } },
+
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010301", "name": "Build quote", "description": "Build a quote for the opportunity in the CPQ tool.", "attributes": { "seedKey": "build-quote" } },
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010302", "name": "Present proposal", "description": "Present the priced proposal to the prospect.", "attributes": { "seedKey": "present-proposal" } },
+
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010401", "name": "Handle objections", "description": "Handle prospect objections during negotiation.", "attributes": { "seedKey": "handle-objections" } },
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010402", "name": "Prepare contract", "description": "Prepare the contract with agreed terms and pricing.", "attributes": { "seedKey": "prepare-contract" } },
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010403", "name": "Send for signature", "description": "Send the contract for electronic signature.", "attributes": { "seedKey": "send-for-signature" } },
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010404", "name": "Countersign", "description": "Countersign the executed contract.", "attributes": { "seedKey": "countersign" } },
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010405", "name": "Close-won", "description": "Mark the opportunity closed-won in the CRM.", "attributes": { "seedKey": "close-won" } },
+
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010501", "name": "Provision tenant on MOMS", "description": "Provision the won account as a tenant on the MOMS product.", "attributes": { "seedKey": "provision-tenant" } },
+    { "label": "Activity", "id": "018f0220-0000-7000-8000-000000010502", "name": "Hand off to Customer Success", "description": "Hand the provisioned account off to Customer Success.", "attributes": { "seedKey": "handoff-cs" } }
+  ],
+  "edges": [
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110101", "fromId": "018f0220-0000-7000-8000-000000010101", "toId": "018f0220-0000-7000-8000-000000000001" },
+
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110201", "fromId": "018f0220-0000-7000-8000-000000010201", "toId": "018f0220-0000-7000-8000-000000000002" },
+
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110301", "fromId": "018f0220-0000-7000-8000-000000010301", "toId": "018f0220-0000-7000-8000-000000000003" },
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110302", "fromId": "018f0220-0000-7000-8000-000000010302", "toId": "018f0220-0000-7000-8000-000000000003" },
+
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110401", "fromId": "018f0220-0000-7000-8000-000000010401", "toId": "018f0220-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110402", "fromId": "018f0220-0000-7000-8000-000000010402", "toId": "018f0220-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110403", "fromId": "018f0220-0000-7000-8000-000000010403", "toId": "018f0220-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110404", "fromId": "018f0220-0000-7000-8000-000000010404", "toId": "018f0220-0000-7000-8000-000000000004" },
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110405", "fromId": "018f0220-0000-7000-8000-000000010405", "toId": "018f0220-0000-7000-8000-000000000004" },
+
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110501", "fromId": "018f0220-0000-7000-8000-000000010501", "toId": "018f0220-0000-7000-8000-000000000005" },
+    { "type": "PART_OF", "id": "018f0220-0000-7000-8000-000000110502", "fromId": "018f0220-0000-7000-8000-000000010502", "toId": "018f0220-0000-7000-8000-000000000005" },
+
+    { "type": "PRECEDES", "id": "018f0220-0000-7000-8000-000000210301", "fromId": "018f0220-0000-7000-8000-000000010301", "toId": "018f0220-0000-7000-8000-000000010302" },
+
+    { "type": "PRECEDES", "id": "018f0220-0000-7000-8000-000000210401", "fromId": "018f0220-0000-7000-8000-000000010401", "toId": "018f0220-0000-7000-8000-000000010402" },
+    { "type": "PRECEDES", "id": "018f0220-0000-7000-8000-000000210402", "fromId": "018f0220-0000-7000-8000-000000010402", "toId": "018f0220-0000-7000-8000-000000010403" },
+    { "type": "PRECEDES", "id": "018f0220-0000-7000-8000-000000210403", "fromId": "018f0220-0000-7000-8000-000000010403", "toId": "018f0220-0000-7000-8000-000000010404" },
+    { "type": "PRECEDES", "id": "018f0220-0000-7000-8000-000000210404", "fromId": "018f0220-0000-7000-8000-000000010404", "toId": "018f0220-0000-7000-8000-000000010405" },
+
+    { "type": "PRECEDES", "id": "018f0220-0000-7000-8000-000000210501", "fromId": "018f0220-0000-7000-8000-000000010501", "toId": "018f0220-0000-7000-8000-000000010502" },
+
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310101", "fromId": "018f0220-0000-7000-8000-000000000302", "toId": "018f0220-0000-7000-8000-000000010101" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310201", "fromId": "018f0220-0000-7000-8000-000000000303", "toId": "018f0220-0000-7000-8000-000000010201" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310301", "fromId": "018f0220-0000-7000-8000-000000000301", "toId": "018f0220-0000-7000-8000-000000010301" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310302", "fromId": "018f0220-0000-7000-8000-000000000301", "toId": "018f0220-0000-7000-8000-000000010302" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310401", "fromId": "018f0220-0000-7000-8000-000000000301", "toId": "018f0220-0000-7000-8000-000000010401" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310402", "fromId": "018f0220-0000-7000-8000-000000000304", "toId": "018f0220-0000-7000-8000-000000010402" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310403", "fromId": "018f0220-0000-7000-8000-000000000301", "toId": "018f0220-0000-7000-8000-000000010403" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310404", "fromId": "018f0220-0000-7000-8000-000000000304", "toId": "018f0220-0000-7000-8000-000000010404" },
+    { "type": "EXECUTES", "id": "018f0220-0000-7000-8000-000000310405", "fromId": "018f0220-0000-7000-8000-000000000301", "toId": "018f0220-0000-7000-8000-000000010405" },
+
+    { "type": "USES_SYSTEM", "id": "018f0220-0000-7000-8000-000000410301", "fromId": "018f0220-0000-7000-8000-000000010301", "toId": "018f0220-0000-7000-8000-000000000401" },
+    { "type": "USES_SYSTEM", "id": "018f0220-0000-7000-8000-000000410403", "fromId": "018f0220-0000-7000-8000-000000010403", "toId": "018f0220-0000-7000-8000-000000000402" }
+  ]
+}

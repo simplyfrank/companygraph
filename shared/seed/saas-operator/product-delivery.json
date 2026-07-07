@@ -1,0 +1,433 @@
+{
+  "nodes": [
+    {
+      "label": "UserJourney",
+      "id": "018f0200-0001-7000-8000-000000000001",
+      "name": "Roadmap & Discovery",
+      "description": "Opportunity intake → prioritization → roadmap commit.",
+      "attributes": {
+        "seedKey": "pd-journey-roadmap"
+      }
+    },
+    {
+      "label": "UserJourney",
+      "id": "018f0200-0001-7000-8000-000000000002",
+      "name": "Spec-Driven Delivery",
+      "description": "Spec authoring → design/tasks → build → release.",
+      "attributes": {
+        "seedKey": "pd-journey-delivery"
+      }
+    },
+    {
+      "label": "UserJourney",
+      "id": "018f0200-0001-7000-8000-000000000003",
+      "name": "Product Analytics",
+      "description": "Instrumentation → adoption measurement → insight → feedback loop.",
+      "attributes": {
+        "seedKey": "pd-journey-analytics"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000001",
+      "name": "Intake opportunity",
+      "description": "Capture and qualify a product opportunity.",
+      "attributes": {
+        "seedKey": "pd-act-intake"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000002",
+      "name": "Prioritize backlog",
+      "description": "Rank the backlog against opportunity value.",
+      "attributes": {
+        "seedKey": "pd-act-prioritize"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000003",
+      "name": "Commit roadmap",
+      "description": "Commit the prioritized roadmap for the delivery cycle.",
+      "attributes": {
+        "seedKey": "pd-act-roadmap-commit"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000004",
+      "name": "Author feature spec",
+      "description": "Author the approved feature spec that starts delivery.",
+      "attributes": {
+        "seedKey": "pd-act-author-spec"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000005",
+      "name": "Design & task review",
+      "description": "Review the design and task breakdown before build.",
+      "attributes": {
+        "seedKey": "pd-act-design-review"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000006",
+      "name": "Build & integrate",
+      "description": "Implement and integrate the feature per the approved spec.",
+      "attributes": {
+        "seedKey": "pd-act-build"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000007",
+      "name": "Cut release",
+      "description": "Cut and ship the release to production.",
+      "attributes": {
+        "seedKey": "pd-act-cut-release"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000008",
+      "name": "Instrument features",
+      "description": "Instrument the shipped features for adoption measurement.",
+      "attributes": {
+        "seedKey": "pd-act-instrument"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-000000000009",
+      "name": "Measure adoption",
+      "description": "Measure feature adoption after release.",
+      "attributes": {
+        "seedKey": "pd-act-measure-adoption"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-00000000000a",
+      "name": "Synthesize insight",
+      "description": "Synthesize product insight from adoption signals.",
+      "attributes": {
+        "seedKey": "pd-act-synthesize-insight"
+      }
+    },
+    {
+      "label": "Activity",
+      "id": "018f0200-0002-7000-8000-00000000000b",
+      "name": "Feed back to roadmap",
+      "description": "Feed insight back into the roadmap.",
+      "attributes": {
+        "seedKey": "pd-act-feedback-loop"
+      }
+    },
+    {
+      "label": "Role",
+      "id": "018f0200-0003-7000-8000-000000000001",
+      "name": "Product Manager",
+      "description": "Owns roadmap, prioritization, and feature specs.",
+      "attributes": {
+        "seedKey": "pd-role-pm"
+      }
+    },
+    {
+      "label": "Role",
+      "id": "018f0200-0003-7000-8000-000000000002",
+      "name": "Release Engineer",
+      "description": "Owns build integration and cutting releases.",
+      "attributes": {
+        "seedKey": "pd-role-release-eng"
+      }
+    },
+    {
+      "label": "Role",
+      "id": "018f0200-0003-7000-8000-000000000003",
+      "name": "Product Analyst",
+      "description": "Owns instrumentation, adoption measurement, and insight.",
+      "attributes": {
+        "seedKey": "pd-role-analyst"
+      }
+    },
+    {
+      "label": "System",
+      "id": "018f0200-0004-7000-8000-000000000001",
+      "name": "Roadmap Tool",
+      "description": "Opportunity intake, prioritization, and roadmap commit.",
+      "attributes": {
+        "seedKey": "pd-sys-roadmap",
+        "systemKind": "functional"
+      }
+    },
+    {
+      "label": "System",
+      "id": "018f0200-0004-7000-8000-000000000002",
+      "name": "Spec/Docs System",
+      "description": "Feature spec authoring and design/task review.",
+      "attributes": {
+        "seedKey": "pd-sys-spec",
+        "systemKind": "functional"
+      }
+    },
+    {
+      "label": "System",
+      "id": "018f0200-0004-7000-8000-000000000003",
+      "name": "CI/CD Pipeline",
+      "description": "Build integration and cutting releases to production.",
+      "attributes": {
+        "seedKey": "pd-sys-cicd",
+        "systemKind": "functional"
+      }
+    },
+    {
+      "label": "System",
+      "id": "018f0200-0004-7000-8000-000000000004",
+      "name": "Product Analytics",
+      "description": "Feature instrumentation, adoption measurement, and insight.",
+      "attributes": {
+        "seedKey": "pd-sys-analytics",
+        "systemKind": "ai_predictive"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000001",
+      "fromId": "018f0200-0002-7000-8000-000000000001",
+      "toId": "018f0200-0001-7000-8000-000000000001"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000002",
+      "fromId": "018f0200-0002-7000-8000-000000000002",
+      "toId": "018f0200-0001-7000-8000-000000000001"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000003",
+      "fromId": "018f0200-0002-7000-8000-000000000003",
+      "toId": "018f0200-0001-7000-8000-000000000001"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000004",
+      "fromId": "018f0200-0002-7000-8000-000000000004",
+      "toId": "018f0200-0001-7000-8000-000000000002"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000005",
+      "fromId": "018f0200-0002-7000-8000-000000000005",
+      "toId": "018f0200-0001-7000-8000-000000000002"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000006",
+      "fromId": "018f0200-0002-7000-8000-000000000006",
+      "toId": "018f0200-0001-7000-8000-000000000002"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000007",
+      "fromId": "018f0200-0002-7000-8000-000000000007",
+      "toId": "018f0200-0001-7000-8000-000000000002"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000008",
+      "fromId": "018f0200-0002-7000-8000-000000000008",
+      "toId": "018f0200-0001-7000-8000-000000000003"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-000000000009",
+      "fromId": "018f0200-0002-7000-8000-000000000009",
+      "toId": "018f0200-0001-7000-8000-000000000003"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-00000000000a",
+      "fromId": "018f0200-0002-7000-8000-00000000000a",
+      "toId": "018f0200-0001-7000-8000-000000000003"
+    },
+    {
+      "type": "PART_OF",
+      "id": "018f0200-0006-7000-8000-00000000000b",
+      "fromId": "018f0200-0002-7000-8000-00000000000b",
+      "toId": "018f0200-0001-7000-8000-000000000003"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-00000000000c",
+      "fromId": "018f0200-0002-7000-8000-000000000001",
+      "toId": "018f0200-0002-7000-8000-000000000002"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-00000000000d",
+      "fromId": "018f0200-0002-7000-8000-000000000002",
+      "toId": "018f0200-0002-7000-8000-000000000003"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-00000000000e",
+      "fromId": "018f0200-0002-7000-8000-000000000004",
+      "toId": "018f0200-0002-7000-8000-000000000005"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-00000000000f",
+      "fromId": "018f0200-0002-7000-8000-000000000005",
+      "toId": "018f0200-0002-7000-8000-000000000006"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-000000000010",
+      "fromId": "018f0200-0002-7000-8000-000000000006",
+      "toId": "018f0200-0002-7000-8000-000000000007"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-000000000011",
+      "fromId": "018f0200-0002-7000-8000-000000000008",
+      "toId": "018f0200-0002-7000-8000-000000000009"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-000000000012",
+      "fromId": "018f0200-0002-7000-8000-000000000009",
+      "toId": "018f0200-0002-7000-8000-00000000000a"
+    },
+    {
+      "type": "PRECEDES",
+      "id": "018f0200-0006-7000-8000-000000000013",
+      "fromId": "018f0200-0002-7000-8000-00000000000a",
+      "toId": "018f0200-0002-7000-8000-00000000000b"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-000000000014",
+      "fromId": "018f0200-0003-7000-8000-000000000001",
+      "toId": "018f0200-0002-7000-8000-000000000001"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-000000000015",
+      "fromId": "018f0200-0003-7000-8000-000000000001",
+      "toId": "018f0200-0002-7000-8000-000000000002"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-000000000016",
+      "fromId": "018f0200-0003-7000-8000-000000000001",
+      "toId": "018f0200-0002-7000-8000-000000000003"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-000000000017",
+      "fromId": "018f0200-0003-7000-8000-000000000001",
+      "toId": "018f0200-0002-7000-8000-000000000004"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-000000000018",
+      "fromId": "018f0200-0003-7000-8000-000000000001",
+      "toId": "018f0200-0002-7000-8000-00000000000b"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-000000000019",
+      "fromId": "018f0200-0003-7000-8000-000000000002",
+      "toId": "018f0200-0002-7000-8000-000000000006"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-00000000001a",
+      "fromId": "018f0200-0003-7000-8000-000000000002",
+      "toId": "018f0200-0002-7000-8000-000000000007"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-00000000001b",
+      "fromId": "018f0200-0003-7000-8000-000000000003",
+      "toId": "018f0200-0002-7000-8000-000000000008"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-00000000001c",
+      "fromId": "018f0200-0003-7000-8000-000000000003",
+      "toId": "018f0200-0002-7000-8000-000000000009"
+    },
+    {
+      "type": "EXECUTES",
+      "id": "018f0200-0006-7000-8000-00000000001d",
+      "fromId": "018f0200-0003-7000-8000-000000000003",
+      "toId": "018f0200-0002-7000-8000-00000000000a"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-00000000001e",
+      "fromId": "018f0200-0002-7000-8000-000000000001",
+      "toId": "018f0200-0004-7000-8000-000000000001"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-00000000001f",
+      "fromId": "018f0200-0002-7000-8000-000000000002",
+      "toId": "018f0200-0004-7000-8000-000000000001"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000020",
+      "fromId": "018f0200-0002-7000-8000-000000000003",
+      "toId": "018f0200-0004-7000-8000-000000000001"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000021",
+      "fromId": "018f0200-0002-7000-8000-000000000004",
+      "toId": "018f0200-0004-7000-8000-000000000002"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000022",
+      "fromId": "018f0200-0002-7000-8000-000000000005",
+      "toId": "018f0200-0004-7000-8000-000000000002"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000023",
+      "fromId": "018f0200-0002-7000-8000-000000000006",
+      "toId": "018f0200-0004-7000-8000-000000000003"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000024",
+      "fromId": "018f0200-0002-7000-8000-000000000007",
+      "toId": "018f0200-0004-7000-8000-000000000003"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000025",
+      "fromId": "018f0200-0002-7000-8000-000000000008",
+      "toId": "018f0200-0004-7000-8000-000000000004"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000026",
+      "fromId": "018f0200-0002-7000-8000-000000000009",
+      "toId": "018f0200-0004-7000-8000-000000000004"
+    },
+    {
+      "type": "USES_SYSTEM",
+      "id": "018f0200-0006-7000-8000-000000000027",
+      "fromId": "018f0200-0002-7000-8000-00000000000a",
+      "toId": "018f0200-0004-7000-8000-000000000004"
+    }
+  ]
+}

@@ -132,9 +132,7 @@ export function App() {
           </section>
         </main>
         <SidePanel />
-        {surface.id !== "chat" && (
-          <FloatingChat />
-        )}
+        <FloatingChat />
         <SearchPalette />
       </div>
     </SchemaBootstrap>

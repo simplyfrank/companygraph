@@ -58,14 +58,14 @@ describe("parseHash — 4-segment extension (T-08)", () => {
 });
 
 describe("SURFACES catalogue (T-01)", () => {
-  test("has exactly 8 surfaces", () => {
-    expect(SURFACES).toHaveLength(8);
+  test("has exactly 7 surfaces", () => {
+    expect(SURFACES).toHaveLength(7);
   });
 
   test("surface ids match design", () => {
     const ids = SURFACES.map((s) => s.id);
     expect(ids).toEqual([
-      "explorer", "model", "chat", "insights",
+      "explorer", "model", "insights",
       "govern", "ontology", "data", "admin",
     ]);
   });

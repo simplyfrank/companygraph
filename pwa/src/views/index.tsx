@@ -2,6 +2,13 @@ import type { ReactNode } from "react";
 import type { Route } from "../route";
 import { NotFoundPanel } from "./_shared";
 
+// saas-operator model — operator views under the #/insights surface
+import { FunctionMap } from "./business/FunctionMap";
+import { MetricLibrary } from "./business/MetricLibrary";
+import { FunnelBoard } from "./business/FunnelBoard";
+import { BenchmarkReport } from "./business/BenchmarkReport";
+import { OperatorCockpit } from "./exec/OperatorCockpit";
+
 import { ExplorerDomains } from "./explorer/Domains";
 import { ExplorerJourney } from "./explorer/Journey";
 import { ExplorerJourneyGraph } from "./explorer/JourneyGraph";
@@ -13,8 +20,6 @@ import { ExplorerLocations } from "./explorer/Locations";
 import { DomainDetail } from "./explorer/DomainDetail";
 import { ProductDetail } from "./explorer/ProductDetail";
 
-import { ChatThread } from "./chat/Thread";
-import { ChatConversations } from "./chat/Conversations";
 
 import { OntologyCatalog } from "./ontology/Catalog";
 import { OntologyErd } from "./ontology/Erd";
@@ -109,10 +114,6 @@ const VIEWS: ViewMap = {
     systems:          (r) => <SystemModeler route={r} />,
     export:           () => <SpecExport />,
   },
-  chat: {
-    thread:         (r) => <ChatThread route={r} />,
-    conversations:  () => <ChatConversations />,
-  },
   insights: {
     overview:              () => <AnalyticsOverview />,
     systems:               (r) => <AnalyticsSystems route={r} />,
@@ -128,6 +129,11 @@ const VIEWS: ViewMap = {
     people:                () => <ExecPeople />,
     transform:             () => <ExecTransform />,
     performance:           (r) => <PerformanceDashboard route={r} />,
+    functions:             (r) => <FunctionMap route={r} />,
+    metrics:               () => <MetricLibrary />,
+    funnels:               (r) => <FunnelBoard route={r} />,
+    benchmarks:            (r) => <BenchmarkReport route={r} />,
+    operator:              (r) => <OperatorCockpit route={r} />,
   },
   govern: {
     "kpi-management":      () => <ExecKpiManagement />,

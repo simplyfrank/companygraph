@@ -41,6 +41,23 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   P("GET", "analytics/performance/okr", "analytics:read"),
   P("GET", "analytics/performance/journeys", "analytics:read"),
 
+  // ── Function benchmark scoring (function-benchmark-scoring FR-09, C-03) ──
+  // Paired in the SAME task as its router dispatch so the route can never
+  // merge un-permissioned (the gate SKIPS the check when getRoutePermission
+  // returns null). Joins the analytics:read read family; NOT public.
+  P("GET", "analytics/benchmarks/report", "analytics:read"),
+
+  // ── Cross-function operator cockpit (cross-function-exec-rollup FR-08,
+  // DD-15/2) ── SECURITY-CRITICAL same-task pairing: the router gate SKIPS
+  // the permission check when getRoutePermission returns null, so each
+  // dispatched analytics/operator/* route lands with its entry here in the
+  // SAME task. Reuses the existing analytics:read permission (no new string).
+  P("GET", "analytics/operator/overview", "analytics:read"),
+  P("GET", "analytics/operator/kpis", "analytics:read"),
+  P("GET", "analytics/operator/risks", "analytics:read"),
+  P("GET", "analytics/operator/funnels", "analytics:read"),
+  P("GET", "analytics/operator/slas", "analytics:read"),
+
   // ── Import / Export / Snapshot ──
   P("POST", "import", "data:write"),
   P("GET", "export", "export:read"),
@@ -56,6 +73,13 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   // ── Edges ──
   P("POST", "edges", "edge:write"),
   P("DELETE", "edges/:id", "edge:write"),
+
+  // ── Funnel transitions (funnel-pipeline-modeling T-06, D-1) ──
+  // SECURITY-CRITICAL same-task pairing: an unmapped route returns null from
+  // getRoutePermission and the router gate lets it through on ANY authenticated
+  // session. Reuses the existing edge:write permission (no new permission string)
+  // — the route delegates to the same createEdge the generic edge route uses.
+  P("POST", "funnels/transitions", "edge:write"),
 
   // ── Query ──
   P("GET", "query/listDomains", "query:read"),

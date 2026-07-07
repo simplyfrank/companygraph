@@ -1,0 +1,196 @@
+/* funnel-pipeline-modeling T-08 (design §6.5, §6.7 — FR-13, FR-14, NFR-05,
+   AC-16). FunnelBoard stage-board styles. Tokens-only (var(--…) from tokens.css);
+   no raw colors/spacing/fonts. Desktop-first, no new breakpoints (UX-04).
+   Native Conflicts suppressions (UX-03): .handle carries touch-action:none
+   (trackpad/touch scroll mid-drag) and .dragging carries user-select:none
+   (native text selection during pointer drag). */
+
+.pickerBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+}
+
+.pickerLabel {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.pickerSelect {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.pickerSelect:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.summary {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+}
+
+.summaryLabel {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--muted-2);
+}
+
+.summaryValue {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+  margin: 0;
+  list-style: none;
+}
+
+.stageWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  font-family: var(--font-body);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+/* Applied to the card while a pointer drag is in progress — suppress native
+   text selection (Native Conflicts, UX-03). */
+.dragging {
+  user-select: none;
+  border-color: var(--accent);
+}
+
+.handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted-2);
+  font-size: 1rem;
+  cursor: grab;
+  /* Suppress trackpad/touch scroll (pan) of the board while a reorder is active
+     (Native Conflicts, UX-03). */
+  touch-action: none;
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.stageName {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg);
+  flex: 1;
+}
+
+.stageOrder {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted-2);
+}
+
+.moveControls {
+  display: inline-flex;
+  gap: var(--space-xs);
+}
+
+.moveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.moveBtn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+
+.moveBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.moveBtn:disabled {
+  color: var(--muted-soft);
+  cursor: not-allowed;
+}
+
+.transition {
+  display: inline-flex;
+  gap: var(--space-lg);
+  padding: 0 var(--space-lg) 0 calc(var(--space-lg) + 1.5rem);
+  align-self: flex-start;
+}
+
+.transitionMetric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.transitionLabel {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--muted-2);
+}
+
+.transitionValue {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: var(--space-sm) 0 0;
+}

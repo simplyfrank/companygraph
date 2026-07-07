@@ -16,6 +16,51 @@
 > risk-compliance-change, cto-analytics completion. The rollup below this
 > banner predates the adoption — read it as the pre-drift pipeline state.
 
+## SaaS-Operator Business-Process Model — spec-app fan-out (2026-07-06/07)
+
+An 11-feature application (`blueprint-saas-operator.md`) modeling the business
+that runs **docorg** — a lean vertical-SaaS operator (MOMS medical-office SaaS +
+the Helm control-plane) — as a new "SaaS Operator" `BusinessModel` root, at
+full-pipeline depth across six function domains (marketing, sales, finance/
+accounting, customer-success, product-delivery, platform-ops), PLUS four net-new
+platform capabilities. **Single-shot** (spec + build). Deliverable = both content
+(seed slices + journeys/KPIs/stories/risks/DDD, each with a business-action→
+label/edge mapping table) AND features. Process-modeling layer only (no
+operational Lead/Invoice/Subscription entities).
+
+**BUILD COMPLETE (Phase C, 2026-07-07):** all 11 features `execution:complete`.
+App-level re-verification by the orchestrator: `bun run typecheck` **PASS**;
+unit suite **api 513 / shared 105 / 0 fail**; **PWA vitest 510 / 0 fail**;
+`design-conformance` **PASS** on all 5 new views; nav guard tests **40/40**.
+
+| Slug | Tier | Size | Outcome |
+|------|------|------|---------|
+| `saas-operator-foundation` | foundation | large | complete (BusinessModel root, shared System/Persona/Role catalog, seed loader, FunctionMap) |
+| `saas-metric-library` | foundation | large | complete (`MetricDefinition` label + `INSTANTIATES`, canonical metric catalog, MetricLibrary) |
+| `funnel-pipeline-modeling` | foundation | large | complete (`Funnel`/`Stage` + `HAS_STAGE`/`CONVERTS_TO`, B-03 idempotency fix, `POST /api/v1/funnels/transitions`, FunnelBoard) |
+| `marketing-process-model` | feature | medium | complete (marketing funnel Visitor→Lead→MQL→SQL) |
+| `sales-process-model` | feature | medium | complete (sales pipeline Lead→…→Closed-Won) |
+| `finance-accounting-process-model` | feature | medium | complete |
+| `customer-success-process-model` | feature | medium | complete |
+| `product-delivery-process-model` | feature | medium | complete |
+| `platform-ops-process-model` | feature | medium | complete |
+| `cross-function-exec-rollup` | feature | large | complete (OperatorCockpit, read-only `/api/v1/analytics/operator*`) |
+| `function-benchmark-scoring` | feature | medium | complete (BenchmarkReport maturity scoring) |
+
+**Phase C notes:** a concurrent `navigation-ia` restructure (commit `fb43471`)
+landed a **7-surface IA** mid-build (removed the top-level `#/business`/`#/exec`
+surfaces the blueprint froze; chat → floating widget). Per user decision the five
+operator views were reconciled **under `#/insights`** (`functions`, `metrics`,
+`funnels`, `benchmarks`, `operator`; legacy `#/exec/operator → #/insights/operator`
+alias). Ownership boundaries held: no content spec edited the risk/change/SLA/
+performance/kpi route code (XD-04/08); `router.ts`/`rbac-permissions.ts` carry
+only additive funnel-mount lines. One cross-spec fix: the `system-augmentation-
+model` vocabulary-singularity guard was extended to treat `api/src/seed/*.ts` as
+seed data (product-delivery seeds an `ai_predictive` system there).
+**Deferred to human review:** `/review-ui` on the five new `#/insights` operator
+views; live-Neo4j integration + `bun run dev` e2e (the `*.integration.test.ts`
+packs + skipped Playwright reload specs — self-skip cleanly without a stack).
+
 ## Business Modeling Studio — spec-app fan-out (2026-07-04)
 
 A 10-feature application (`blueprint.md`) turning companygraph into a

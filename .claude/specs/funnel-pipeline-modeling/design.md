@@ -2,9 +2,9 @@
 feature: "funnel-pipeline-modeling"
 created: "2026-07-06"
 author: "spec-author"
-status: "draft"
-revision: 1
-reviewing_requirements_revision: 2
+status: "revised"
+revision: 2
+reviewing_requirements_revision: 3
 size: "large"
 ---
 
@@ -54,13 +54,19 @@ The design follows five rules:
 - **Rule A — registry, never compile-time schema.** `Funnel`/`Stage`/
   `HAS_STAGE`/`CONVERTS_TO` are runtime-registry constructs only (XD-02/NFR-01).
   Zero edit to `shared/src/schema/{nodes,edges}.ts`.
-- **Rule B — idempotency = POST-then-tolerate-`409`.** The public registry-create
-  routes are strict-CREATE (`409 name_conflict` on a duplicate — verified
-  `api/src/ontology/storage/{node-labels,edge-types}.ts`), so re-register is
-  **not** a bare-POST no-op. This feature's registration routine POSTs the
-  payload and treats **`409 name_conflict` as success**, making the routine
-  net-zero on re-run without any owned-elsewhere edit (Resolves review B-03;
-  mirrors `saas-metric-library` §5.1/§5.2).
+- **Rule B — idempotency = get-then-create guard (Resolves review B-03, rev-3).**
+  The public registry-create routes are strict-CREATE (`409 name_conflict` on a
+  duplicate — verified `api/src/ontology/storage/{node-labels,edge-types}.ts`), so
+  re-register is **not** a bare-POST no-op, and this feature adds nothing to the
+  compile-time tuples the seed-loader MERGE covers. This feature's registration
+  routine `ensureFunnelOntology` therefore **`GET`s each construct by name first
+  and `POST`s only on `404`** — a get-then-create guard (requirements rev-3 FR-06a).
+  A `200` on the `GET` means the construct already exists → skip the create → a
+  *verified* no-op that never re-hits the strict-CREATE route (so no `409` is ever
+  produced on a re-run). This is the ownership-safe idempotency mechanism: it edits
+  neither the strict-CREATE registry routes nor the compile-time tuples, and it
+  mirrors the lookup-before-create posture of `ensureOperatorRoot`
+  (`api/src/seed/ensure-operator-root.ts:48`).
 - **Rule C — range check on a funnel-owned seam, delegate to graph-core.** The
   `[0,1]` range validation lives in a **new** `api/src/routes/funnels.ts` route;
   it never edits `api/src/routes/edges.ts`, `api/src/storage/edges.ts`, or
@@ -98,7 +104,7 @@ does not re-decide them.)
 
 | Finding | Resolution | Section |
 |---------|-----------|---------|
-| **B-03** — the FR-01..FR-04 / NFR-03 / AC-01 "re-register is a clean no-op" claim is false: the public registry-create routes are strict-CREATE (`409 name_conflict`); the spec names no real idempotency mechanism | **Get-then/POST-then-tolerate-`409` in the funnel-owned registration routine** (review B-03 option (a)). `ensureFunnelOntology` POSTs each label/edge-type payload and treats `201` and `409 name_conflict` **both** as success; on any other non-2xx it throws. Re-run is net-zero at the *routine* level while the raw `POST` route is acknowledged to `409` on a bare duplicate. AC-01 is re-read here as "the registration routine run twice leaves exactly one `Funnel` label and errors nothing" (§4.1, §8). Mirrors the sibling `saas-metric-library` design (§5.1/§5.2) and the foundation's seed-idempotency stance. | §4.1, §8 (AC-01) |
+| **B-03** — the FR-01..FR-04 / NFR-03 / AC-01 "re-register is a clean no-op" claim is false: the public registry-create routes are strict-CREATE (`409 name_conflict`); the spec names no real idempotency mechanism | **Get-then-create guard in the funnel-owned registration routine (requirements rev-3 FR-06a).** `ensureFunnelOntology` `GET`s each of the four constructs by name (`GET /api/v1/ontology/{node-labels,edge-types}/<name>`) and `POST`s the registration payload **only on a `404`**; a `200` means the construct already exists → skip the create. The routine never re-hits the strict-CREATE route on a duplicate, so a second run creates nothing and produces no `409`. AC-01 (rev-3) asserts **the routine's** idempotency — "the registration routine run twice leaves exactly one `Funnel` label and errors nothing" (§4.1, §8) — not that the public strict-CREATE route is itself a no-op. Mirrors the lookup-before-create posture of `ensureOperatorRoot` (`api/src/seed/ensure-operator-root.ts:48`). | §4.1, §8 (AC-01) |
 | **C-05** — is `stageOrder` a *required integer* under the `json_schema_doc` supported subset? | **Yes — verified.** `jsonSchemaDocSchema` supports the `required` keyword (`shared/src/schema/ontology.ts:71`, `required: z.array(z.string()).optional()`), and the attribute-zod cache compiles the whole doc — including `required` — via `json-schema-to-zod` before every `createNode`/`patchNode` (`api/src/ontology/cache/attribute-zod.ts`). So `json_schema_doc: { type:"object", required:["stageOrder"], properties:{ stageOrder:{ type:"integer" } } }` makes a missing or non-integer `stageOrder` fail `attribute_violation` at the generic node route (AC-02). §3.2 pins the exact doc. | §3.2, §8 (AC-02) |
 | **C-06** — FR-09/AC-10 scope the listing "from the operator root" but never name the `Funnel`→root attachment edge | **A `Funnel` carries a top-level-of-`attributes` `modelId` marker (the operator root id) set at create time; the listing filters on it — no graph attachment edge is required for the `must`.** The `Funnel` `json_schema_doc` declares an optional `modelId` string attribute; `FunnelBoard` (and any funnel-creating seed) stamps the active operator-root id into it. FR-09's listing Cypher is `MATCH (f:Funnel) WHERE f.attributes_json CONTAINS $rootId … ` — more precisely a parse-and-filter on `modelId` (§6.4/§4.4) — so a retail Model #1 funnel (no `modelId`, or a different one) is excluded (AC-10). This avoids adding a new `PART_OF` `Funnel→Domain` endpoint pair (a registry-endpoint decision content wave-2 owns) and touches no owned-elsewhere file. Where a funnel *also* attaches into a function `Domain` graph-structurally is a content-spec concern, explicitly out of scope here. | §3.1, §4.4, §6.4, §8 (AC-10) |
 
@@ -234,20 +240,24 @@ funnel route file (Rule C).
 loads, Risk #5). Sequence, in dependency order (`assertEndpointLabelsExist`
 requires labels first, §3.3):
 
-1. POST the §3.1 `Funnel` label payload to `POST /api/v1/ontology/node-labels`.
-2. POST the §3.2 `Stage` label payload to `POST /api/v1/ontology/node-labels`.
-3. POST the §3.3 `HAS_STAGE` edge-type payload to `POST /api/v1/ontology/edge-types`.
-4. POST the §3.3 `CONVERTS_TO` edge-type payload to `POST /api/v1/ontology/edge-types`.
+1. Ensure the §3.1 `Funnel` label — `GET /api/v1/ontology/node-labels/Funnel`; on `404` `POST` the §3.1 payload; on `200` skip.
+2. Ensure the §3.2 `Stage` label — `GET /api/v1/ontology/node-labels/Stage`; on `404` `POST` the §3.2 payload; on `200` skip.
+3. Ensure the §3.3 `HAS_STAGE` edge type — `GET /api/v1/ontology/edge-types/HAS_STAGE`; on `404` `POST` the §3.3 payload; on `200` skip.
+4. Ensure the §3.3 `CONVERTS_TO` edge type — `GET /api/v1/ontology/edge-types/CONVERTS_TO`; on `404` `POST` the §3.3 payload; on `200` skip.
 
-**Idempotency (Resolves B-03).** For each POST: `201` → registered; **`409
-name_conflict` → already registered, treat as success**; any other non-2xx →
-throw (surface the failure). Because both the strict-CREATE routes `409` on a
-duplicate name (verified `node-labels.ts` / `edge-types.ts:206,240`) and this
-routine tolerates that `409`, a second run of `ensureFunnelOntology` leaves
-exactly one of each construct and errors nothing (AC-01/AC-03/AC-04) — without
-editing the compile-time tuples this spec adds nothing to (XD-02). The routine
-runs as trusted operator tooling on the loopback API (same posture as the
-foundation's `seed-saas-operator.ts` and the metric-library's ensure steps).
+**Idempotency (Resolves B-03) — get-then-create guard (requirements rev-3 FR-06a).**
+Each of the four steps is a `getThenCreate(getPath, postPath, payload)` helper:
+it issues the `GET`; a `200` returns immediately (construct already registered →
+no-op); a `404` `POST`s the payload and treats `201` as success; a defensive
+`409 name_conflict` on the `POST` (a race where the construct appeared between the
+`GET` and the `POST`) is **also** tolerated as success; any other non-2xx throws
+(surface the failure). Because the routine `GET`s first and only `POST`s when the
+construct is genuinely absent, a second run of `ensureFunnelOntology` finds all
+four via the `GET` and creates nothing, leaving exactly one of each construct and
+erroring nothing (AC-01/AC-03/AC-04) — without editing the compile-time tuples
+this spec adds nothing to (XD-02) or the strict-CREATE registry routes. The
+routine runs as trusted operator tooling on the loopback API (same posture as
+`ensureOperatorRoot` and the metric-library's ensure steps).
 
 **Placement.** `ensureFunnelOntology` is exported so it can be invoked by a
 **feature-owned** `seed:funnel-pipeline` package script (author-lean, mirrors
@@ -396,8 +406,9 @@ One **new** route; everything else rides existing routes.
 | Method | Route | FR | Request → Response | Permission |
 |--------|-------|----|--------------------|------------|
 | POST | `/api/v1/funnels/transitions` **(new)** | FR-05, FR-07 | `funnelTransitionSchema` → `201` `Edge` \| `400 attribute_violation` (range) \| `400 edge_endpoint_label_mismatch` (wrong pair) \| `409 id_conflict` | `edge:write` (reused, D-1) |
-| POST | `/api/v1/ontology/node-labels` | FR-01, FR-02 | label register (idempotent via `409`-tolerance) | `ontology:write` (existing) |
-| POST | `/api/v1/ontology/edge-types` | FR-03, FR-04 | edge-type register (idempotent via `409`-tolerance) | `ontology:write` (existing) |
+| GET | `/api/v1/ontology/node-labels/:name`, `/api/v1/ontology/edge-types/:name` | FR-06a | get-then-create guard probe (`200` → skip, `404` → create) | `ontology:read` (existing) |
+| POST | `/api/v1/ontology/node-labels` | FR-01, FR-02 | label register (created only on the `GET` `404`; idempotent via the FR-06a get-then-create guard) | `ontology:write` (existing) |
+| POST | `/api/v1/ontology/edge-types` | FR-03, FR-04 | edge-type register (created only on the `GET` `404`; idempotent via the FR-06a get-then-create guard) | `ontology:write` (existing) |
 | POST/GET/PATCH/DELETE | `/api/v1/nodes/{Funnel,Stage}[/:id]` | FR-06 | generic registry-node CRUD | `node:write`/`node:read` (existing) |
 | POST | `/api/v1/edges` | FR-07 | `HAS_STAGE` create (generic) | `edge:write` (existing) |
 | DELETE | `/api/v1/edges/:id` | FR-07 | `HAS_STAGE`/`CONVERTS_TO` delete (generic) | `edge:write` (existing) |
@@ -563,7 +574,7 @@ marketing/sales funnels stays out of scope (content specs).
 
 | AC | Kind | Test file |
 |----|------|-----------|
-| AC-01 | integration (Neo4j) | `api/__tests__/funnel-registry.integration.test.ts` — `ensureFunnelOntology` registers `Funnel`; run **twice** → exactly one label, second run's `409` tolerated (B-03); `GET …/node-labels/Funnel` returns it; **manual** `git diff shared/src/schema/nodes.ts` → no additions (NFR-01) |
+| AC-01 | integration (Neo4j) | `api/__tests__/funnel-registry.integration.test.ts` — `ensureFunnelOntology` registers `Funnel`; run **twice** → exactly one label, the second run `GET`s `Funnel` (200) and **skips** the create (get-then-create guard, B-03), erroring nothing; `GET …/node-labels/Funnel` returns it; **manual** `git diff shared/src/schema/nodes.ts` → no additions (NFR-01) |
 | AC-02 | integration (Neo4j) | `api/__tests__/funnel-registry.integration.test.ts` — `Stage` label `json_schema_doc` requires integer `stageOrder`; `POST /api/v1/nodes/Stage` with non-integer/missing `stageOrder` → `400 attribute_violation` (C-05) |
 | AC-03 | integration (Neo4j) + CLI | `api/__tests__/funnel-edges.integration.test.ts` — `HAS_STAGE` endpoints `Funnel→Stage`; wrong pair (`Stage→Funnel`) → `400 edge_endpoint_label_mismatch`; **manual** `git diff shared/src/schema/edges.ts` → no additions |
 | AC-04 | integration (Neo4j) | `api/__tests__/funnel-edges.integration.test.ts` — `CONVERTS_TO` endpoints `Stage→Stage`; wrong pair → `400 edge_endpoint_label_mismatch` |
@@ -594,7 +605,7 @@ absent `modelId`) to prove scope isolation.
 
 | Path | Action | Serves | Notes |
 |------|--------|--------|-------|
-| `api/src/seed/ensure-funnel-ontology.ts` | new | FR-01, FR-02, FR-03, FR-04 | `ensureFunnelOntology` — POST label/edge-type payloads, tolerate `409 name_conflict` (B-03); order `Funnel`→`Stage`→`HAS_STAGE`→`CONVERTS_TO` |
+| `api/src/seed/ensure-funnel-ontology.ts` | new | FR-01, FR-02, FR-03, FR-04, FR-06a | `ensureFunnelOntology` — **get-then-create guard**: `GET` each construct, `POST` only on `404` (B-03); order `Funnel`→`Stage`→`HAS_STAGE`→`CONVERTS_TO` |
 | `api/src/routes/funnels.ts` | new | FR-05, FR-07 | `funnelTransitionSchema` + `handleFunnelTransitionPost` — range-validate `[0,1]` → `400 attribute_violation`, delegate to `createEdge` (Rule C) |
 | `api/scripts/seed-funnel-pipeline.ts` | new | FR-01..FR-04 | CLI: `ensureFunnelOntology(baseUrl)` (register-before-use, Risk #5); seeds no instances |
 | `package.json` | modify | FR-01..FR-04 | add `seed:funnel-pipeline` script (`bun --cwd api scripts/…` form) |
@@ -638,6 +649,7 @@ risk/SLA/change/performance/metric-library code.
 | FR-04 | §3.3, §4.1 | AC-04 |
 | FR-05 | §3.4, §4.4 | AC-05, AC-06 |
 | FR-06 | §4.2 | AC-02, AC-07 |
+| FR-06a | §4.1 (Rule B, get-then-create) | AC-01, AC-03, AC-04 |
 | FR-07 | §3.4, §4.3, §4.4, §5, §7 | AC-05, AC-06, AC-08 |
 | FR-08 | §4.5 | AC-09, AC-09a |
 | FR-09 | §4.5 | AC-10 |
