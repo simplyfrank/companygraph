@@ -162,7 +162,7 @@ export function OperatorCockpit({ route }: { route: Route }) {
         <div className={styles.grid} data-testid="panel-kpis">
           {rows.map((r) => (
             <div key={r.function} className={styles.cell}>
-              <a className={styles.cellHead} href="#/exec/performance" tabIndex={0}>
+              <a className={styles.cellHead} href="#/insights/performance" tabIndex={0}>
                 {r.name}
               </a>
               {isErr(r.kpiHealth) ? (
@@ -208,7 +208,7 @@ export function OperatorCockpit({ route }: { route: Route }) {
         <div className={styles.grid} data-testid="panel-funnels">
           {rows.map((r) => (
             <div key={r.function} className={styles.cell}>
-              <a className={styles.cellHead} href="#/business/funnels" tabIndex={0}>
+              <a className={styles.cellHead} href="#/insights/funnels" tabIndex={0}>
                 {r.name}
               </a>
               {isErr(r.funnelCount) ? (
@@ -346,7 +346,7 @@ function FunnelDetail({ slice }: { slice: OperatorFunction | undefined }) {
           <ul>
             {fn.funnels.map((f) => (
               <li key={f.funnel_id}>
-                <a href="#/business/funnels">{f.name}</a> — {f.stageCount} stages, conversion{" "}
+                <a href="#/insights/funnels">{f.name}</a> — {f.stageCount} stages, conversion{" "}
                 {f.overallConversion === "n/a" ? "n/a" : `${Math.round(f.overallConversion * 100)}%`}
               </li>
             ))}

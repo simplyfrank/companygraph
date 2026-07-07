@@ -92,7 +92,7 @@ async function renderReady(): Promise<void> {
   // and part of the keyboard path.
   render(
     <PerformanceDashboard
-      route={parseHash(`#/exec/performance?domain=${D1}&kind=agentic`)}
+      route={parseHash(`#/insights/performance?domain=${D1}&kind=agentic`)}
     />,
   );
   await waitFor(() =>

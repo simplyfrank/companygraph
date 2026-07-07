@@ -1,6 +1,6 @@
 // saas-operator-foundation T-13 (design §6.4 + C-06/N-04/N-05 — FR-14, FR-15,
 // NFR-06; AC-10..AC-15). The live per-function landing map at
-// #/business/functions.
+// #/insights/functions.
 //
 // Subject — consumes useActiveModel() (never re-implemented) and resolves the
 // SaaS-Operator root by the OQ-1 marker (name:"SaaS Operator" +

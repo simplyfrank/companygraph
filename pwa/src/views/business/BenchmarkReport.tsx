@@ -1,6 +1,6 @@
 // function-benchmark-scoring T-09 (design §4.7 — FR-10, FR-11, FR-12,
 // NFR-07, UX-01/02/05/06; AC-10..AC-15). The read-only per-function
-// maturity report at #/business/benchmarks.
+// maturity report at #/insights/benchmarks.
 //
 // Built on the FunctionMap.tsx precedent: consumes useActiveModel() (never
 // re-implemented) for header context; the report itself is root-fixed

@@ -148,13 +148,13 @@ beforeEach(() => {
   cleanup();
   vi.restoreAllMocks();
   requests.length = 0;
-  window.location.hash = "#/exec/performance";
+  window.location.hash = "#/insights/performance";
 });
 
 describe("PerformanceDashboard — AC-07 deep link + URL-first slice", () => {
   test("mounting with domain/journey/kind params renders pre-sliced on all three axes", async () => {
     mockApi();
-    window.location.hash = `#/exec/performance?domain=${D1}&journey=${J1}&kind=agentic`;
+    window.location.hash = `#/insights/performance?domain=${D1}&journey=${J1}&kind=agentic`;
     render(<Harness />);
     await waitReady();
 
@@ -181,14 +181,14 @@ describe("PerformanceDashboard — AC-07 deep link + URL-first slice", () => {
     await waitReady();
 
     fireEvent.click(screen.getByRole("button", { name: "Agentic" }));
-    expect(window.location.hash).toBe("#/exec/performance?kind=agentic");
+    expect(window.location.hash).toBe("#/insights/performance?kind=agentic");
 
     await waitFor(() =>
       expect(screen.queryByText("Conversion rate")).not.toBeInTheDocument(),
     );
     // Clearing the axis rewrites again.
     fireEvent.click(screen.getByRole("button", { name: "All" }));
-    expect(window.location.hash).toBe("#/exec/performance");
+    expect(window.location.hash).toBe("#/insights/performance");
   });
 });
 
@@ -223,7 +223,7 @@ describe("PerformanceDashboard — AC-08 view states", () => {
     // Link-out only, no mutation controls.
     expect(within(okrPanel).getByRole("link", { name: "Open OKR Management" })).toHaveAttribute(
       "href",
-      "#/exec/okr-management",
+      "#/govern/okr-management",
     );
   });
 });
@@ -238,13 +238,13 @@ describe("PerformanceDashboard — AC-09 empty variants", () => {
 
   test("active slice matching zero KPIs → distinct message + working clear-slice affordance", async () => {
     mockApi({ kpis: (params) => (params.get("kind") === "agentic" ? [] : KPI_ALL) });
-    window.location.hash = "#/exec/performance?kind=agentic";
+    window.location.hash = "#/insights/performance?kind=agentic";
     render(<Harness />);
     await waitReady();
 
     expect(screen.getByTestId("empty-slice")).toHaveTextContent("No KPIs match this slice");
     fireEvent.click(screen.getByRole("button", { name: "Clear kind filter" }));
-    expect(window.location.hash).toBe("#/exec/performance"); // axis reset to All
+    expect(window.location.hash).toBe("#/insights/performance"); // axis reset to All
     await waitFor(() => expect(screen.getByText("Conversion rate")).toBeInTheDocument());
   });
 });
@@ -259,7 +259,7 @@ describe("PerformanceDashboard — AC-12 slice click path + sparkline", () => {
 
     // 1. Domain
     fireEvent.change(selects()[0]!, { target: { value: D1 } });
-    expect(window.location.hash).toBe(`#/exec/performance?domain=${D1}`);
+    expect(window.location.hash).toBe(`#/insights/performance?domain=${D1}`);
     // OKR panel narrows with the domain slice (server-side, mocked).
     await waitFor(() =>
       expect(screen.queryByText("Cut operational cost")).not.toBeInTheDocument(),
@@ -271,7 +271,7 @@ describe("PerformanceDashboard — AC-12 slice click path + sparkline", () => {
       expect(within(selects()[1]!).getByText("Checkout")).toBeInTheDocument(),
     );
     fireEvent.change(selects()[1]!, { target: { value: J1 } });
-    expect(window.location.hash).toBe(`#/exec/performance?domain=${D1}&journey=${J1}`);
+    expect(window.location.hash).toBe(`#/insights/performance?domain=${D1}&journey=${J1}`);
     await waitFor(() =>
       expect(screen.queryByText("Conversion rate")).not.toBeInTheDocument(),
     );
@@ -279,7 +279,7 @@ describe("PerformanceDashboard — AC-12 slice click path + sparkline", () => {
     // 3. Kind
     fireEvent.click(screen.getByRole("button", { name: "Agentic" }));
     expect(window.location.hash).toBe(
-      `#/exec/performance?domain=${D1}&journey=${J1}&kind=agentic`,
+      `#/insights/performance?domain=${D1}&journey=${J1}&kind=agentic`,
     );
     await waitFor(() => expect(screen.getAllByTestId("kpi-card")).toHaveLength(1));
     expect(screen.getByText("Fulfilment lead time")).toBeInTheDocument();

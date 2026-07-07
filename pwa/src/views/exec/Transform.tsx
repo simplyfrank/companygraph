@@ -111,23 +111,23 @@ export function ExecTransform() {
           <div style={{ height: 24 }} />
 
           <div className={styles.quickNav}>
-            <a href="#/exec/kpi-management" className={styles.quickNavTile}>
+            <a href="#/govern/kpi-management" className={styles.quickNavTile}>
               <span className={styles.quickNavTitle}>KPI Management</span>
               <span className={styles.quickNavLede}>Define and manage organizational KPIs</span>
             </a>
-            <a href="#/exec/okr-management" className={styles.quickNavTile}>
+            <a href="#/govern/okr-management" className={styles.quickNavTile}>
               <span className={styles.quickNavTitle}>OKR Management</span>
               <span className={styles.quickNavLede}>Create and manage OKR cycles</span>
             </a>
-            <a href="#/exec/roll-down" className={styles.quickNavTile}>
+            <a href="#/govern/roll-down" className={styles.quickNavTile}>
               <span className={styles.quickNavTitle}>Roll-Down</span>
               <span className={styles.quickNavLede}>Roll down KPIs and OKRs to domains</span>
             </a>
-            <a href="#/exec/program-management" className={styles.quickNavTile}>
+            <a href="#/govern/programs" className={styles.quickNavTile}>
               <span className={styles.quickNavTitle}>Programme Management</span>
               <span className={styles.quickNavLede}>Manage programmes, KPIs, and assignments</span>
             </a>
-            <a href="#/exec/context-alignment" className={styles.quickNavTile}>
+            <a href="#/insights/context-alignment" className={styles.quickNavTile}>
               <span className={styles.quickNavTitle}>Context Alignment</span>
               <span className={styles.quickNavLede}>Cross-context API contracts and BU alignment across bounded contexts</span>
             </a>

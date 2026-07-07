@@ -1,6 +1,6 @@
 // saas-metric-library T-09 (design §6.3, §6.4, §6.5 + review-design.md C-01 —
 // FR-10, FR-11, FR-13; AC-12, AC-13, AC-14, AC-15, AC-17 tsx half). The live
-// canonical metric catalog at #/business/metrics. Read-only v1 (OQ-6): browse +
+// canonical metric catalog at #/insights/metrics. Read-only v1 (OQ-6): browse +
 // filter, no in-view editor.
 //
 // Subject — consumes useActiveModel() for header context only (never

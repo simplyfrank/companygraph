@@ -139,7 +139,7 @@ export function SmeQuarterly() {
         />
         <Card>
           <p style={{ margin: 0, color: "var(--muted)" }}>
-            No home domain set. <a href="#/sme/home">Go to Settings</a> to configure your home domain.
+            No home domain set. <a href="#/admin/settings">Go to Settings</a> to configure your home domain.
           </p>
         </Card>
       </>

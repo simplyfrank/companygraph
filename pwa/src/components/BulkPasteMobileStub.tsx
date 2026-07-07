@@ -18,7 +18,7 @@ export function BulkPasteMobileStub({ journeyId, journeyName }: BulkPasteMobileS
   const [copied, setCopied] = useState(false);
 
   const handleCopyUrl = async () => {
-    const url = `${window.location.origin}${window.location.pathname}#/sme/add?journey=${encodeURIComponent(journeyId)}`;
+    const url = `${window.location.origin}${window.location.pathname}#/explorer/add?journey=${encodeURIComponent(journeyId)}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);

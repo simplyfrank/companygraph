@@ -1,4 +1,4 @@
-// kpi-okr-performance-dashboards T-14 (design §6) — the #/exec/performance
+// kpi-okr-performance-dashboards T-14 (design §6) — the #/insights/performance
 // executive performance-control surface (blueprint round-4 View Tree,
 // verbatim). PURE RENDERER: every verdict is computed server-side by the
 // /api/v1/analytics/performance/* aggregates (DD-02); this view is
@@ -108,7 +108,7 @@ export function PerformanceDashboard({ route }: { route: Route }) {
     if (value) params[axis] = value;
     else delete params[axis];
     if (axis === "domain") delete params.journey;
-    location.hash = toHash({ surface: "exec", tab: "performance" }, params);
+    location.hash = toHash({ surface: "insights", tab: "performance" }, params);
   };
 
   // DD-08: ready state is O(1) fetches — the three aggregates + the
@@ -236,7 +236,7 @@ export function PerformanceDashboard({ route }: { route: Route }) {
             <div className={styles.empty} data-testid="empty-no-kpis">
               <p>No KPIs yet.</p>
               <p className={styles.emptyHint}>
-                Create KPIs under <a href="#/exec/kpi-management">KPI Management</a> to see
+                Create KPIs under <a href="#/govern/kpi-management">KPI Management</a> to see
                 portfolio status here.
               </p>
             </div>
@@ -297,7 +297,7 @@ export function PerformanceDashboard({ route }: { route: Route }) {
       <section aria-label="OKR roll-down performance" className={styles.section}>
         <div className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>OKR roll-down</h2>
-          <Button href="#/exec/okr-management">Open OKR Management</Button>
+          <Button href="#/govern/okr-management">Open OKR Management</Button>
         </div>
         {okrRows.length === 0 ? (
           <Card>

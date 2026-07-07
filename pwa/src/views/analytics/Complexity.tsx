@@ -213,7 +213,7 @@ export function AnalyticsComplexity() {
       <div style={{ height: 24 }} />
 
       {/* FR-04 / FR-11 read-only weights pane (RD-6 §10.2). Embedded here
-          because the `#/analytics/settings` tab registration lives in files
+          because the `#/insights/settings` tab registration lives in files
           owned by other tasks; the pane is still reachable and shows the
           code-default weights the score above is computed with. */}
       <AnalyticsSettings />
