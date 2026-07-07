@@ -534,8 +534,6 @@ export async function handleRollDownContributionsGet(req: Request): Promise<Resp
        RETURN d.id AS domain_id, d.name AS domain_name,
               sum(a.weight) AS total_weight,
               count(a) AS assignment_count
-       WITH domain_id, domain_name, total_weight, assignment_count
-       RETURN domain_id, domain_name, total_weight, assignment_count
        ORDER BY domain_name`,
     );
 
