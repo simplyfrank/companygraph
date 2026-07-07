@@ -295,6 +295,10 @@ export const api = {
       json<void>(`/api/v1/ontology/edge-types/${encodeURIComponent(name)}`, {
         method: "DELETE",
       }),
+    listVersions: async (signal?: AbortSignal) => {
+      const data = await json<{ rows: OntologyVersionRow[] }>("/api/v1/ontology/versions", withSignal(signal));
+      return data.rows;
+    },
     getBoundedContexts: async (signal?: AbortSignal) => {
       const data = await json<unknown>("/api/v1/ontology/bounded-contexts", withSignal(signal));
       return guardArray<BoundedContextRow>(data, "getBoundedContexts");
@@ -992,6 +996,17 @@ export interface OntologyEdgeTypeRow {
   deprecated_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// One entry in the ontology-manager schema-version ledger
+// (GET /api/v1/ontology/versions). Each row is a recorded registry mutation.
+export interface OntologyVersionRow {
+  version_id: string;
+  parent_version_id: string | null;
+  actor: string;
+  summary: string;
+  ts: string;
+  diff_jsonpatch: unknown;
 }
 
 export interface BoundedContextRow {
