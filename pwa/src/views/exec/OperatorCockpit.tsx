@@ -67,7 +67,7 @@ export function OperatorCockpit({ route }: { route: Route }) {
   // Header context: label with the SaaS-Operator root (resolved from the shell
   // model list by the OQ-1 marker), NOT the shell's active model — the cockpit's
   // data is server-resolved to SaaS-Operator, so the header must match it.
-  const { models } = useActiveModel();
+  const { models, status: modelStatus } = useActiveModel();
   const operatorModel =
     models.find(
       (m) =>
@@ -80,9 +80,19 @@ export function OperatorCockpit({ route }: { route: Route }) {
   const [reloadKey, setReloadKey] = useState(0);
   const refetch = () => setReloadKey((k) => k + 1);
 
+  // Hold in "loading" until the shell's model context settles, THEN fetch once.
+  // Firing on mount (while ActiveModelProvider is still loading) means the
+  // in-flight request is aborted by the settle re-render and — because useFetch
+  // swallows the AbortError — the view sticks on "loading" forever. Gating on
+  // modelStatus avoids the wasted/aborted request and the loading flicker
+  // entirely: one real request, issued after the shell is ready. (The endpoint
+  // is server-resolved and fast ~20ms — this is a lifecycle fix, not a perf one.)
   const overviewFetch = useFetch<OperatorOverviewResponse>(
-    (s) => api.operator.overview(slice, s),
-    [slice, reloadKey],
+    (s) =>
+      modelStatus === "ready"
+        ? api.operator.overview(slice, s)
+        : new Promise<OperatorOverviewResponse>(() => {}),
+    [slice, reloadKey, modelStatus],
   );
 
   // URL-first slice rewrite (FR-11/AC-18) — hash change, no full navigation.
