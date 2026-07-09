@@ -63,3 +63,8 @@
   font-weight: 600;
   color: var(--fg);
 }
+
+.countQualifier {
+  color: var(--muted-2);
+  font-style: italic;
+}

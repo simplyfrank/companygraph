@@ -397,6 +397,13 @@ export function FunnelBoard(_props: { route: Route }) {
             </select>
           </div>
 
+          {selectedId === "" && (
+            <p className={styles.hint} data-testid="funnel-board-pick-hint">
+              Pick a funnel above to see its stages, per-transition
+              conversion/drop-off, and overall conversion.
+            </p>
+          )}
+
           {compState.status === "loading" && <Loading what="stages" />}
           {compState.status === "error" && (
             <ErrorState

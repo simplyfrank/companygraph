@@ -139,6 +139,9 @@ export function FunctionMap(_props: { route: Route }) {
                   {fn.journeyActivityCount}
                 </span>
                 journeys &amp; activities
+                {fn.journeyActivityCount === 0 && (
+                  <span className={styles.countQualifier}> · not seeded yet</span>
+                )}
               </span>
             </a>
           ))}

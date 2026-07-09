@@ -32,6 +32,13 @@ import { useActiveModel } from "../../context/ActiveModelContext";
 import { ViewHeader, ViewRegion, Loading, EmptyState, ErrorState } from "../_shared";
 import styles from "./OperatorCockpit.module.css";
 
+// Operator views pin to the SaaS-Operator root regardless of the shell's active
+// model (blueprint UX/FR-15): the cockpit is SaaS-Operator-specific, so its
+// header must NOT inherit an unrelated active model (e.g. "Retail Reference").
+// Same OQ-1 marker FunctionMap resolves by.
+const OPERATOR_ROOT_NAME = "SaaS Operator";
+const OPERATOR_ROOT_MARKER = "saasOperatorRoot";
+
 const FUNCTION_LABELS: Record<OperatorFunction, string> = {
   marketing: "Marketing",
   sales: "Sales",
@@ -57,8 +64,16 @@ function isErr(v: unknown): v is SignalErr {
 
 export function OperatorCockpit({ route }: { route: Route }) {
   const slice = functionFromRoute(route);
-  // Header context (default SaaS-Operator root) — consumed, never re-implemented.
-  const { activeModel } = useActiveModel();
+  // Header context: label with the SaaS-Operator root (resolved from the shell
+  // model list by the OQ-1 marker), NOT the shell's active model — the cockpit's
+  // data is server-resolved to SaaS-Operator, so the header must match it.
+  const { models } = useActiveModel();
+  const operatorModel =
+    models.find(
+      (m) =>
+        m.name === OPERATOR_ROOT_NAME &&
+        (m.attributes as Record<string, unknown>)?.[OPERATOR_ROOT_MARKER] === true,
+    ) ?? null;
   const [drill, setDrill] = useState<null | "kpis" | "risks" | "funnels" | "slas">(null);
   // Retry affordance (AC-15): a bump forces the overview fetch to re-run
   // (useFetch re-runs when a dep changes — the hook exposes no reload seam).
@@ -82,7 +97,7 @@ export function OperatorCockpit({ route }: { route: Route }) {
   if (overviewFetch.status === "loading") {
     return (
       <>
-        <Header modelName={activeModel?.name} />
+        <Header modelName={operatorModel?.name} />
         <Loading what="operator cockpit" />
       </>
     );
@@ -90,7 +105,7 @@ export function OperatorCockpit({ route }: { route: Route }) {
   if (overviewFetch.status === "error") {
     return (
       <>
-        <Header modelName={activeModel?.name} />
+        <Header modelName={operatorModel?.name} />
         <ErrorState message={overviewFetch.error} onRetry={refetch} />
       </>
     );
@@ -115,7 +130,7 @@ export function OperatorCockpit({ route }: { route: Route }) {
   if (allEmpty) {
     return (
       <>
-        <Header modelName={activeModel?.name} />
+        <Header modelName={operatorModel?.name} />
         <div className={styles.emptyWrap} data-testid="cockpit-empty">
           <EmptyState what="cross-function content" />
           <p className={styles.emptyHint}>
@@ -129,7 +144,7 @@ export function OperatorCockpit({ route }: { route: Route }) {
 
   return (
     <>
-      <Header modelName={activeModel?.name} />
+      <Header modelName={operatorModel?.name} />
 
       {/* Function slicer (FR-11) — URL-first, standard controls, no drag. */}
       <div className={styles.slicer} role="group" aria-label="Filter by function">
