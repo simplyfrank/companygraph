@@ -17,9 +17,23 @@
   background: var(--surface-2);
   text-decoration: none;
 }
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+/* Touch: enlarge the hit area to the 44pt floor on coarse pointers only;
+   the 28px house height (DD-09) is preserved on mouse/trackpad. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
 }
 
 .default {}

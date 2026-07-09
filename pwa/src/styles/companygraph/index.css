@@ -21,3 +21,18 @@ a:hover { text-decoration: underline; }
 button { font: inherit; cursor: pointer; border: 0; background: transparent; color: inherit; }
 input, textarea, select { font: inherit; color: inherit; }
 code, .mono { font-family: var(--font-mono); font-size: 12.5px; }
+
+/* Accessibility: honor the OS "reduce motion" setting app-wide. Neutralizes
+   chart mount animations, skeleton pulses, and CSS transitions/animations for
+   users who opt out; continuous canvas force-simulations should additionally
+   short-circuit their rAF loops in JS (tracked separately). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
