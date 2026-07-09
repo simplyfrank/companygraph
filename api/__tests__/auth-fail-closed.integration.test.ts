@@ -5,13 +5,14 @@
 // Each case sets env EXPLICITLY (never relying on the T-10 preload) so it
 // observes the TRUE hardened default. Both the router's issuer read
 // (process.env.ONELOGIN_ISSUER, per request) and devFallbackEligible()'s
-// loadEnv() (HOST / AUTH_DEV_FALLBACK, per call) are evaluated per request, so
-// mutating process.env between cases is sufficient with a single dynamic
-// router import. All mutated vars are cleared in afterAll (env discipline —
-// design §4.11 / C-04) so nothing leaks into sibling files.
+// posture read (HOST / AUTH_DEV_FALLBACK from process.env, per call) are
+// evaluated per request, so mutating process.env between cases is sufficient
+// with a single dynamic router import. All mutated vars are cleared in
+// afterAll (env discipline — design §4.11 / C-04) so nothing leaks into
+// sibling files.
 
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
-import { assertAuthPosture } from "../src/auth/dev-fallback";
+import { assertAuthPosture, devFallbackEligible } from "../src/auth/dev-fallback";
 
 // Dynamic import AFTER a clean env baseline (no static top-of-file router
 // import — that would hoist above the env work below).
@@ -123,5 +124,27 @@ describe("integration: auth-hardening fail-closed regressions (AC-10/11/12/14)",
     expect(devWarnings.length).toBe(2);
     // The message names the loopback-only constraint.
     expect(devWarnings[0]).toContain("NEVER expose beyond 127.0.0.1");
+  });
+
+  // Regression guard (post-review fix): the fail-closed auth decision MUST NOT
+  // be coupled to unrelated env validation. devFallbackEligible() reads only
+  // HOST / AUTH_DEV_FALLBACK from process.env — it must NEVER throw, even when
+  // NEO4J_PASSWORD is unset (loadEnv() would throw on that). If it threw, the
+  // gate's fail-closed 401 would surface as a 500 instead.
+  test("devFallbackEligible does not throw when NEO4J_PASSWORD is unset (decoupled from loadEnv)", () => {
+    const prevPw = process.env.NEO4J_PASSWORD;
+    delete process.env.NEO4J_PASSWORD;
+    try {
+      // No opt-in, no loopback override → false, and crucially: no throw.
+      expect(() => devFallbackEligible()).not.toThrow();
+      expect(devFallbackEligible()).toBe(false);
+      // Eligible combination still resolves without touching NEO4J_PASSWORD.
+      process.env.AUTH_DEV_FALLBACK = "1";
+      process.env.HOST = "127.0.0.1";
+      expect(devFallbackEligible()).toBe(true);
+    } finally {
+      if (prevPw === undefined) delete process.env.NEO4J_PASSWORD;
+      else process.env.NEO4J_PASSWORD = prevPw;
+    }
   });
 });

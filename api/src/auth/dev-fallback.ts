@@ -22,6 +22,29 @@ export function isLoopbackHost(host: string): boolean {
   return host === "127.0.0.1" || host === "::1" || host === "localhost";
 }
 
+/** The two — and only two — env fields the fallback decision reads. */
+export interface AuthPostureEnv {
+  host: string;
+  authDevFallback: boolean;
+}
+
+/**
+ * Read ONLY the auth-posture fields directly from process.env, mirroring
+ * env.ts's parsing for these two vars. SECURITY-CRITICAL: this deliberately
+ * does NOT call loadEnv(), so the fail-closed auth decision can never throw on
+ * an unrelated env check (e.g. loadEnv() throws when NEO4J_PASSWORD is unset —
+ * that must not turn the gate's fail-closed 401 into a 500). Full `Env` objects
+ * (which extend AuthPostureEnv) remain accepted for injection.
+ */
+function authPostureEnv(): AuthPostureEnv {
+  return {
+    host: process.env.HOST ?? "127.0.0.1",
+    authDevFallback:
+      process.env.AUTH_DEV_FALLBACK === "1" ||
+      process.env.AUTH_DEV_FALLBACK?.toLowerCase() === "true",
+  };
+}
+
 /**
  * The dev full-permission fallback is eligible ONLY when all hold:
  *   (a) the AUTH_DEV_FALLBACK opt-in is set (env.authDevFallback), AND
@@ -30,10 +53,11 @@ export function isLoopbackHost(host: string): boolean {
  * Any other combination → NOT eligible → the gate / validateToken fail closed.
  *
  * `env` and `issuer` default to live values but are injectable so unit tests
- * stay hermetic (no process.env mutation required).
+ * stay hermetic (no process.env mutation required). The default reads only the
+ * two posture fields (never loadEnv()) so the decision cannot throw.
  */
 export function devFallbackEligible(
-  env: Env = loadEnv(),
+  env: AuthPostureEnv = authPostureEnv(),
   issuer: string | undefined = process.env.ONELOGIN_ISSUER,
 ): boolean {
   return env.authDevFallback && isLoopbackHost(env.host) && !issuer;
